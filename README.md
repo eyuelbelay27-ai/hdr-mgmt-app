@@ -10,6 +10,39 @@ wins. Section numbers referenced below (e.g. "Section 7.4") refer to
 
 The production app lives in `app/` (Next.js + Prisma/Postgres + Auth.js).
 
+## Live deployment
+
+Deployed on [AletCloud](https://aletcloud.com) ("Ethiopia's Sovereign Cloud"):
+**https://hdr-mgmt-app.app.aletcloud.com**
+
+- **Hosting**: AletCloud App Hosting, connected to this repo's `main` branch, root dir `app/`, auto-deploys on push.
+- **Database**: AletCloud managed PostgreSQL (Solo/free tier). It's cluster-internal only (no public endpoint), so migrations run from *inside* the app itself rather than from a developer machine or CI runner — see below.
+- **File storage**: AletCloud S3-compatible bucket (`lib/storage.ts`'s S3 path), public-read, since the app constructs plain object URLs rather than presigning every request — matches the exposure level the local-disk prototype had (anything under `/public/uploads` was served with no auth check either).
+- **Auth**: `AUTH_TRUST_HOST=true` and an explicit `AUTH_URL` are required in this environment — the platform's reverse proxy doesn't present a host Auth.js trusts by default, and without `AUTH_URL` it also can't construct correct redirect URLs (it defaulted to `localhost:3000` even after the host was trusted). Both must be set for login to actually complete.
+
+### Running migrations and the initial seed in production
+
+The platform's Next.js runner launches `next start` directly — it does not
+run `package.json`'s `start` script, and there's no shell/one-off-command
+access to a running container. So `app/api/admin/seed/route.ts` is a
+secret-header-protected endpoint that runs `prisma migrate deploy` (from
+inside the running app, which does have network access to the internal
+DB) and then seeds, in one call:
+
+```bash
+curl -X POST https://hdr-mgmt-app.app.aletcloud.com/api/admin/seed \
+  -H "x-seed-secret: $SEED_TRIGGER_SECRET"
+```
+
+It's safe to call more than once: `migrate deploy` is a no-op once every
+migration is applied, and the seed half refuses to run at all if any user
+already exists (returns 409). The deployed app currently has
+`SEED_TRIGGER_SECRET` unset (removed after the initial seed), which makes
+the route return 503 rather than run — set that env var again (via
+AletCloud's env var UI, or the `setAppEnv` tool if driving deploys through
+their MCP server) before calling it, e.g. after a fresh migration that
+needs applying.
+
 ## What's built
 
 Every step of the brief's Section 11 build order has a working implementation:
