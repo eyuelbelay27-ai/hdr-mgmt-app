@@ -68,17 +68,17 @@ export default async function JobsPage({
     <div className="app-shell">
       <AppNav user={user} activePage="jobs" />
       <main className="app-main">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
           <h1 style={{ marginTop: 0 }}>Jobs</h1>
           {can(user, "createJob") && <NewJobForm />}
         </div>
 
-        <form method="get" style={{ display: "flex", gap: 10, alignItems: "end", margin: "12px 0" }}>
-          <div style={{ flex: 1, maxWidth: 320 }}>
+        <form method="get" className="form-row" style={{ margin: "12px 0", alignItems: "end" }}>
+          <div className="form-field">
             <label className="label" htmlFor="q">Search</label>
             <input className="input" id="q" name="q" defaultValue={q} placeholder="Client, job #, or title" />
           </div>
-          <div>
+          <div className="form-field">
             <label className="label" htmlFor="status">Status</label>
             <select className="input" id="status" name="status" defaultValue={statusFilter}>
               <option value="">All</option>
@@ -87,13 +87,16 @@ export default async function JobsPage({
               ))}
             </select>
           </div>
-          <button className="btn btn-sm" type="submit">Filter</button>
-          {(q || statusFilter) && (
-            <a className="btn btn-sm btn-ghost" href="/jobs">Clear</a>
-          )}
+          <div className="form-field" style={{ flexDirection: "row", gap: 8 }}>
+            <button className="btn btn-sm" type="submit">Filter</button>
+            {(q || statusFilter) && (
+              <a className="btn btn-sm btn-ghost" href="/jobs">Clear</a>
+            )}
+          </div>
         </form>
 
-        <table className="card" style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="card dtable-wrap">
+        <table className="dtable">
           <thead>
             <tr>
               {[
@@ -106,7 +109,7 @@ export default async function JobsPage({
                 "Record",
                 "",
               ].map((h) => (
-                <th key={h} className="label" style={{ textAlign: "left", padding: "10px 12px" }}>
+                <th key={h}>
                   {h}
                 </th>
               ))}
@@ -119,48 +122,49 @@ export default async function JobsPage({
                 .reduce((s, p) => s + toNumber(p.amount), 0);
               const remaining = remainingPayment(j.costEstimateSoldPrice, j.payments);
               return (
-                <tr key={j.id} style={{ borderTop: "1px solid var(--border-soft)" }}>
-                  <td className="mono" style={{ padding: "10px 12px" }}>
+                <tr key={j.id}>
+                  <td className="mono" data-label="Job #">
                     <a href={`/jobs/${j.id}`} style={{ color: "inherit" }}>{j.jobNumber}</a>
                   </td>
-                  <td style={{ padding: "10px 12px" }}>
+                  <td data-label="Client">
                     <a href={`/jobs/${j.id}`} style={{ display: "flex", gap: 8, alignItems: "center", color: "inherit" }}>
                       {j.clientName}
                       {j.deadline && <DeadlineBadge deadline={j.deadline} status={j.status} />}
                     </a>
                   </td>
-                  <td style={{ padding: "10px 12px" }}>{j.designer || "—"}</td>
-                  <td style={{ padding: "10px 12px" }}>
+                  <td data-label="Designer">{j.designer || "—"}</td>
+                  <td data-label="Status">
                     <StatusBadge status={j.status} />
                   </td>
                   {canSeeFinancials && (
                     <>
-                      <td className="mono" style={{ padding: "10px 12px" }}>{toNumber(j.costEstimateSoldPrice).toLocaleString()}</td>
-                      <td className="mono" style={{ padding: "10px 12px" }}>{advance.toLocaleString()}</td>
-                      <td className="mono" style={{ padding: "10px 12px" }}>{remaining.toLocaleString()}</td>
+                      <td className="mono" data-label="Final Price">{toNumber(j.costEstimateSoldPrice).toLocaleString()}</td>
+                      <td className="mono" data-label="Advance">{advance.toLocaleString()}</td>
+                      <td className="mono" data-label="Remaining">{remaining.toLocaleString()}</td>
                     </>
                   )}
-                  <td style={{ padding: "10px 12px" }}>{j.updatedAt.toISOString().slice(0, 10)}</td>
-                  <td style={{ padding: "10px 12px" }}>
+                  <td data-label="Updated">{j.updatedAt.toISOString().slice(0, 10)}</td>
+                  <td data-label="Record">
                     {j.status === "Closed" && (
                       <a className="btn btn-sm" href={`/jobs/${j.id}/print`}>Print</a>
                     )}
                   </td>
-                  <td style={{ padding: "10px 12px" }}>
-                    <a href={`/jobs/${j.id}`} style={{ color: "inherit" }}>›</a>
+                  <td>
+                    <a href={`/jobs/${j.id}`} style={{ color: "inherit" }}>Open ›</a>
                   </td>
                 </tr>
               );
             })}
             {jobs.length === 0 && (
               <tr>
-                <td className="label" style={{ padding: "10px 12px" }} colSpan={canSeeFinancials ? 9 : 6}>
+                <td className="label" colSpan={canSeeFinancials ? 9 : 6}>
                   No jobs match.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        </div>
       </main>
     </div>
   );

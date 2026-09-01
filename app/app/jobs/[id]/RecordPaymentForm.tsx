@@ -31,22 +31,22 @@ export function RecordPaymentForm({ jobId }: { jobId: string }) {
       className="card"
       style={{ padding: 16, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap" }}
     >
-      <div>
+      <div style={{ flex: "1 1 130px" }}>
         <label className="label">Type</label>
         <select className="input" name="type" defaultValue="Final">
           <option value="Final">Final</option>
           <option value="Other">Other</option>
         </select>
       </div>
-      <div>
+      <div style={{ flex: "1 1 130px" }}>
         <label className="label">Amount (ETB)</label>
         <input className="input" name="amount" type="number" step="0.01" min="0" required />
       </div>
-      <div>
+      <div style={{ flex: "1 1 130px" }}>
         <label className="label">Method</label>
         <input className="input" name="method" />
       </div>
-      <div>
+      <div style={{ flex: "1 1 150px" }}>
         <label className="label">Date</label>
         <input className="input" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
       </div>

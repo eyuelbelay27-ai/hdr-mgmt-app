@@ -54,7 +54,7 @@ export function DesignTab({
           productionNotes={job.productionNotes}
         />
       ) : (
-        <div className="card" style={{ padding: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="card form-row" style={{ padding: 16 }}>
           <div>
             <div className="label">Designer</div>
             <div>{job.designer || "—"}</div>
@@ -79,8 +79,8 @@ export function DesignTab({
                 key={c.id}
                 action={updateComponentAction.bind(null, c.id, job.id)}
                 encType="multipart/form-data"
-                className="card"
-                style={{ padding: 12, display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto", gap: 10, alignItems: "end" }}
+                className="card form-row"
+                style={{ padding: 12 }}
               >
                 <div>
                   <label className="label">Name</label>
@@ -122,7 +122,7 @@ export function DesignTab({
                 </div>
               </form>
             ) : (
-              <div key={c.id} className="card" style={{ padding: 12, display: "flex", gap: 16, alignItems: "center" }}>
+              <div key={c.id} className="card" style={{ padding: 12, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
                 {c.artUrl && (
                   <Lightbox file={{ name: c.artName ?? "art", url: c.artUrl, kind: c.artKind ?? "" }} />
                 )}

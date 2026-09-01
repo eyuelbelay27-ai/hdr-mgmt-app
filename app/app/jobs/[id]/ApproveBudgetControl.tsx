@@ -36,7 +36,7 @@ export function ApproveBudgetControl({ jobId }: { jobId: string }) {
   }
 
   return (
-    <form action={formAction} className="card" style={{ padding: 12, display: "flex", gap: 10, alignItems: "end" }}>
+    <form action={formAction} className="card" style={{ padding: 12, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap" }}>
       <div>
         <label className="label" htmlFor={`deadline-${jobId}`}>Deadline</label>
         <input

@@ -35,16 +35,17 @@ export default async function UsersPage() {
     <div className="app-shell">
       <AppNav user={user} activePage="users" />
       <main className="app-main">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
           <h1 style={{ marginTop: 0 }}>Users</h1>
           {canManage && <CreateUserForm />}
         </div>
 
-        <table className="card" style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
+        <div className="card dtable-wrap" style={{ marginTop: 12 }}>
+        <table className="dtable">
           <thead>
             <tr>
               {["Name", "Username", "Role", "Status", ""].map((h) => (
-                <th key={h} className="label" style={{ textAlign: "left", padding: "10px 12px" }}>
+                <th key={h}>
                   {h}
                 </th>
               ))}
@@ -52,14 +53,14 @@ export default async function UsersPage() {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} style={{ borderTop: "1px solid var(--border-soft)" }}>
-                <td style={{ padding: "10px 12px" }}>
+              <tr key={u.id}>
+                <td data-label="Name">
                   {canManage ? <a href={`/users/${u.id}`} style={{ color: "inherit" }}>{u.name}</a> : u.name}
                 </td>
-                <td className="mono" style={{ padding: "10px 12px" }}>{u.username}</td>
-                <td style={{ padding: "10px 12px" }}>{ROLE_LABEL[u.role]}</td>
-                <td style={{ padding: "10px 12px" }}>{u.active ? "Active" : "Deactivated"}</td>
-                <td style={{ padding: "10px 12px" }}>
+                <td className="mono" data-label="Username">{u.username}</td>
+                <td data-label="Role">{ROLE_LABEL[u.role]}</td>
+                <td data-label="Status">{u.active ? "Active" : "Deactivated"}</td>
+                <td>
                   {canManage && u.id !== user.id && (
                     <form action={setUserActiveAction.bind(null, u.id, !u.active)}>
                       <button className="btn btn-sm" type="submit">
@@ -72,6 +73,7 @@ export default async function UsersPage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {canManage && (
           <p className="label" style={{ marginTop: 16 }}>

@@ -23,8 +23,8 @@ function ActionRow({
 
   return (
     <tr>
-      <td>{label}</td>
-      <td style={{ textAlign: "center" }}>
+      <td data-label="Action">{label}</td>
+      <td data-label="Allow View" style={{ textAlign: "center" }}>
         <input
           type="checkbox"
           name={`action_view_${actionKey}`}
@@ -33,7 +33,7 @@ function ActionRow({
           onChange={(e) => setView(e.target.checked)}
         />
       </td>
-      <td style={{ textAlign: "center" }}>
+      <td data-label="Allow Edit" style={{ textAlign: "center" }}>
         <input
           type="checkbox"
           name={`action_edit_${actionKey}`}
@@ -103,6 +103,7 @@ export function PermissionsForm({
 
       <div>
         <h3>Actions</h3>
+        <div className="dtable-wrap">
         <table className="dtable">
           <thead>
             <tr><th>Action</th><th style={{ textAlign: "center" }}>Allow View</th><th style={{ textAlign: "center" }}>Allow Edit</th></tr>
@@ -119,6 +120,7 @@ export function PermissionsForm({
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div>

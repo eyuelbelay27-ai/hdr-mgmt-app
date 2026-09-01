@@ -28,7 +28,7 @@ export function AddCutFileForm({ jobId }: { jobId: string }) {
       action={formAction}
       encType="multipart/form-data"
       className="card"
-      style={{ padding: 16, display: "flex", gap: 10, alignItems: "flex-end" }}
+      style={{ padding: 16, display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}
     >
       <div style={{ flex: 1 }}>
         <FileField id="file" name="file" label="Upload cut file (JPEG/PDF/AI)" accept="image/*,.pdf,.ai" required />

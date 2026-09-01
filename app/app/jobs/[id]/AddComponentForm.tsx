@@ -31,24 +31,24 @@ export function AddComponentForm({ jobId }: { jobId: string }) {
       style={{ padding: 16, display: "grid", gap: 10 }}
     >
       <div className="label">Add Component</div>
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", gap: 10 }}>
-        <div>
+      <div className="form-row">
+        <div className="form-field">
           <label className="label" htmlFor="name">Name</label>
           <input className="input" id="name" name="name" required />
         </div>
-        <div>
+        <div className="form-field">
           <label className="label" htmlFor="width">Width (m)</label>
           <input className="input" id="width" name="width" type="number" step="0.01" min="0" required />
         </div>
-        <div>
+        <div className="form-field">
           <label className="label" htmlFor="height">Height (m)</label>
           <input className="input" id="height" name="height" type="number" step="0.01" min="0" required />
         </div>
-        <div>
+        <div className="form-field">
           <label className="label" htmlFor="qty">Qty</label>
           <input className="input" id="qty" name="qty" type="number" step="1" min="1" required />
         </div>
-        <div>
+        <div className="form-field">
           <label className="label" htmlFor="ledColor">LED Colour</label>
           <input className="input" id="ledColor" name="ledColor" />
         </div>

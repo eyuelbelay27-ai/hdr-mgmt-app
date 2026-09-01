@@ -59,9 +59,18 @@ body {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   transition: filter 0.12s, opacity 0.12s;
   white-space: nowrap;
+  /* Comfortable thumb target (Section: mobile support is mandatory) — applies
+     at every width, not just narrow ones, since touch is common on tablets
+     and 2-in-1s too, and it costs nothing on desktop. */
+  min-height: 40px;
+}
+.btn-sm {
+  min-height: 34px;
+  padding: 6px 10px;
 }
 .btn:hover {
   filter: brightness(1.15);
@@ -80,14 +89,23 @@ body {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 7px;
-  padding: 7px 10px;
+  padding: 9px 10px;
   color: var(--text);
   font-size: 13px;
   font-family: var(--sans);
+  min-height: 40px;
 }
 .input:focus {
   outline: none;
   border-color: var(--accent);
+}
+input[type="checkbox"],
+input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 .label {
   font-size: 11px;
@@ -153,6 +171,7 @@ body {
 .app-main {
   flex: 1;
   padding: 24px;
+  min-width: 0;
 }
 .nav-item {
   display: flex;
@@ -173,6 +192,213 @@ body {
 .nav-item.active {
   background: var(--accent-soft);
   color: var(--accent-text);
+}
+
+/* Sub-navigation tab strips (Job Detail tabs, Inventory tabs). Never had
+   base styling — was rendering as plain unstyled links. */
+.tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  min-height: 40px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tab:hover {
+  color: var(--text);
+}
+.tab.active {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+}
+
+/* Mobile top bar + drawer nav (Section: mobile support is mandatory).
+   Hidden entirely on desktop widths; the existing .app-nav sidebar is
+   untouched above 860px. */
+.mobile-topbar {
+  display: none;
+}
+.nav-overlay {
+  display: none;
+}
+@media (max-width: 860px) {
+  .app-shell {
+    flex-direction: column;
+  }
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+  }
+  .mobile-topbar .hamburger-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .mobile-topbar .mobile-topbar-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .app-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    width: 260px;
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    overflow-y: auto;
+    box-shadow: 2px 0 24px rgba(0, 0, 0, 0.4);
+  }
+  .app-nav.nav-open {
+    transform: translateX(0);
+  }
+  .nav-overlay.nav-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  .app-main {
+    padding: 16px;
+    width: 100%;
+  }
+  /* Nav items get a bigger tap target on touch widths. */
+  .nav-item {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+/* Standard data table used across Budget, Expenses, Cost Estimate,
+   Reconciliation, Payments, Inventory and Purchase Orders. */
+.dtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.dtable th,
+.dtable td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+  vertical-align: middle;
+}
+.dtable th {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.dtable tbody tr:hover {
+  background: var(--surface-2);
+}
+.dtable-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Responsive grid utility for forms (Create Job, inline add-rows,
+   permissions editor, etc). A row lays fields out side by side on wide
+   screens and stacks them to one column below 640px — inline
+   `style={{gridTemplateColumns:...}}` on individual forms is replaced by
+   this class so the media query below can actually take effect (an
+   inline style would otherwise win on specificity and never reflow). */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  /* Card-stack transform: each row becomes a bordered card, each cell
+     becomes a label/value line using the cell's own data-label attribute.
+     Chosen over a horizontally-scrolling table because these tables mix
+     numbers, dropdowns, checkboxes and action buttons — a shrunk-down
+     scrollable table is unusable one-handed, this keeps every control at
+     full tap size. */
+  .dtable-wrap {
+    overflow-x: visible;
+  }
+  .dtable thead {
+    display: none;
+  }
+  .dtable,
+  .dtable tbody,
+  .dtable tr,
+  .dtable td {
+    display: block;
+    width: 100%;
+  }
+  .dtable tr {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  .dtable td {
+    border-bottom: none;
+    padding: 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right;
+  }
+  .dtable td[data-label]::before {
+    content: attr(data-label);
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-dim);
+    text-align: left;
+    margin-right: auto;
+    flex-shrink: 0;
+  }
+  .dtable td:empty {
+    display: none;
+  }
+  /* A cell with no data-label (rare: a full-width action row) spans
+     normally instead of trying to split into a label/value pair. */
+  .dtable td:not([data-label]) {
+    justify-content: flex-start;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Full job record print view (Section 6/8.2/9) — window.print(), not real

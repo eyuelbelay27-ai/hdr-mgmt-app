@@ -11,7 +11,7 @@ export function PasswordResetForm({ userId }: { userId: string }) {
   const [state, formAction] = useFormState(boundAction, initialState);
 
   return (
-    <form action={formAction} style={{ display: "flex", gap: 8, alignItems: "end" }}>
+    <form action={formAction} style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
       <div>
         <label className="label">New Password</label>
         <input className="input" name="password" type="password" minLength={8} required />

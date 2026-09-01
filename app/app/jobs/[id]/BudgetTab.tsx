@@ -30,7 +30,7 @@ export function BudgetTab({ job, user }: { job: BudgetJob; user: PermissionSubje
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
           <div className="label">Total Allocated (Cash)</div>
           <div style={{ fontSize: 22, fontWeight: 700 }}>{totalCash.toLocaleString()} ETB</div>
@@ -57,6 +57,7 @@ export function BudgetTab({ job, user }: { job: BudgetJob; user: PermissionSubje
         </form>
       )}
 
+      <div className="card dtable-wrap">
       <table className="dtable">
         <thead>
           <tr>
@@ -78,6 +79,7 @@ export function BudgetTab({ job, user }: { job: BudgetJob; user: PermissionSubje
           )}
         </tbody>
       </table>
+      </div>
 
       {editable && <AddBudgetItemForm jobId={job.id} />}
     </div>

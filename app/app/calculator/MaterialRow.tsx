@@ -45,15 +45,15 @@ export function MaterialRow({ material, editable }: { material: Material; editab
       <tr>
         {editable ? (
           <>
-            <td><input className="input" form={formId} name="name" defaultValue={material.name} required /></td>
-            <td>
+            <td data-label="Name"><input className="input" form={formId} name="name" defaultValue={material.name} required /></td>
+            <td data-label="Category">
               <select className="input" form={formId} name="category" defaultValue={material.category}>
                 <option value="cash">Cash</option>
                 <option value="stock">Stock</option>
               </select>
             </td>
-            <td><input className="input" form={formId} name="unit" defaultValue={material.unit} /></td>
-            <td>
+            <td data-label="Unit"><input className="input" form={formId} name="unit" defaultValue={material.unit} /></td>
+            <td data-label="Rate">
               <input
                 className="input"
                 form={formId}
@@ -64,7 +64,7 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 defaultValue={material.rate === null ? "" : String(material.rate)}
               />
             </td>
-            <td>
+            <td data-label="Default Qty">
               <input
                 className="input"
                 form={formId}
@@ -75,16 +75,15 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 defaultValue={material.defaultQty === null ? "" : String(material.defaultQty)}
               />
             </td>
-            <td>
+            <td data-label="Active">
               <input type="checkbox" form={formId} name="active" defaultChecked={material.active} />
             </td>
-            <td>
+            <td data-label="Actions" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <SubmitButton label="Save" pendingLabel="…" className="btn btn-sm" />
               <button
                 type="button"
                 className="btn btn-sm btn-ghost"
                 onClick={() => setHistoryOpen((v) => !v)}
-                style={{ marginLeft: 4 }}
               >
                 History ({material.priceHistory.length})
               </button>
@@ -92,12 +91,12 @@ export function MaterialRow({ material, editable }: { material: Material; editab
           </>
         ) : (
           <>
-            <td>{material.name}</td>
-            <td>{material.category === "cash" ? "Cash" : "Stock"}</td>
-            <td>{material.unit}</td>
-            <td className="mono">{material.rate === null ? "—" : String(material.rate)}</td>
-            <td className="mono">{material.defaultQty === null ? "—" : String(material.defaultQty)}</td>
-            <td>{material.active ? "Active" : "Inactive"}</td>
+            <td data-label="Name">{material.name}</td>
+            <td data-label="Category">{material.category === "cash" ? "Cash" : "Stock"}</td>
+            <td data-label="Unit">{material.unit}</td>
+            <td className="mono" data-label="Rate">{material.rate === null ? "—" : String(material.rate)}</td>
+            <td className="mono" data-label="Default Qty">{material.defaultQty === null ? "—" : String(material.defaultQty)}</td>
+            <td data-label="Active">{material.active ? "Active" : "Inactive"}</td>
             <td>
               <button type="button" className="btn btn-sm btn-ghost" onClick={() => setHistoryOpen((v) => !v)}>
                 History ({material.priceHistory.length})
@@ -117,6 +116,7 @@ export function MaterialRow({ material, editable }: { material: Material; editab
             {material.priceHistory.length === 0 ? (
               <span className="label">No price changes recorded.</span>
             ) : (
+              <div className="dtable-wrap">
               <table className="dtable">
                 <thead>
                   <tr>
@@ -129,14 +129,15 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 <tbody>
                   {material.priceHistory.map((h) => (
                     <tr key={h.id}>
-                      <td>{h.effectiveDate.toISOString().slice(0, 10)}</td>
-                      <td className="mono">{h.oldPrice === null ? "—" : String(h.oldPrice)}</td>
-                      <td className="mono">{h.newPrice === null ? "—" : String(h.newPrice)}</td>
-                      <td>{h.changedBy?.name ?? "—"}</td>
+                      <td data-label="Date">{h.effectiveDate.toISOString().slice(0, 10)}</td>
+                      <td className="mono" data-label="Old Price">{h.oldPrice === null ? "—" : String(h.oldPrice)}</td>
+                      <td className="mono" data-label="New Price">{h.newPrice === null ? "—" : String(h.newPrice)}</td>
+                      <td data-label="Changed By">{h.changedBy?.name ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </td>
         </tr>

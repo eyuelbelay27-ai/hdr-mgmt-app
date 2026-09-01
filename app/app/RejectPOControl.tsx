@@ -28,8 +28,8 @@ export function RejectPOControl({ poId }: { poId: string }) {
   }
 
   return (
-    <form action={formAction} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-      <input className="input" style={{ width: 140 }} name="note" placeholder="Reason" value={note} onChange={(e) => setNote(e.target.value)} />
+    <form action={formAction} style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+      <input className="input" style={{ width: 140, flex: "1 1 140px" }} name="note" placeholder="Reason" value={note} onChange={(e) => setNote(e.target.value)} />
       <ConfirmButton enabled={note.trim().length > 0} />
       <button className="btn btn-sm" type="button" onClick={() => setOpen(false)}>Cancel</button>
       {state.error && <span className="login-error">{state.error}</span>}

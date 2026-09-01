@@ -36,11 +36,12 @@ export default async function PriceDatabasePage() {
           Editing a rate here updates every job&apos;s Cost Estimate live.
         </p>
 
-        <table className="card" style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="card dtable-wrap">
+        <table className="dtable">
           <thead>
             <tr>
               {["Name", "Category", "Unit", "Rate", "Default Qty", "Active", ""].map((h) => (
-                <th key={h} className="label" style={{ textAlign: "left", padding: "10px 12px" }}>
+                <th key={h}>
                   {h}
                 </th>
               ))}
@@ -52,6 +53,7 @@ export default async function PriceDatabasePage() {
             ))}
           </tbody>
         </table>
+        </div>
 
         {editable && <AddMaterialForm />}
       </main>
