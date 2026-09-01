@@ -1,0 +1,213 @@
+/* Design tokens ported directly from the validated prototype
+   (hadar-job-management-prototype.jsx) — do not redesign, this has already
+   been through many rounds of real user feedback. */
+:root {
+  --bg: #131315;
+  --surface: #1b1b1f;
+  --surface-2: #222227;
+  --surface-3: #2a2a31;
+  --border: #302f36;
+  --border-soft: #26262c;
+  --text: #edeae2;
+  --text-dim: #9c99a3;
+  --text-faint: #69666f;
+  --accent: #c7962f;
+  --accent-soft: rgba(199, 150, 47, 0.14);
+  --accent-text: #e8c77a;
+  --success: #4f9d6e;
+  --success-soft: rgba(79, 157, 110, 0.14);
+  --danger: #c1493d;
+  --danger-soft: rgba(193, 73, 61, 0.14);
+  --warn: #d9a441;
+  --warn-soft: rgba(217, 164, 65, 0.14);
+  --info: #5e90bf;
+  --info-soft: rgba(94, 144, 191, 0.14);
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, "Inter", "Segoe UI", "Noto Sans Ethiopic", "Nyala", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  margin: 0;
+  min-height: 100vh;
+}
+
+.mono {
+  font-family: var(--mono);
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.btn {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: filter 0.12s, opacity 0.12s;
+  white-space: nowrap;
+}
+.btn:hover {
+  filter: brightness(1.15);
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1406;
+}
+.input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--sans);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 28px;
+}
+.login-card h1 {
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+.login-subtitle {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.login-form .input {
+  margin-bottom: 14px;
+}
+.login-form .btn {
+  margin-top: 6px;
+  justify-content: center;
+}
+.login-error {
+  color: #f0a99f;
+  font-size: 12.5px;
+  margin: 0 0 10px;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+.app-nav {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+}
+.app-main {
+  flex: 1;
+  padding: 24px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: none;
+}
+.nav-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+/* Full job record print view (Section 6/8.2/9) — window.print(), not real
+   PDF generation (Section 10 flags that as an open decision). A light,
+   legible-on-paper sheet regardless of the app's dark theme. */
+.print-sheet {
+  background: #fff;
+  color: #111;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 32px;
+  border-radius: 6px;
+}
+.print-sheet h1,
+.print-sheet h2,
+.print-sheet h3 {
+  color: #111;
+}
+.print-sheet table.dtable th,
+.print-sheet table.dtable td {
+  color: #111;
+  border-color: #ddd;
+}
+.print-sheet .label {
+  color: #555;
+}
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-sheet {
+    max-width: none;
+    padding: 0;
+  }
+  body {
+    background: #fff;
+  }
+}

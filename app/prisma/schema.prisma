@@ -1,0 +1,494 @@
+// Hadar Advertising — Job Management
+// Schema translates Section 4 of the handoff brief into relational tables.
+// Where the prototype used a nested useState object with array fields
+// (components, expenses, payments, activity, costEstimate.items,
+// budget.items, cutFiles), those become one-to-many relations here.
+// Scalar summary fields (soldPrice, commissionActive, budget.status, etc.)
+// stay as columns directly on Job to avoid pointless 1:1 tables.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Designer
+  Supervisor
+  Manager
+  OwnerFinance
+  Admin
+}
+
+enum JobStatus {
+  Draft
+  WaitingForApproval
+  ApprovedBudget
+  WaitingForReconciliation
+  Closed
+  Cancelled
+}
+
+enum BudgetStatus {
+  Draft
+  Approved
+}
+
+enum ItemCategory {
+  cash
+  stock
+}
+
+enum CostEstimateSource {
+  Manual
+  PriceDatabase
+}
+
+enum BudgetItemSource {
+  Manual
+  CostEstimate
+}
+
+enum ExpenseEntryType {
+  purchase
+  receipt
+}
+
+enum ExpenseSource {
+  Manual
+  Budget
+}
+
+enum PaymentType {
+  Advance
+  Final
+  Other
+}
+
+enum ReconciliationStatus {
+  Pending
+  Reconciled
+  Flagged
+}
+
+enum PurchaseOrderStatus {
+  Pending
+  Approved
+  Rejected
+}
+
+enum InventoryDirection {
+  in
+  out
+}
+
+// -----------------------------------------------------------------------
+// Users & Permissions (Section 4.5 / 5)
+// -----------------------------------------------------------------------
+// `role` only seeds the initial actions/actionViews/pages/tabs maps at
+// creation time (see lib/permissions.ts::buildPermSet). After that, every
+// permission is independently stored per user — never branch on `role`
+// anywhere else in the app.
+model User {
+  id           String  @id @default(cuid())
+  username     String  @unique
+  passwordHash String
+  name         String
+  role         Role
+  active       Boolean @default(true)
+
+  // Keyed by ACTION_KEYS — { [actionKey]: boolean }
+  actions     Json @default("{}")
+  actionViews Json @default("{}")
+  // Keyed by PAGE_KEYS — { [pageKey]: boolean }
+  pages       Json @default("{}")
+  // Keyed by TAB_KEYS (job-detail tabs + dash_* dashboard items)
+  tabs        Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  priceHistoryChanges MaterialPriceHistory[]
+}
+
+// -----------------------------------------------------------------------
+// Price Database (Section 4.2)
+// -----------------------------------------------------------------------
+model Material {
+  id         String       @id @default(cuid())
+  name       String
+  category   ItemCategory
+  unit       String
+  rate       Decimal?     @db.Decimal(14, 2)
+  defaultQty Decimal?     @db.Decimal(14, 3)
+  active     Boolean      @default(true)
+  notes      String?
+
+  priceHistory      MaterialPriceHistory[]
+  costEstimateItems CostEstimateItem[]
+  budgetItems       BudgetItem[]
+  inventoryEntries  InventoryEntry[]
+  expenses          Expense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MaterialPriceHistory {
+  id            String   @id @default(cuid())
+  material      Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  materialId    String
+  oldPrice      Decimal? @db.Decimal(14, 2)
+  newPrice      Decimal? @db.Decimal(14, 2)
+  effectiveDate DateTime @default(now())
+  changedBy     User?    @relation(fields: [changedById], references: [id])
+  changedById   String?
+
+  @@index([materialId])
+}
+
+// -----------------------------------------------------------------------
+// Job (Section 4.1)
+// -----------------------------------------------------------------------
+model Job {
+  id             String     @id @default(cuid())
+  jobNumber      String     @unique
+  status         JobStatus  @default(Draft)
+  previousStatus JobStatus?
+  deadline       DateTime?
+
+  // Revision flow (Section 6): set on "Request Revision", cleared on
+  // "Submit for Approval".
+  revisionNote   String?
+  revisionNoteBy String?
+
+  // Admin's "Unlock for Editing" toggle on an Approved Budget job
+  // (permission: editApprovedJob).
+  adminUnlocked Boolean @default(false)
+
+  // Client intake
+  clientName    String
+  clientContact String?
+  clientPhone   String?
+  clientAddress String?
+  clientNotes   String?
+  title         String
+
+  // Design
+  designer        String?
+  supervisor      String?
+  productionNotes String?
+  components      JobComponent[]
+  cutFiles        CutFile[]
+
+  // Cost Estimate (Section 7.2)
+  costEstimatePreparedBy       String?
+  costEstimateGeneratedAt      DateTime?
+  costEstimateNotes            String?
+  costEstimatePriceListName    String?
+  costEstimatePriceListUrl     String?
+  costEstimatePriceListKind    String?
+  costEstimateSoldPrice        Decimal            @default(0) @db.Decimal(14, 2)
+  costEstimateCommissionActive Boolean            @default(false)
+  costEstimateItems            CostEstimateItem[]
+
+  // Budget (Section 7.3, 6.1)
+  budgetStatus     BudgetStatus @default(Draft)
+  budgetApprovedBy String?
+  budgetApprovedAt DateTime?
+  budgetItems      BudgetItem[]
+
+  // Expenses (Section 7.4-7.6)
+  expenses Expense[]
+
+  // Payments (Section 7.7-7.8)
+  payments Payment[]
+
+  // Reconciliation (Section 8.6)
+  reconciliationStatus ReconciliationStatus @default(Pending)
+  reconciliationNote   String?
+  reconciledBy         String?
+  reconciledAt         DateTime?
+
+  // Final Checklist (Section 6, unlocks Close Job once both true and
+  // reconciliationStatus === Reconciled)
+  checklistWithholdingCollected Boolean @default(false)
+  checklistReceiptAttached      Boolean @default(false)
+
+  // Monitoring / closing
+  monitoringClosed   Boolean   @default(false)
+  monitoringClosedAt DateTime?
+  monitoringClosedBy String?
+
+  activity         ActivityEntry[]
+  inventoryEntries InventoryEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model JobComponent {
+  id       String  @id @default(cuid())
+  job      Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId    String
+  name     String
+  width    Decimal @db.Decimal(10, 3)
+  height   Decimal @db.Decimal(10, 3)
+  qty      Int
+  ledColor String?
+
+  artName String?
+  artUrl  String?
+  artKind String?
+
+  @@index([jobId])
+}
+
+model CutFile {
+  id         String   @id @default(cuid())
+  job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId      String
+  name       String
+  url        String
+  kind       String?
+  uploadedBy String?
+  uploadedAt DateTime @default(now())
+
+  @@index([jobId])
+}
+
+model CostEstimateItem {
+  id         String             @id @default(cuid())
+  job        Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId      String
+  material   Material?          @relation(fields: [materialId], references: [id])
+  materialId String?
+  name       String
+  category   ItemCategory
+  unit       String
+  qty        Decimal            @db.Decimal(14, 3)
+  unitPrice  Decimal            @db.Decimal(14, 2)
+  total      Decimal            @db.Decimal(14, 2)
+  source     CostEstimateSource
+  comment    String?
+
+  budgetItem BudgetItem?
+
+  // One row per material per job on the fill-in sheet (Section 8.3) — lets
+  // the "type a qty" flow upsert cleanly. Ad-hoc Manual rows always have a
+  // null materialId, and Postgres treats NULLs as distinct, so any number
+  // of Manual rows can coexist per job.
+  @@unique([jobId, materialId])
+  @@index([jobId])
+}
+
+model BudgetItem {
+  id         String           @id @default(cuid())
+  job        Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId      String
+  label      String
+  category   ItemCategory
+  // Cash rows use `amount`; Stock rows use `qty` + `unit` instead
+  // (Section 7.3) — both nullable so either shape fits one table.
+  amount     Decimal?         @db.Decimal(14, 2)
+  qty        Decimal?         @db.Decimal(14, 3)
+  unit       String?
+  comment    String?
+  source     BudgetItemSource
+  material   Material?        @relation(fields: [materialId], references: [id])
+  materialId String?
+
+  // Links a Budget row back to the Cost Estimate line it was pulled from,
+  // so re-running "Pull From Cost Estimate" (Section 7.3) can find and
+  // refresh exactly the rows it previously generated instead of touching
+  // manually-added rows (Labor, Contingency, etc., which leave this null).
+  costEstimateItem   CostEstimateItem? @relation(fields: [costEstimateItemId], references: [id])
+  costEstimateItemId String?           @unique
+
+  expense Expense?
+
+  @@index([jobId])
+}
+
+model Expense {
+  id          String           @id @default(cuid())
+  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId       String
+  entryType   ExpenseEntryType
+  // Category only applies to Purchase rows (Section 7.4); null for Receipts.
+  category    ItemCategory?
+  source      ExpenseSource
+  purchaser   String?
+  date        DateTime
+  item        String
+  description String?
+  qty         Decimal?         @db.Decimal(14, 3)
+  unit        String?
+  unitPrice   Decimal?         @db.Decimal(14, 2)
+  totalPrice  Decimal          @db.Decimal(14, 2)
+  // Carried over from the matched BudgetItem for Budget-pulled Stock rows,
+  // so the Section 7.5 Actual-Spent adjustment entry can link back to the
+  // same material as the original deduction instead of only matching by
+  // itemName (which would fragment the derived balance into two rows).
+  material    Material?        @relation(fields: [materialId], references: [id])
+  materialId  String?
+  // Label of the matched budget line, for display (Section 4.1).
+  budgetRef   String?
+  // Links a Budget-pulled Purchase row back to the BudgetItem it came
+  // from, so re-running "Pull From Budget" (Section 8.3) refreshes only
+  // the rows it previously generated. Null for Manual rows.
+  budgetItem   BudgetItem? @relation(fields: [budgetItemId], references: [id])
+  budgetItemId String?     @unique
+
+  // Auto: 3% of totalPrice, only when totalPrice > 20,000 ETB (Section 7.1)
+  withholding Decimal @default(0) @db.Decimal(14, 2)
+
+  // Manually typed, blank by default. ETB for Cash rows, quantity for
+  // Stock rows (Section 7.4). Null means "not filled in yet".
+  actualSpent Decimal? @db.Decimal(14, 3)
+
+  receiptName String?
+  receiptUrl  String?
+  receiptKind String?
+  flagged     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventoryAdjustment InventoryEntry?
+
+  @@index([jobId])
+}
+
+model Payment {
+  id     String      @id @default(cuid())
+  job    Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId  String
+  amount Decimal     @db.Decimal(14, 2)
+  type   PaymentType
+  method String?
+  date   DateTime
+  notes  String?
+
+  receiptName String?
+  receiptUrl  String?
+  receiptKind String?
+
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
+}
+
+model ActivityEntry {
+  id    String   @id @default(cuid())
+  job   Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId String
+  ts    DateTime @default(now())
+  text  String
+
+  @@index([jobId])
+}
+
+// -----------------------------------------------------------------------
+// Purchase Orders (Section 4.3) — standalone, job-independent
+// -----------------------------------------------------------------------
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  poNumber    String              @unique
+  status      PurchaseOrderStatus @default(Pending)
+  date        DateTime
+  purchaser   String
+  item        String
+  description String?
+  category    ItemCategory
+  qty         Decimal             @db.Decimal(14, 3)
+  price       Decimal             @db.Decimal(14, 2)
+  total       Decimal             @db.Decimal(14, 2)
+  approvedBy  String?
+  approvedAt  DateTime?
+  // Rejection reason — required when status is Rejected.
+  note        String?
+
+  history PurchaseOrderHistoryEntry[]
+
+  createdAt DateTime @default(now())
+}
+
+model PurchaseOrderHistoryEntry {
+  id              String        @id @default(cuid())
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId String
+  ts              DateTime      @default(now())
+  text            String
+
+  @@index([purchaseOrderId])
+}
+
+// -----------------------------------------------------------------------
+// Inventory Ledger (Section 4.4)
+// -----------------------------------------------------------------------
+// Current on-hand balance is derived (sum of `in` minus sum of `out`,
+// grouped by materialId or itemName) — never store a mutable running
+// balance column here; compute it in a query or a view.
+model InventoryEntry {
+  id         String             @id @default(cuid())
+  date       DateTime
+  direction  InventoryDirection
+  material   Material?          @relation(fields: [materialId], references: [id])
+  materialId String?
+  itemName   String
+  qty        Decimal            @db.Decimal(14, 3)
+  unit       String?
+
+  // e.g. "Budget approved — HAD-2026-0002", "Manual purchase — HAD-2026-0002",
+  // "Actual spent adjustment — HAD-2026-0002", "Manual"
+  source String
+  note   String?
+
+  createdBy String?
+  job       Job?    @relation(fields: [jobId], references: [id])
+  jobId     String?
+
+  // Links a qty-reconciliation entry back to the Expense row that
+  // triggered it (Section 7.5), so re-editing Actual Spent replaces the
+  // adjustment instead of stacking a new one. At most one adjustment
+  // entry may exist per expense at any time.
+  adjustmentForExpense   Expense? @relation(fields: [adjustmentForExpenseId], references: [id])
+  adjustmentForExpenseId String?  @unique
+
+  createdAt DateTime @default(now())
+
+  @@index([materialId])
+  @@index([jobId])
+}
+
+// -----------------------------------------------------------------------
+// Job number sequence (Section 10) — a real atomic counter per year,
+// replacing the prototype's in-memory incrementing counter so concurrent
+// job creation can never collide. Incremented via a single atomic
+// INSERT ... ON CONFLICT DO UPDATE ... RETURNING statement (see
+// lib/job-number.ts), not read-then-write from application code.
+// -----------------------------------------------------------------------
+model JobSequence {
+  year       Int @id
+  lastNumber Int @default(0)
+}
+
+/** Same atomic-counter pattern as JobSequence, for PO-2026-0001 style numbers. */
+model PoSequence {
+  year       Int @id
+  lastNumber Int @default(0)
+}
+
+// -----------------------------------------------------------------------
+// Settings (Section 8.9) — single row
+// -----------------------------------------------------------------------
+model Settings {
+  id                     String   @id @default("singleton")
+  withholdingRatePercent Decimal  @default(3) @db.Decimal(5, 2)
+  withholdingThreshold   Decimal  @default(20000) @db.Decimal(14, 2)
+  updatedAt              DateTime @updatedAt
+}
