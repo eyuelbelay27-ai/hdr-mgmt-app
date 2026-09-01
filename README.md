@@ -10,67 +10,122 @@ wins. Section numbers referenced below (e.g. "Section 7.4") refer to
 
 The production app lives in `app/` (Next.js + Prisma/Postgres + Auth.js).
 
-## What's built (this pass — "Foundation")
+## What's built
 
-Per the brief's Section 11 build order, this pass covers **steps 1–2 solidly**,
-plus a thin, real, end-to-end slice of step 3 to prove the foundation actually
-works rather than just type-checking in isolation:
+Every step of the brief's Section 11 build order has a working implementation:
 
 1. **Data model + migrations** (Section 4) — `app/prisma/schema.prisma`.
    Every entity in the brief (Job + its sub-tables, Material/Price Database,
    Purchase Orders, Inventory ledger, Users/Permissions, Settings) is modeled
-   relationally. A `JobSequence` table gives atomic, collision-free job
-   numbering (Section 10's known-gap called this out explicitly).
-2. **Auth + permission enforcement** (Section 5) — real bcrypt-hashed
-   credentials via Auth.js (`auth.ts`), and the full three-dimension
-   permission system (`lib/permissions.ts`: `ACTION_KEYS`, `PAGE_KEYS`,
-   `TAB_KEYS`, role defaults, `can`/`canViewAction`/`canSeePage`/`canSeeTab`,
-   and `requireAction`/`requirePage`/`requireTab` guards). Every permission
-   check reads the user's live row from the database — nothing is cached in
-   the session/JWT — so an Admin's edit to someone's permissions takes effect
-   on their very next request.
-3. **Job CRUD (thin slice)** — Create Job with the mandatory Advance Payment
-   amount (Section 7.8), a Jobs list respecting `manageDraftJobs`
-   Draft-visibility (Section 5.4), and a Users list/create/deactivate page
-   demonstrating `manageUsers` enforcement (Section 8.8, partial).
+   relationally, with atomic per-year `JobSequence`/`PoSequence` counters
+   (Section 10's known-gap) and unique links (`CostEstimateItem` ↔
+   `BudgetItem` ↔ `Expense`) that make "Pull From X" buttons idempotent.
+2. **Auth + permission enforcement** (Section 5) — bcrypt-hashed credentials
+   via Auth.js (`auth.ts`/`auth.config.ts`), and the full three-dimension
+   permission system (`lib/permissions.ts`). Every check reads the user's
+   live database row — nothing is cached in the session/JWT — so an Admin's
+   permission edit takes effect on the target user's very next request.
+   Enforcement runs inside server actions themselves, not just the UI.
+3. **Job CRUD + full lifecycle** (Section 6) — Create Job with the mandatory
+   Advance Payment amount + proof picture (7.8); Draft → Waiting for
+   Approval → Approved Budget → Waiting for Reconciliation → Closed, plus
+   Cancel/Restore, Request Revision, and Reopen, all enforced server-side
+   (`app/jobs/[id]/statusActions.ts`).
+4. **Price Database + Cost Estimate** (8.4, 8.3/7.2) — shared material
+   catalog with price history; the Cost Estimate fill-in sheet reads
+   Material rates live (editing a price updates every job's display
+   immediately); Sale Price & Profit card hidden entirely when its View
+   permission is off.
+5. **Budget + the deadline-approval flow** (6.1) — one shared control used
+   at both entry points (header shortcut and Budget tab); approving
+   auto-deducts every Stock budget line from Inventory; Undo Approval
+   reverses deductions with offsetting Stock In entries, never deletions.
+6. **Inventory** (8.5) — balances are derived (never stored) from the
+   ledger; Stock In/Out/Transactions tabs with a Project column resolving
+   back to the originating job.
+7. **Expenses** (7.4–7.6) — Purchases + Receipts sheets, "Pull From Budget",
+   the Actual Spent/Variance math (including the Manual-row-always-Over-
+   Budget rule), and the Stock Actual-Spent → Inventory reconciliation
+   (7.5) with idempotent replace-not-stack adjustment entries.
+8. **Payments + Remaining Payment math** (7.7–7.8) — Advance is created
+   once at job creation and never selectable again; the `max(0, …)` clamp
+   is enforced in `lib/calc/payments.ts`.
+9. **Reconciliation page** (8.6) — list → detail flow consolidating Budget
+   vs. Expense variance, Payment Records, Receipts & Withholdings, Final
+   Profit (formula-labeled), and the Final Checklist gating Close Job.
+10. **Purchase Orders + full Users/Permissions UI + Settings** — the PO
+    panel embedded in the Dashboard (not a separate nav page), a complete
+    per-user Pages/Tabs/Actions permissions editor (`app/users/[id]`) with
+    Edit-auto-grants-View behavior, role-reset, password reset, two-step
+    delete, and the Settings page for the withholding rate/threshold.
+11. **File storage** — a local-disk `lib/storage.ts` behind a small
+    interface (swap for S3 by changing that one file), used at every
+    upload point named in Section 9: receipts, advance payment proof,
+    sign art, cut files, and the Cost Estimate price list file — each
+    shown with the click-to-enlarge Lightbox convention.
 
-Server-side enforcement is real, not UI-only: `requireAction`/`requirePage`
-run inside the server actions themselves (`app/jobs/actions.ts`,
-`app/users/actions.ts`), so a request that skips the UI is still rejected.
+The full job lifecycle (Draft → Waiting for Approval → Approved Budget →
+Waiting for Reconciliation → Closed) was driven end-to-end through a
+headless browser during development, verifying every formula in Section 7
+against its worked numbers and catching one real bug along the way (see
+below) — not just type-checked in isolation.
 
-## What's NOT built yet (next, per the brief's build order)
+## What's deliberately thinner than a full production launch
 
-- Job Detail (Section 8.3): Design, Cut List, Cost Estimate, Budget,
-  Expenses, Payments & Profit, Activity tabs — and the whole status machine
-  (Section 6), the two-step deadline-approval flow (6.1), and every formula
-  in Section 7 (withholding, cost estimate math, budget vs. actual variance,
-  stock reconciliation, remaining payment).
-- Price Database page (8.4), Inventory page (8.5, current-balance
-  derivation), Reconciliation page (8.6), Purchase Orders panel (8.7),
-  Settings page (8.9).
-- The full per-user permissions editor grid (part of 8.8) — today, creating
-  a user seeds role-default permissions; there's no UI yet to customize an
-  individual's permissions afterward (the data model and `buildPermSet`
-  already support it).
-- File/object storage (Section 11, step 11) — every upload point
-  (receipts, advance payment proof, sign art, cut files, price list files)
-  is deferred; the Advance Payment's `receiptUrl` field exists and is
-  nullable until storage is wired up.
+- **UI polish**: functional and permission-correct throughout, but some
+  interactions are simpler than the prototype's (e.g. quantities on the
+  Cost Estimate fill-in sheet save in one batch per category rather than
+  live-updating on keystroke; Design components are edited via a small
+  inline form per row rather than in place).
+- **Local-disk file storage**: fine for development; swap `lib/storage.ts`
+  for an S3-compatible implementation before deploying anywhere with more
+  than one server instance or ephemeral disk.
+- **No automated test suite** — correctness was verified via manual/headless
+  end-to-end runs against the formulas in Section 7, not a checked-in test
+  suite. Adding one (especially for `lib/calc/*`) would be a good next step.
+- **PDF/print export** — not built; the brief flags this as needing a
+  decision from the business owner (Section 10).
+
+Server-side enforcement is real, not UI-only: every mutation calls
+`requireAction`/`requirePage`/`requireTab` (or the equivalent explicit
+check) before touching the database, so a request that skips the UI is
+still rejected.
+
+## A bug the end-to-end pass caught
+
+The Section 7.5 Actual-Spent inventory adjustment entry wasn't linked to
+the same `materialId` as the original Budget-approval deduction (the
+`Expense` row had no `materialId` column at all), so a corrected quantity
+showed up as a *second*, separate balance row for the same material
+instead of merging into one. Fixed by adding `Expense.materialId`,
+populated from the matched `BudgetItem` in "Pull From Budget", and used in
+the adjustment entry. Confirmed fixed by re-running the full lifecycle.
 
 ## Repo layout
 
 ```
 /                                    repo root
 ├── F hadar-job-management-prototype.jsx   validated prototype — source of truth for behavior
+├── HANDOFF_BRIEF.md                 the full handoff brief (all section numbers referenced above)
 └── app/                             the production Next.js app
     ├── prisma/schema.prisma         data model (Section 4)
     ├── prisma/seed.ts               dev seed: users + Price Database materials + Settings
     ├── lib/permissions.ts           permission system (Section 5)
+    ├── lib/calc/                    pure formula modules (cost estimate, budget, expenses,
+    │                                 payments, reconciliation, inventory) — Section 7
+    ├── lib/storage.ts               file storage abstraction (local disk; swap for S3)
     ├── lib/current-user.ts          loads the live user row for every permission check
-    ├── lib/job-number.ts            atomic job-number sequence
+    ├── lib/job-number.ts, po-number.ts   atomic sequence generators
     ├── auth.ts / auth.config.ts     Auth.js — full config vs. Edge-safe subset for middleware
     ├── middleware.ts                route-level auth gating
-    └── app/                         Next.js App Router pages (login, dashboard, jobs, users)
+    └── app/                         Next.js App Router pages:
+        ├── page.tsx                 Dashboard (status cards, Remaining Payments, PO panel)
+        ├── jobs/, jobs/[id]/        Jobs list + full Job Detail (all 8 tabs)
+        ├── calculator/              Price Database
+        ├── inventory/               Inventory (balances, Stock In/Out, transactions)
+        ├── reconciliation/          Reconciliation list + detail
+        ├── users/, users/[id]/      Users list + full permissions editor
+        └── settings/                Withholding rate/threshold
 ```
 
 ## Local setup
@@ -110,3 +165,10 @@ env vars you set before seeding, matching the prototype's demo roster):
   config (no bcrypt/Prisma); the Credentials provider (which needs both)
   only loads in route handlers and server actions, which run on the Node
   runtime.
+- **File storage built early, not last**: the brief's Section 11 puts file
+  storage last because it's retrofitting uploads onto an already-built UI
+  ("get the interaction pattern right once, then apply everywhere"). Since
+  this was a from-scratch build rather than a retrofit, the storage
+  abstraction and the Lightbox/FileField components were built as shared
+  infrastructure early and reused at every upload point as each tab was
+  built — same rationale, different point in the sequence.

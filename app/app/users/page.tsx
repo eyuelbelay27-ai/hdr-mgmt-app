@@ -53,7 +53,9 @@ export default async function UsersPage() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id} style={{ borderTop: "1px solid var(--border-soft)" }}>
-                <td style={{ padding: "10px 12px" }}>{u.name}</td>
+                <td style={{ padding: "10px 12px" }}>
+                  {canManage ? <a href={`/users/${u.id}`} style={{ color: "inherit" }}>{u.name}</a> : u.name}
+                </td>
                 <td className="mono" style={{ padding: "10px 12px" }}>{u.username}</td>
                 <td style={{ padding: "10px 12px" }}>{ROLE_LABEL[u.role]}</td>
                 <td style={{ padding: "10px 12px" }}>{u.active ? "Active" : "Deactivated"}</td>
@@ -71,10 +73,11 @@ export default async function UsersPage() {
           </tbody>
         </table>
 
-        <p className="label" style={{ marginTop: 16 }}>
-          The full per-user permissions editor (Pages/Tabs/Actions View-Edit grid — Section 5,
-          8.8) is not part of this foundation pass; see README for build-order status.
-        </p>
+        {canManage && (
+          <p className="label" style={{ marginTop: 16 }}>
+            Click a user&apos;s name to edit their role, password, and full permissions.
+          </p>
+        )}
       </main>
     </div>
   );

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, requirePage, PermissionError } from "@/lib/permissions";
 import { nextJobNumber } from "@/lib/job-number";
+import { saveUpload, getUploadedFile } from "@/lib/storage";
 
 export interface CreateJobState {
   error: string | null;
@@ -13,13 +14,10 @@ export interface CreateJobState {
 /**
  * Create Job (Section 7.8 / 8.2). Enforced server-side, not just hidden in
  * the UI (Section 2 / 10): a request from a user without `createJob` is
- * rejected here regardless of what the client sent.
- *
- * The prototype requires both an Advance Payment amount AND a picture of
- * the payment before the job can be created. The amount is enforced below;
- * the picture upload is deferred to build-order step 11 (file storage
- * integration isn't wired up yet) — `receiptUrl` stays nullable on the
- * created Advance payment until that lands.
+ * rejected here regardless of what the client sent. Both the Advance
+ * Payment amount AND a picture of the payment are mandatory before the job
+ * can be created — the picture is stored via lib/storage.ts and attached
+ * as the Advance payment's receipt.
  */
 export async function createJobAction(
   _prevState: CreateJobState,
@@ -39,13 +37,18 @@ export async function createJobAction(
   const title = String(formData.get("title") ?? "").trim();
   const advanceAmountRaw = String(formData.get("advanceAmount") ?? "").trim();
   const advanceAmount = Number(advanceAmountRaw);
+  const proofFile = getUploadedFile(formData, "advanceProof");
 
   if (!clientName) return { error: "Client name is required." };
   if (!title) return { error: "Job title is required." };
   if (!advanceAmountRaw || !Number.isFinite(advanceAmount) || advanceAmount <= 0) {
     return { error: "Advance payment amount is required and must be greater than zero." };
   }
+  if (!proofFile) {
+    return { error: "A picture of the advance payment (receipt or transfer screenshot) is required." };
+  }
 
+  const proof = await saveUpload(proofFile);
   const jobNumber = await nextJobNumber();
 
   await prisma.job.create({
@@ -58,6 +61,9 @@ export async function createJobAction(
           amount: advanceAmount,
           type: "Advance",
           date: new Date(),
+          receiptName: proof.name,
+          receiptUrl: proof.url,
+          receiptKind: proof.kind,
         },
       },
       activity: {

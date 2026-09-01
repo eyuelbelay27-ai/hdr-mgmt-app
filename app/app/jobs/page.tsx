@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { can, canSeePage } from "@/lib/permissions";
-import { STATUS_LABEL } from "@/lib/job-status";
 import { AppNav } from "../AppNav";
+import { StatusBadge, DeadlineBadge } from "../StatusBadge";
 import { NewJobForm } from "./NewJobForm";
 
 export default async function JobsPage() {
@@ -47,10 +47,21 @@ export default async function JobsPage() {
           <tbody>
             {jobs.map((j) => (
               <tr key={j.id} style={{ borderTop: "1px solid var(--border-soft)" }}>
-                <td className="mono" style={{ padding: "10px 12px" }}>{j.jobNumber}</td>
-                <td style={{ padding: "10px 12px" }}>{j.clientName}</td>
+                <td className="mono" style={{ padding: "10px 12px" }}>
+                  <a href={`/jobs/${j.id}`} style={{ color: "inherit" }}>
+                    {j.jobNumber}
+                  </a>
+                </td>
+                <td style={{ padding: "10px 12px" }}>
+                  <a href={`/jobs/${j.id}`} style={{ display: "flex", gap: 8, alignItems: "center", color: "inherit" }}>
+                    {j.clientName}
+                    {j.deadline && <DeadlineBadge deadline={j.deadline} status={j.status} />}
+                  </a>
+                </td>
                 <td style={{ padding: "10px 12px" }}>{j.title}</td>
-                <td style={{ padding: "10px 12px" }}>{STATUS_LABEL[j.status]}</td>
+                <td style={{ padding: "10px 12px" }}>
+                  <StatusBadge status={j.status} />
+                </td>
                 <td style={{ padding: "10px 12px" }}>{j.createdAt.toISOString().slice(0, 10)}</td>
               </tr>
             ))}
@@ -63,11 +74,6 @@ export default async function JobsPage() {
             )}
           </tbody>
         </table>
-
-        <p className="label" style={{ marginTop: 16 }}>
-          Job Detail (Section 8.3 — Design/Cut List/Cost Estimate/Budget/Expenses/Payments/
-          Activity tabs) is not part of this foundation pass; see README for build-order status.
-        </p>
       </main>
     </div>
   );

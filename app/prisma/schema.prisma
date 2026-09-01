@@ -131,6 +131,7 @@ model Material {
   costEstimateItems CostEstimateItem[]
   budgetItems       BudgetItem[]
   inventoryEntries  InventoryEntry[]
+  expenses          Expense[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -187,6 +188,9 @@ model Job {
   costEstimatePreparedBy       String?
   costEstimateGeneratedAt      DateTime?
   costEstimateNotes            String?
+  costEstimatePriceListName    String?
+  costEstimatePriceListUrl     String?
+  costEstimatePriceListKind    String?
   costEstimateSoldPrice        Decimal            @default(0) @db.Decimal(14, 2)
   costEstimateCommissionActive Boolean            @default(false)
   costEstimateItems            CostEstimateItem[]
@@ -271,6 +275,13 @@ model CostEstimateItem {
   source     CostEstimateSource
   comment    String?
 
+  budgetItem BudgetItem?
+
+  // One row per material per job on the fill-in sheet (Section 8.3) — lets
+  // the "type a qty" flow upsert cleanly. Ad-hoc Manual rows always have a
+  // null materialId, and Postgres treats NULLs as distinct, so any number
+  // of Manual rows can coexist per job.
+  @@unique([jobId, materialId])
   @@index([jobId])
 }
 
@@ -289,6 +300,15 @@ model BudgetItem {
   source     BudgetItemSource
   material   Material?        @relation(fields: [materialId], references: [id])
   materialId String?
+
+  // Links a Budget row back to the Cost Estimate line it was pulled from,
+  // so re-running "Pull From Cost Estimate" (Section 7.3) can find and
+  // refresh exactly the rows it previously generated instead of touching
+  // manually-added rows (Labor, Contingency, etc., which leave this null).
+  costEstimateItem   CostEstimateItem? @relation(fields: [costEstimateItemId], references: [id])
+  costEstimateItemId String?           @unique
+
+  expense Expense?
 
   @@index([jobId])
 }
@@ -309,7 +329,19 @@ model Expense {
   unit        String?
   unitPrice   Decimal?         @db.Decimal(14, 2)
   totalPrice  Decimal          @db.Decimal(14, 2)
+  // Carried over from the matched BudgetItem for Budget-pulled Stock rows,
+  // so the Section 7.5 Actual-Spent adjustment entry can link back to the
+  // same material as the original deduction instead of only matching by
+  // itemName (which would fragment the derived balance into two rows).
+  material    Material?        @relation(fields: [materialId], references: [id])
+  materialId  String?
+  // Label of the matched budget line, for display (Section 4.1).
   budgetRef   String?
+  // Links a Budget-pulled Purchase row back to the BudgetItem it came
+  // from, so re-running "Pull From Budget" (Section 8.3) refreshes only
+  // the rows it previously generated. Null for Manual rows.
+  budgetItem   BudgetItem? @relation(fields: [budgetItemId], references: [id])
+  budgetItemId String?     @unique
 
   // Auto: 3% of totalPrice, only when totalPrice > 20,000 ETB (Section 7.1)
   withholding Decimal @default(0) @db.Decimal(14, 2)
@@ -441,6 +473,12 @@ model InventoryEntry {
 // lib/job-number.ts), not read-then-write from application code.
 // -----------------------------------------------------------------------
 model JobSequence {
+  year       Int @id
+  lastNumber Int @default(0)
+}
+
+/** Same atomic-counter pattern as JobSequence, for PO-2026-0001 style numbers. */
+model PoSequence {
   year       Int @id
   lastNumber Int @default(0)
 }

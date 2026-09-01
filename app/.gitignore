@@ -35,3 +35,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploaded files (local-disk storage backend — see lib/storage.ts)
+/public/uploads/*
+!/public/uploads/.gitkeep

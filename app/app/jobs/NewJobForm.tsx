@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { createJobAction, type CreateJobState } from "./actions";
 import { SubmitButton } from "../SubmitButton";
+import { FileField } from "../FileField";
 
 const initialState: CreateJobState = { error: null };
 
@@ -24,7 +25,12 @@ export function NewJobForm() {
   }
 
   return (
-    <form action={formAction} className="card" style={{ padding: 16, display: "grid", gap: 10, maxWidth: 420 }}>
+    <form
+      action={formAction}
+      encType="multipart/form-data"
+      className="card"
+      style={{ padding: 16, display: "grid", gap: 10, maxWidth: 420 }}
+    >
       <div>
         <label className="label" htmlFor="clientName">Client Name</label>
         <input className="input" id="clientName" name="clientName" required />
@@ -36,11 +42,8 @@ export function NewJobForm() {
       <div>
         <label className="label" htmlFor="advanceAmount">Advance Payment (ETB)</label>
         <input className="input" id="advanceAmount" name="advanceAmount" type="number" min="0" step="0.01" required />
-        <p className="label" style={{ textTransform: "none", fontWeight: 400, marginTop: 4 }}>
-          Advance payment proof upload isn&apos;t wired up yet (file storage lands in a later
-          build phase) — the amount is still required to create the job.
-        </p>
       </div>
+      <FileField id="advanceProof" name="advanceProof" label="Advance Payment Proof (receipt/screenshot)" required />
       {state.error && <p className="login-error">{state.error}</p>}
       <div style={{ display: "flex", gap: 8 }}>
         <SubmitButton label="Create Job" pendingLabel="Creating…" />
