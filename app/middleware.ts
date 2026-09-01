@@ -25,7 +25,10 @@ export default auth((req) => {
 });
 
 export const config = {
-  // Run on everything except static assets and the auth API routes
-  // themselves (those must stay reachable to perform login).
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  // Run on pages only, not API routes — this redirect-to-/login behavior
+  // is a page-navigation UX, not an API auth mechanism. Route Handlers
+  // under /api/ (auth's own callback routes, and the one-time admin seed
+  // trigger that must be reachable before any user exists) do their own
+  // auth checks instead.
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico).*)"],
 };

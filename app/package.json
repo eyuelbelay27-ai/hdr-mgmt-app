@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "prisma migrate deploy && next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
@@ -17,10 +17,12 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1123.0",
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
     "next": "14.2.35",
     "next-auth": "^5.0.0-beta.32",
+    "prisma": "^6.19.3",
     "react": "^18",
     "react-dom": "^18",
     "zod": "^4.5.4"
@@ -32,7 +34,6 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
-    "prisma": "^6.19.3",
     "tsx": "^4.23.13",
     "typescript": "^5"
   }

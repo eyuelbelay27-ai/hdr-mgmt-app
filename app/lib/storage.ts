@@ -1,6 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 /**
  * File storage abstraction (Section 2 / 10 / 11 of the handoff brief).
@@ -9,11 +10,20 @@ import crypto from "crypto";
  * the returned url/name/kind — never a base64 blob in the database, which
  * is what the prototype did as a demo-only shortcut.
  *
- * This implementation writes to local disk under public/uploads, which is
- * enough to develop and demo the real interaction pattern end-to-end. Swap
- * it for an S3-compatible implementation of the same `saveUpload` shape
- * before deploying anywhere with more than one server instance or
- * ephemeral disk — nothing above this module needs to change.
+ * Two implementations behind the same interface, selected automatically:
+ *   - S3-compatible (AletCloud Object Storage), when S3_BUCKET is set —
+ *     this is what production uses.
+ *   - Local disk under public/uploads, when it isn't — local dev only;
+ *     doesn't persist correctly on a managed platform with ephemeral
+ *     storage/multiple instances.
+ *
+ * Env vars (as injected by AletCloud's connectBucketToApp): S3_BUCKET,
+ * S3_ENDPOINT, S3_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
+ * AWS_S3_FORCE_PATH_STYLE. S3_PUBLIC_URL_BASE is this app's own var for
+ * constructing a public object URL without a presign round-trip — set it
+ * to the bucket's public base (e.g. https://s3.aletcloud.com/<bucket>)
+ * for a PUBLIC_READ bucket; falls back to `${S3_ENDPOINT}/${S3_BUCKET}`
+ * (path-style) if omitted.
  */
 export interface StoredFile {
   url: string;
@@ -21,19 +31,59 @@ export interface StoredFile {
   kind: string;
 }
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+const S3_BUCKET = process.env.S3_BUCKET;
 
-export async function saveUpload(file: File): Promise<StoredFile> {
-  await mkdir(UPLOAD_DIR, { recursive: true });
+const s3Client = S3_BUCKET
+  ? new S3Client({
+      region: process.env.S3_REGION || process.env.AWS_REGION || "us-east-1",
+      endpoint: process.env.S3_ENDPOINT || process.env.AWS_ENDPOINT_URL_S3,
+      forcePathStyle: (process.env.AWS_S3_FORCE_PATH_STYLE ?? "true") === "true",
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+      },
+    })
+  : null;
+
+const S3_PUBLIC_URL_BASE =
+  process.env.S3_PUBLIC_URL_BASE ||
+  (S3_BUCKET ? `${(process.env.S3_ENDPOINT || process.env.AWS_ENDPOINT_URL_S3 || "").replace(/\/$/, "")}/${S3_BUCKET}` : "");
+
+async function saveUploadS3(file: File): Promise<StoredFile> {
+  const ext = path.extname(file.name);
+  const key = `uploads/${crypto.randomUUID()}${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const kind = file.type || "application/octet-stream";
+
+  await s3Client!.send(
+    new PutObjectCommand({
+      Bucket: S3_BUCKET,
+      Key: key,
+      Body: buffer,
+      ContentType: kind,
+    })
+  );
+
+  return { url: `${S3_PUBLIC_URL_BASE}/${key}`, name: file.name, kind };
+}
+
+const LOCAL_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+
+async function saveUploadLocal(file: File): Promise<StoredFile> {
+  await mkdir(LOCAL_UPLOAD_DIR, { recursive: true });
   const ext = path.extname(file.name);
   const filename = `${crypto.randomUUID()}${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, filename), buffer);
+  await writeFile(path.join(LOCAL_UPLOAD_DIR, filename), buffer);
   return {
     url: `/uploads/${filename}`,
     name: file.name,
     kind: file.type || "application/octet-stream",
   };
+}
+
+export async function saveUpload(file: File): Promise<StoredFile> {
+  return s3Client ? saveUploadS3(file) : saveUploadLocal(file);
 }
 
 /** Pulls a non-empty File out of FormData, or null if the field was left blank. */
