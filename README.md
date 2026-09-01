@@ -64,6 +64,22 @@ Every step of the brief's Section 11 build order has a working implementation:
     sign art, cut files, and the Cost Estimate price list file — each
     shown with the click-to-enlarge Lightbox convention.
 
+Also closed after the initial pass, per Section 8.2's fuller spec for the
+Jobs list:
+
+- **Search + status filter** on the Jobs list (client/job#/title search,
+  status dropdown), server-rendered via query params.
+- **Financial columns** (Final Price / Advance / Remaining) on the Jobs
+  list, shown only to users who can see financial tabs — same gate as the
+  Overview tab's Advance Payment card.
+- **Full job record + print** (Section 6/8.2) — a "Record" print button
+  appears only on Closed jobs (Jobs list and Job Detail header), opening
+  `/jobs/[id]/print`: a consolidated Client/Design/Cost Estimate/Budget/
+  Expenses/Payments/Activity summary using the browser's print dialog
+  (`window.print()`), per Section 9/10 — real PDF generation is called out
+  in the brief as an open decision for the business owner, not something
+  to build ahead of that decision.
+
 The full job lifecycle (Draft → Waiting for Approval → Approved Budget →
 Waiting for Reconciliation → Closed) was driven end-to-end through a
 headless browser during development, verifying every formula in Section 7
@@ -72,19 +88,34 @@ below) — not just type-checked in isolation.
 
 ## What's deliberately thinner than a full production launch
 
-- **UI polish**: functional and permission-correct throughout, but some
-  interactions are simpler than the prototype's (e.g. quantities on the
+Everything the brief specifies has a working implementation (see above).
+What's left is launch/production-readiness work that was never part of the
+brief's own scope — real infrastructure, hardening, and one open decision
+the brief punts to the business owner:
+
+- **Real PDF export** — the brief explicitly defers this decision to the
+  business owner (Section 10): the print view built here uses the browser's
+  native print dialog, matching the prototype's own approach, not a
+  production PDF generator. Revisit once that decision is made.
+- **Local-disk file storage** — fine for one dev instance; swap
+  `lib/storage.ts` for an S3-compatible implementation (the interface is
+  isolated there for exactly this) before deploying anywhere with more than
+  one server instance or ephemeral disk.
+- **No automated test suite** — correctness was verified via manual/headless
+  end-to-end runs against the formulas in Section 7, not a checked-in test
+  suite. Adding one (especially for `lib/calc/*`) would be the highest-value
+  next step.
+- **UI polish**: functional and permission-correct throughout, but a couple
+  of interactions are simpler than the prototype's (e.g. quantities on the
   Cost Estimate fill-in sheet save in one batch per category rather than
   live-updating on keystroke; Design components are edited via a small
   inline form per row rather than in place).
-- **Local-disk file storage**: fine for development; swap `lib/storage.ts`
-  for an S3-compatible implementation before deploying anywhere with more
-  than one server instance or ephemeral disk.
-- **No automated test suite** — correctness was verified via manual/headless
-  end-to-end runs against the formulas in Section 7, not a checked-in test
-  suite. Adding one (especially for `lib/calc/*`) would be a good next step.
-- **PDF/print export** — not built; the brief flags this as needing a
-  decision from the business owner (Section 10).
+- **Deployment infrastructure** — no hosted Postgres, no real secrets
+  (`.env.example`'s `AUTH_SECRET` and the seed passwords are placeholders),
+  no hosting target/Dockerfile/CI, no upload size/MIME validation, no login
+  rate-limiting, no error monitoring, no self-service password reset. None
+  of this was in the brief's behavioral spec — it's the standard pre-launch
+  checklist for any app before real users touch it.
 
 Server-side enforcement is real, not UI-only: every mutation calls
 `requireAction`/`requirePage`/`requireTab` (or the equivalent explicit

@@ -85,6 +85,7 @@ export default async function JobDetailPage({
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            {job.status === "Closed" && <a className="btn btn-sm" href={`/jobs/${job.id}/print`}>Print Record</a>}
             {job.status === "Draft" && can(user, "submitForApproval") && (
               <form action={submitForApprovalAction.bind(null, job.id)}>
                 <button className="btn btn-sm btn-primary" type="submit">Submit for Approval</button>
