@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { round2, toNumber } from "@/lib/money";
 import { saveCostEstimateQuantitiesAction, deleteCostEstimateItemAction } from "./costEstimateActions";
 import { AddCostEstimateItemForm } from "./AddCostEstimateItemForm";
+import { useAutosave } from "../../useAutosave";
+import { SaveStatusBadge } from "../../SaveStatusBadge";
 
 interface CostItem {
   id: string;
@@ -78,6 +80,13 @@ export function CostEstimateCategorySheet({
 
   const categoryTotal = manualTotal + materials.reduce((sum, m) => sum + rowTotal(m.id, m.rate), 0);
 
+  const autosave = useAutosave((formData) => saveCostEstimateQuantitiesAction(jobId, category, formData));
+  const buildQtyFormData = (values: Record<string, string>) => {
+    const fd = new FormData();
+    for (const m of materials) fd.set(`qty_${m.id}`, values[m.id] ?? "");
+    return fd;
+  };
+
   return (
     <div className="card" style={{ overflow: "hidden" }}>
       <div
@@ -105,12 +114,13 @@ export function CostEstimateCategorySheet({
           &#9656;
         </span>
         <h3 style={{ margin: 0, flex: 1, fontSize: 15 }}>{label} Items</h3>
+        {editable && <SaveStatusBadge status={autosave.status} error={autosave.error} />}
         <div className="mono" style={{ fontWeight: 600 }}>{categoryTotal.toLocaleString()} Br</div>
       </div>
 
       {open && (
         <div style={{ borderTop: "1px solid var(--border)", padding: "4px 16px 16px" }}>
-          <form action={saveCostEstimateQuantitiesAction.bind(null, jobId, category)}>
+          <div>
             <div
               style={{
                 display: "grid",
@@ -159,7 +169,11 @@ export function CostEstimateCategorySheet({
                       min="0"
                       name={`qty_${m.id}`}
                       value={qtys[m.id] ?? ""}
-                      onChange={(e) => setQtys((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                      onChange={(e) => {
+                        const next = { ...qtys, [m.id]: e.target.value };
+                        setQtys(next);
+                        autosave.schedule(() => buildQtyFormData(next));
+                      }}
                       disabled={m.rate === null}
                     />
                   ) : (
@@ -181,13 +195,7 @@ export function CostEstimateCategorySheet({
                 </div>
               );
             })}
-
-            {editable && (
-              <button className="btn btn-sm btn-primary" type="submit" style={{ marginTop: 12 }}>
-                Save {label} Quantities
-              </button>
-            )}
-          </form>
+          </div>
 
           {manualItems.length > 0 && (
             <div style={{ marginTop: 16 }}>

@@ -1,27 +1,40 @@
 "use client";
 
-import { useFormState } from "react-dom";
-import { updateSettingsAction, type ActionState } from "./actions";
-import { SubmitButton } from "../SubmitButton";
-
-const initialState: ActionState = { error: null };
+import { useState } from "react";
+import { updateSettingsAction } from "./actions";
+import { useAutosave } from "../useAutosave";
+import { SaveStatusBadge } from "../SaveStatusBadge";
 
 export function SettingsForm({ ratePercent, threshold }: { ratePercent: number; threshold: number }) {
-  const [state, formAction] = useFormState(updateSettingsAction, initialState);
+  const [fields, setFields] = useState({ rate: String(ratePercent), threshold: String(threshold) });
+  const autosave = useAutosave((formData) => updateSettingsAction({ error: null }, formData));
+
+  const buildFormData = (values: typeof fields) => {
+    const fd = new FormData();
+    fd.set("withholdingRatePercent", values.rate);
+    fd.set("withholdingThreshold", values.threshold);
+    return fd;
+  };
+
+  const update = (key: keyof typeof fields, value: string) => {
+    const next = { ...fields, [key]: value };
+    setFields(next);
+    autosave.schedule(() => buildFormData(next));
+  };
 
   return (
-    <form action={formAction} className="card" style={{ padding: 16, display: "grid", gap: 10, maxWidth: 360 }}>
+    <div className="card" style={{ padding: 16, display: "grid", gap: 10, maxWidth: 360 }}>
       <div>
         <label className="label" htmlFor="withholdingRatePercent">Withholding Rate (%)</label>
         <input
           className="input"
           id="withholdingRatePercent"
-          name="withholdingRatePercent"
           type="number"
           step="0.01"
           min="0"
           max="100"
-          defaultValue={ratePercent}
+          value={fields.rate}
+          onChange={(e) => update("rate", e.target.value)}
         />
       </div>
       <div>
@@ -29,20 +42,17 @@ export function SettingsForm({ ratePercent, threshold }: { ratePercent: number; 
         <input
           className="input"
           id="withholdingThreshold"
-          name="withholdingThreshold"
           type="number"
           step="0.01"
           min="0"
-          defaultValue={threshold}
+          value={fields.threshold}
+          onChange={(e) => update("threshold", e.target.value)}
         />
         <p className="label" style={{ textTransform: "none", fontWeight: 400, marginTop: 4 }}>
           Withholding applies only when a purchase/receipt total exceeds this amount (Section 7.1).
         </p>
       </div>
-      {state.error && <p className="login-error">{state.error}</p>}
-      <div>
-        <SubmitButton label="Save Settings" pendingLabel="Saving…" />
-      </div>
-    </form>
+      <SaveStatusBadge status={autosave.status} error={autosave.error} />
+    </div>
   );
 }

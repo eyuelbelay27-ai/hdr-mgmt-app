@@ -1,25 +1,45 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useState } from "react";
 import { updateCostEstimateNotesAction } from "./costEstimateActions";
-import type { ActionState } from "./actions";
-import { SubmitButton } from "../../SubmitButton";
-import { FileField } from "../../FileField";
-
-const initialState: ActionState = { error: null };
+import { useAutosave } from "../../useAutosave";
+import { SaveStatusBadge } from "../../SaveStatusBadge";
 
 export function CostEstimateNotesForm({ jobId, notes }: { jobId: string; notes: string | null }) {
-  const boundAction = updateCostEstimateNotesAction.bind(null, jobId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [text, setText] = useState(notes ?? "");
+  const autosave = useAutosave((formData) => updateCostEstimateNotesAction(jobId, { error: null }, formData));
+
+  const buildFormData = (notesValue: string, file?: File | null) => {
+    const fd = new FormData();
+    fd.set("notes", notesValue);
+    if (file) fd.set("priceListFile", file);
+    return fd;
+  };
 
   return (
-    <form action={formAction} encType="multipart/form-data" style={{ display: "grid", gap: 8 }}>
-      <textarea className="input" name="notes" rows={3} defaultValue={notes ?? ""} />
-      <FileField id="priceListFile" name="priceListFile" label="Price List File (optional)" accept="image/*,.pdf,.xlsx,.csv" />
-      {state.error && <p className="login-error">{state.error}</p>}
+    <div style={{ display: "grid", gap: 8 }}>
+      <textarea
+        rows={3}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          autosave.schedule(() => buildFormData(e.target.value));
+        }}
+      />
       <div>
-        <SubmitButton label="Save Notes" pendingLabel="Saving…" className="btn btn-sm" />
+        <label className="label" htmlFor="priceListFile">Price List File (optional)</label>
+        <input
+          className="input"
+          id="priceListFile"
+          type="file"
+          accept="image/*,.pdf,.xlsx,.csv"
+          onChange={(e) => {
+            const file = e.target.files?.[0] ?? null;
+            if (file) autosave.saveNow(() => buildFormData(text, file));
+          }}
+        />
       </div>
-    </form>
+      <SaveStatusBadge status={autosave.status} error={autosave.error} />
+    </div>
   );
 }

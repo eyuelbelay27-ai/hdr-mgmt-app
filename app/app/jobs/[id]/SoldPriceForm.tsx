@@ -1,11 +1,9 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useState } from "react";
 import { updateSoldPriceAction } from "./costEstimateActions";
-import type { ActionState } from "./actions";
-import { SubmitButton } from "../../SubmitButton";
-
-const initialState: ActionState = { error: null };
+import { useAutosave } from "../../useAutosave";
+import { SaveStatusBadge } from "../../SaveStatusBadge";
 
 export function SoldPriceForm({
   jobId,
@@ -16,21 +14,44 @@ export function SoldPriceForm({
   soldPrice: number;
   commissionActive: boolean;
 }) {
-  const boundAction = updateSoldPriceAction.bind(null, jobId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [price, setPrice] = useState(String(soldPrice));
+  const [commission, setCommission] = useState(commissionActive);
+  const autosave = useAutosave((formData) => updateSoldPriceAction(jobId, { error: null }, formData));
+
+  const buildFormData = (priceValue: string, commissionValue: boolean) => {
+    const fd = new FormData();
+    fd.set("soldPrice", priceValue);
+    if (commissionValue) fd.set("commissionActive", "on");
+    return fd;
+  };
 
   return (
-    <form action={formAction} style={{ display: "flex", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
       <div>
         <label className="label" htmlFor="soldPrice">Sold Price (Br)</label>
-        <input className="input" id="soldPrice" name="soldPrice" type="number" step="0.01" min="0" defaultValue={soldPrice} />
+        <input
+          className="input"
+          id="soldPrice"
+          type="number"
+          value={price}
+          onChange={(e) => {
+            setPrice(e.target.value);
+            autosave.schedule(() => buildFormData(e.target.value, commission));
+          }}
+        />
       </div>
-      <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <input type="checkbox" name="commissionActive" defaultChecked={commissionActive} />
-        <span className="label" style={{ margin: 0 }}>Commission Active (7%)</span>
+      <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <input
+          type="checkbox"
+          checked={commission}
+          onChange={(e) => {
+            setCommission(e.target.checked);
+            autosave.saveNow(() => buildFormData(price, e.target.checked));
+          }}
+        />
+        <span>Commission Active (7%)</span>
       </label>
-      <SubmitButton label="Save" pendingLabel="Saving…" className="btn btn-sm btn-primary" />
-      {state.error && <p className="login-error">{state.error}</p>}
-    </form>
+      <SaveStatusBadge status={autosave.status} error={autosave.error} />
+    </div>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useId, useState } from "react";
-import { useFormState } from "react-dom";
-import { updateMaterialAction, type ActionState } from "./actions";
-import { SubmitButton } from "../SubmitButton";
+import { useId, useRef, useState } from "react";
+import { updateMaterialAction } from "./actions";
+import { useAutosave } from "../useAutosave";
+import { SaveStatusBadge } from "../SaveStatusBadge";
 
 interface HistoryEntry {
   id: string;
@@ -25,34 +25,56 @@ interface Material {
   priceHistory: HistoryEntry[];
 }
 
-const initialState: ActionState = { error: null };
-
 export function MaterialRow({ material, editable }: { material: Material; editable: boolean }) {
   const [historyOpen, setHistoryOpen] = useState(false);
-  const boundAction = updateMaterialAction.bind(null, material.id);
-  const [state, formAction] = useFormState(boundAction, initialState);
   const formId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  const autosave = useAutosave((formData) => updateMaterialAction(material.id, { error: null }, formData));
+  const buildFormData = () => new FormData(formRef.current as HTMLFormElement);
 
   return (
     <>
       {editable && (
         <tr style={{ display: "none" }}>
           <td>
-            <form id={formId} action={formAction} />
+            <form id={formId} ref={formRef} />
           </td>
         </tr>
       )}
       <tr>
         {editable ? (
           <>
-            <td data-label="Name"><input className="input" form={formId} name="name" defaultValue={material.name} required /></td>
+            <td data-label="Name">
+              <input
+                className="input"
+                form={formId}
+                name="name"
+                defaultValue={material.name}
+                required
+                onChange={() => autosave.schedule(buildFormData)}
+              />
+            </td>
             <td data-label="Category">
-              <select className="input" form={formId} name="category" defaultValue={material.category}>
+              <select
+                className="input"
+                form={formId}
+                name="category"
+                defaultValue={material.category}
+                onChange={() => autosave.saveNow(buildFormData)}
+              >
                 <option value="cash">Cash</option>
                 <option value="stock">Stock</option>
               </select>
             </td>
-            <td data-label="Unit"><input className="input" form={formId} name="unit" defaultValue={material.unit} /></td>
+            <td data-label="Unit">
+              <input
+                className="input"
+                form={formId}
+                name="unit"
+                defaultValue={material.unit}
+                onChange={() => autosave.schedule(buildFormData)}
+              />
+            </td>
             <td data-label="Rate">
               <input
                 className="input"
@@ -62,6 +84,7 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 step="0.01"
                 min="0"
                 defaultValue={material.rate === null ? "" : String(material.rate)}
+                onChange={() => autosave.schedule(buildFormData)}
               />
             </td>
             <td data-label="Default Qty">
@@ -73,13 +96,20 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 step="0.01"
                 min="0"
                 defaultValue={material.defaultQty === null ? "" : String(material.defaultQty)}
+                onChange={() => autosave.schedule(buildFormData)}
               />
             </td>
             <td data-label="Active">
-              <input type="checkbox" form={formId} name="active" defaultChecked={material.active} />
+              <input
+                type="checkbox"
+                form={formId}
+                name="active"
+                defaultChecked={material.active}
+                onChange={() => autosave.saveNow(buildFormData)}
+              />
             </td>
-            <td data-label="Actions" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <SubmitButton label="Save" pendingLabel="…" className="btn btn-sm" />
+            <td data-label="Actions" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <SaveStatusBadge status={autosave.status} error={autosave.error} />
               <button
                 type="button"
                 className="btn btn-sm btn-ghost"
@@ -105,11 +135,6 @@ export function MaterialRow({ material, editable }: { material: Material; editab
           </>
         )}
       </tr>
-      {state.error && (
-        <tr>
-          <td colSpan={7} className="login-error">{state.error}</td>
-        </tr>
-      )}
       {historyOpen && (
         <tr>
           <td colSpan={7}>
