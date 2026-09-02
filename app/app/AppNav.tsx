@@ -1,9 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import {
+  LayoutDashboard,
+  Briefcase,
+  Tag,
+  Package,
+  ClipboardCheck,
+  Users,
+  Settings as SettingsIcon,
+  Menu,
+  X,
+  LogOut,
+  type LucideIcon,
+} from "lucide-react";
 import { PAGE_KEYS, canSeePage, type PermissionSubject } from "@/lib/permissions";
 import { signOutAction } from "./actions";
 import { HadarMark } from "./Logo";
+
+const NAV_ICONS: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  jobs: Briefcase,
+  calculator: Tag,
+  inventory: Package,
+  reconciliation: ClipboardCheck,
+  users: Users,
+  settings: SettingsIcon,
+};
 
 export function AppNav({
   user,
@@ -25,7 +48,7 @@ export function AppNav({
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
         >
-          {open ? "✕" : "☰"}
+          {open ? <X size={20} strokeWidth={1.75} /> : <Menu size={20} strokeWidth={1.75} />}
         </button>
         <div className="mobile-topbar-title">{activeLabel}</div>
       </div>
@@ -36,25 +59,31 @@ export function AppNav({
         <div style={{ padding: "4px 12px 18px", display: "flex", alignItems: "center", gap: 10 }}>
           <HadarMark size={26} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>Hadar Advertising</div>
+            <div className="font-display" style={{ fontWeight: 700, fontSize: 14 }}>Hadar Advertising</div>
             <div className="label" style={{ marginTop: 4, marginBottom: 0 }}>
               {user.name} · {user.role}
             </div>
           </div>
         </div>
 
-        {PAGE_KEYS.filter((p) => canSeePage(user, p.key)).map((p) => (
-          <a
-            key={p.key}
-            className={`nav-item${activePage === p.key ? " active" : ""}`}
-            href={p.key === "dashboard" ? "/" : `/${p.key}`}
-          >
-            {p.label}
-          </a>
-        ))}
+        {PAGE_KEYS.filter((p) => canSeePage(user, p.key)).map((p) => {
+          const Icon = NAV_ICONS[p.key];
+          const isActive = activePage === p.key;
+          return (
+            <a
+              key={p.key}
+              className={`nav-item${isActive ? " active" : ""}`}
+              href={p.key === "dashboard" ? "/" : `/${p.key}`}
+            >
+              {Icon && <Icon size={17} strokeWidth={1.75} color={isActive ? "var(--accent)" : "currentColor"} />}
+              {p.label}
+            </a>
+          );
+        })}
 
         <form action={signOutAction} style={{ marginTop: 16, padding: "0 12px" }}>
           <button className="btn" style={{ width: "100%", justifyContent: "center" }} type="submit">
+            <LogOut size={15} strokeWidth={1.75} />
             Sign Out
           </button>
         </form>
