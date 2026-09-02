@@ -1,29 +1,33 @@
-/* Hadar Advertising brand theme — light, simplistic, crimson accent taken
-   from the Hadar logo mark (#c32148, sampled directly from the source
-   artwork). Replaces the earlier dark/gold prototype palette. */
+/* Hadar Advertising design system v1 — crimson/ink/paper palette sampled
+   from the Hadar logo mark, per the design guide (colors §2, type §3,
+   radius/elevation §5). Visual tokens only — layout is unchanged. */
 :root {
-  --bg: #f7f5f4;
+  --bg: #fdfaf9;
   --surface: #ffffff;
-  --surface-2: #f2efed;
-  --surface-3: #e9e4e1;
-  --border: #e1dbd7;
-  --border-soft: #ebe6e3;
-  --text: #221c1f;
-  --text-dim: #6b6169;
-  --text-faint: #a79ea4;
-  --accent: #c32148;
-  --accent-soft: rgba(195, 33, 72, 0.1);
-  --accent-text: #a81b3d;
-  --success: #15803d;
-  --success-soft: rgba(21, 128, 61, 0.12);
+  --surface-2: #f7f3f1;
+  --surface-3: #efe9e5;
+  --border: #e4e1d9;
+  --border-soft: #ebe7e0;
+  --text: #17140f;
+  --text-dim: #6f6c66;
+  --text-faint: #a7a29a;
+  --accent: #c41643;
+  --accent-deep: #8a0f30;
+  --accent-soft: rgba(196, 22, 67, 0.1);
+  --accent-text: #c41643;
+  --success: #2f8f4e;
+  --success-soft: rgba(47, 143, 78, 0.13);
   --danger: #b91c1c;
   --danger-soft: rgba(185, 28, 28, 0.12);
-  --warn: #a16207;
-  --warn-soft: rgba(161, 98, 7, 0.12);
+  --warn: #c77a1f;
+  --warn-soft: rgba(199, 122, 31, 0.14);
   --info: #1d4ed8;
   --info-soft: rgba(29, 78, 216, 0.12);
-  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
-  --sans: ui-sans-serif, "Inter", "Segoe UI", "Noto Sans Ethiopic", "Nyala", system-ui, sans-serif;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --sans: var(--font-inter), ui-sans-serif, "Segoe UI", "Noto Sans Ethiopic", "Nyala", system-ui, sans-serif;
+  --display: var(--font-space-grotesk), var(--sans);
 }
 
 * {
@@ -48,20 +52,38 @@ a {
   text-decoration: none;
 }
 
+/* Rates/quantities/totals — Inter with true tabular figures so columns of
+   numbers line up, per the type system's "data/tabular" token. Kept as the
+   .mono class name since it's already applied to every numeric cell across
+   the app; this only changes what it renders as, not which cells use it. */
 .mono {
   font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--display);
+  font-weight: 500;
 }
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 1px 2px rgba(30, 15, 18, 0.03), 0 2px 8px rgba(30, 15, 18, 0.05);
+  border-radius: var(--radius-card);
+}
+/* Only floating overlays (modals, the mobile nav drawer, the lightbox) get
+   a shadow — ordinary cards stay flat with just the hairline border above,
+   per the elevation rule ("flat by default"). */
+.card-elevated {
+  box-shadow: 0 8px 32px rgba(23, 20, 15, 0.16);
 }
 .btn {
   font-family: var(--sans);
   font-size: 12.5px;
   font-weight: 600;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   padding: 7px 12px;
   border: 1px solid var(--border);
   background: var(--surface-2);
@@ -94,6 +116,16 @@ a {
   border-color: var(--accent);
   color: #fff;
 }
+.btn-primary:hover {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+  filter: none;
+}
+.btn-secondary {
+  background: var(--surface);
+  border-color: var(--text);
+  color: var(--text);
+}
 .btn-danger {
   background: var(--surface);
   border-color: var(--danger);
@@ -118,7 +150,7 @@ a {
   display: inline-flex;
   align-items: center;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
@@ -128,7 +160,7 @@ a {
   width: 100%;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   padding: 9px 10px;
   color: var(--text);
   font-size: 13px;
@@ -148,11 +180,11 @@ input[type="radio"] {
   flex-shrink: 0;
 }
 .label {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-dim);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   margin-bottom: 4px;
   display: block;
 }
@@ -349,10 +381,10 @@ input[type="radio"] {
 }
 .dtable th {
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 .dtable tbody tr:hover {
@@ -425,7 +457,7 @@ input[type="radio"] {
     font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     color: var(--text-dim);
   }
   .dtable td:empty {

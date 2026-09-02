@@ -44,7 +44,7 @@ export function Lightbox({ file, size = 48 }: { file: FileRef; size?: number }) 
           height: size,
           padding: 0,
           border: "1px solid var(--border)",
-          borderRadius: 6,
+          borderRadius: 8,
           overflow: "hidden",
           cursor: "zoom-in",
           background: "var(--surface-2)",

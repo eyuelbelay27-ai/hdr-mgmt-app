@@ -23,7 +23,10 @@ export function HadarLogo({ size = 28, wordmark = true }: { size?: number; wordm
     <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
       <HadarMark size={size} />
       {wordmark && (
-        <span style={{ fontWeight: 700, fontSize: size * 0.5, letterSpacing: "-0.01em" }}>
+        <span
+          className="font-display"
+          style={{ fontWeight: 700, fontSize: size * 0.5, letterSpacing: "-0.01em" }}
+        >
           Hadar Advertising
         </span>
       )}

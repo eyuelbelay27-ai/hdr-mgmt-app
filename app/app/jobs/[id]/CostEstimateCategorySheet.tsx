@@ -127,11 +127,11 @@ export function CostEstimateCategorySheet({
                 gridTemplateColumns: ROW_GRID,
                 gap: 8,
                 padding: "8px 4px 6px",
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: 600,
                 color: "var(--text-dim)",
                 textTransform: "uppercase",
-                letterSpacing: "0.03em",
+                letterSpacing: "0.02em",
               }}
             >
               <span>Material</span>
