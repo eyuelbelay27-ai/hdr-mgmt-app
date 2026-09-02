@@ -2,8 +2,9 @@ import { can, type PermissionSubject } from "@/lib/permissions";
 import { expensesStats, purchaseVariance } from "@/lib/calc/expenses";
 import { toNumber } from "@/lib/money";
 import { Lightbox } from "../../Lightbox";
-import { pullExpensesFromBudgetAction, updateActualSpentAction, deleteExpenseAction } from "./expensesActions";
+import { pullExpensesFromBudgetAction, deleteExpenseAction } from "./expensesActions";
 import { AddExpenseForm } from "./AddExpenseForm";
+import { ActualSpentCell } from "./ActualSpentCell";
 
 interface ExpenseRow {
   id: string;
@@ -103,18 +104,12 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                 <td className="mono" data-label="Withholding">{toNumber(p.withholding).toLocaleString()}</td>
                 <td data-label="Actual Spent" data-span={editable ? "full" : undefined}>
                   {editable ? (
-                    <form action={updateActualSpentAction.bind(null, p.id, job.id)} style={{ display: "flex", gap: 4 }}>
-                      <input
-                        className="input"
-                        name="actualSpent"
-                        type="number"
-                        step="0.01"
-                        defaultValue={p.actualSpent === null ? "" : String(p.actualSpent)}
-                        style={{ width: 90 }}
-                        placeholder={p.category === "stock" ? "qty" : "Br"}
-                      />
-                      <button className="btn btn-sm" type="submit">Save</button>
-                    </form>
+                    <ActualSpentCell
+                      expenseId={p.id}
+                      jobId={job.id}
+                      actualSpent={p.actualSpent}
+                      placeholder={p.category === "stock" ? "qty" : "Br"}
+                    />
                   ) : (
                     p.actualSpent === null ? "—" : String(p.actualSpent)
                   )}

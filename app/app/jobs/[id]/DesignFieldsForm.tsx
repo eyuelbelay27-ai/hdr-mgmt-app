@@ -1,10 +1,9 @@
 "use client";
 
-import { useFormState } from "react-dom";
-import { updateDesignFieldsAction, type ActionState } from "./actions";
-import { SubmitButton } from "../../SubmitButton";
-
-const initialState: ActionState = { error: null };
+import { useState } from "react";
+import { updateDesignFieldsAction } from "./actions";
+import { useAutosave } from "../../useAutosave";
+import { SaveStatusBadge } from "../../SaveStatusBadge";
 
 export function DesignFieldsForm({
   jobId,
@@ -17,19 +16,47 @@ export function DesignFieldsForm({
   supervisor: string | null;
   productionNotes: string | null;
 }) {
-  const boundAction = updateDesignFieldsAction.bind(null, jobId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [fields, setFields] = useState({
+    designer: designer ?? "",
+    supervisor: supervisor ?? "",
+    productionNotes: productionNotes ?? "",
+  });
+  const autosave = useAutosave((formData) => updateDesignFieldsAction(jobId, { error: null }, formData));
+
+  const buildFormData = (values: typeof fields) => {
+    const fd = new FormData();
+    fd.set("designer", values.designer);
+    fd.set("supervisor", values.supervisor);
+    fd.set("productionNotes", values.productionNotes);
+    return fd;
+  };
+
+  const update = (key: keyof typeof fields, value: string) => {
+    const next = { ...fields, [key]: value };
+    setFields(next);
+    autosave.schedule(() => buildFormData(next));
+  };
 
   return (
-    <form action={formAction} className="card" style={{ padding: 16, display: "grid", gap: 10 }}>
+    <div className="card" style={{ padding: 16, display: "grid", gap: 10 }}>
       <div className="form-row">
         <div>
           <label className="label" htmlFor="designer">Designer</label>
-          <input className="input" id="designer" name="designer" defaultValue={designer ?? ""} />
+          <input
+            className="input"
+            id="designer"
+            value={fields.designer}
+            onChange={(e) => update("designer", e.target.value)}
+          />
         </div>
         <div>
           <label className="label" htmlFor="supervisor">Supervisor</label>
-          <input className="input" id="supervisor" name="supervisor" defaultValue={supervisor ?? ""} />
+          <input
+            className="input"
+            id="supervisor"
+            value={fields.supervisor}
+            onChange={(e) => update("supervisor", e.target.value)}
+          />
         </div>
       </div>
       <div>
@@ -39,15 +66,12 @@ export function DesignFieldsForm({
         <textarea
           className="input"
           id="productionNotes"
-          name="productionNotes"
           rows={4}
-          defaultValue={productionNotes ?? ""}
+          value={fields.productionNotes}
+          onChange={(e) => update("productionNotes", e.target.value)}
         />
       </div>
-      {state.error && <p className="login-error">{state.error}</p>}
-      <div>
-        <SubmitButton label="Save" pendingLabel="Saving…" />
-      </div>
-    </form>
+      <SaveStatusBadge status={autosave.status} error={autosave.error} />
+    </div>
   );
 }
