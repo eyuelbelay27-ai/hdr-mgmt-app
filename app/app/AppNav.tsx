@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PAGE_KEYS, canSeePage, type PermissionSubject } from "@/lib/permissions";
 import { signOutAction } from "./actions";
+import { HadarMark } from "./Logo";
 
 export function AppNav({
   user,
@@ -32,10 +33,13 @@ export function AppNav({
       <div className={`nav-overlay${open ? " nav-open" : ""}`} onClick={() => setOpen(false)} />
 
       <nav className={`app-nav${open ? " nav-open" : ""}`}>
-        <div style={{ padding: "4px 12px 18px" }}>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>Hadar Advertising</div>
-          <div className="label" style={{ marginTop: 4, marginBottom: 0 }}>
-            {user.name} · {user.role}
+        <div style={{ padding: "4px 12px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+          <HadarMark size={26} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>Hadar Advertising</div>
+            <div className="label" style={{ marginTop: 4, marginBottom: 0 }}>
+              {user.name} · {user.role}
+            </div>
           </div>
         </div>
 

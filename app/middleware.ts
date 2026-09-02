@@ -29,6 +29,11 @@ export const config = {
   // is a page-navigation UX, not an API auth mechanism. Route Handlers
   // under /api/ (auth's own callback routes, and the one-time admin seed
   // trigger that must be reachable before any user exists) do their own
-  // auth checks instead.
-  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico).*)"],
+  // auth checks instead. Also excludes static brand assets and the
+  // metadata icon routes Next generates from app/icon.png and
+  // app/apple-icon.png — without this, an unauthenticated request for any
+  // of them (e.g. the logo on the login page itself, or a browser
+  // fetching the favicon before sign-in) got redirected to /login and
+  // rendered as a broken image.
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|brand/).*)"],
 };

@@ -8,6 +8,7 @@ import { actualTotalExpenses, actualExpenseAmount, finalProfitAfterExpenses } fr
 import { remainingPayment } from "@/lib/calc/payments";
 import { toNumber } from "@/lib/money";
 import { PrintButton } from "./PrintButton";
+import { HadarMark } from "../../../Logo";
 
 /**
  * Full job record (Section 6: "Closed: fully locked, printable full job
@@ -51,6 +52,10 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
       </div>
 
       <div className="print-sheet card">
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <HadarMark size={32} />
+          <span style={{ fontWeight: 700, fontSize: 15, color: "#221c1f" }}>Hadar Advertising</span>
+        </div>
         <h1>{job.jobNumber} — {job.clientName}</h1>
         <p className="label">{job.title} · Closed {job.monitoringClosedAt?.toISOString().slice(0, 10)} by {job.monitoringClosedBy}</p>
 
