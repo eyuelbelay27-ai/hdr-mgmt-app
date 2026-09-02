@@ -1,9 +1,8 @@
-import { prisma } from "@/lib/prisma";
 import { can, canViewAction, type PermissionSubject } from "@/lib/permissions";
+import { prisma } from "@/lib/prisma";
 import { costEstimateTotals } from "@/lib/calc/cost-estimate";
 import { toNumber } from "@/lib/money";
-import { saveCostEstimateQuantitiesAction, deleteCostEstimateItemAction } from "./costEstimateActions";
-import { AddCostEstimateItemForm } from "./AddCostEstimateItemForm";
+import { CostEstimateCategorySheet } from "./CostEstimateCategorySheet";
 import { SoldPriceForm } from "./SoldPriceForm";
 import { CostEstimateNotesForm } from "./CostEstimateNotesForm";
 import { Lightbox } from "../../Lightbox";
@@ -32,128 +31,6 @@ interface CostJob {
   costEstimatePriceListKind: string | null;
 }
 
-function CategorySheet({
-  category,
-  label,
-  materials,
-  items,
-  jobId,
-  editable,
-  canAddAdhoc,
-}: {
-  category: "cash" | "stock";
-  label: string;
-  materials: { id: string; name: string; unit: string; rate: unknown }[];
-  items: CostItem[];
-  jobId: string;
-  editable: boolean;
-  canAddAdhoc: boolean;
-}) {
-  const itemsByMaterial = new Map(items.filter((i) => i.materialId).map((i) => [i.materialId as string, i]));
-  const manualItems = items.filter((i) => !i.materialId && i.category === category);
-  const categoryTotal = items
-    .filter((i) => i.category === category)
-    .reduce((sum, i) => sum + toNumber(i.total), 0);
-
-  return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-        <h3 style={{ margin: 0 }}>{label} Items</h3>
-        <div className="mono">{categoryTotal.toLocaleString()} ETB</div>
-      </div>
-
-      <form action={saveCostEstimateQuantitiesAction.bind(null, jobId, category)} style={{ marginTop: 10 }}>
-        <div className="dtable-wrap">
-        <table className="dtable">
-          <thead>
-            <tr>
-              <th>Material</th>
-              <th>Unit</th>
-              <th>Rate</th>
-              <th>Qty</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {materials.map((m) => {
-              const existing = itemsByMaterial.get(m.id);
-              return (
-                <tr key={m.id}>
-                  <td data-label="Material">{m.name}</td>
-                  <td data-label="Unit">{m.unit}</td>
-                  <td className="mono" data-label="Rate">{m.rate === null ? "—" : toNumber(m.rate).toLocaleString()}</td>
-                  <td data-label="Qty">
-                    {editable ? (
-                      <input
-                        className="input"
-                        style={{ width: 90 }}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        name={`qty_${m.id}`}
-                        defaultValue={existing ? String(existing.qty) : ""}
-                        disabled={m.rate === null}
-                      />
-                    ) : (
-                      (existing && String(existing.qty)) || "—"
-                    )}
-                  </td>
-                  <td className="mono" data-label="Total">{existing ? toNumber(existing.total).toLocaleString() : "—"}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        </div>
-        {editable && (
-          <button className="btn btn-sm btn-primary" type="submit" style={{ marginTop: 8 }}>
-            Save {label} Quantities
-          </button>
-        )}
-      </form>
-
-      {manualItems.length > 0 && (
-        <div className="dtable-wrap" style={{ marginTop: 12 }}>
-        <table className="dtable">
-          <thead>
-            <tr>
-              <th>Ad-hoc Item</th>
-              <th>Unit</th>
-              <th>Qty</th>
-              <th>Unit Price</th>
-              <th>Total</th>
-              <th>Comment</th>
-              {canAddAdhoc && <th />}
-            </tr>
-          </thead>
-          <tbody>
-            {manualItems.map((i) => (
-              <tr key={i.id}>
-                <td data-label="Ad-hoc Item">{i.name}</td>
-                <td data-label="Unit">{i.unit}</td>
-                <td className="mono" data-label="Qty">{String(i.qty)}</td>
-                <td className="mono" data-label="Unit Price">{toNumber(i.unitPrice).toLocaleString()}</td>
-                <td className="mono" data-label="Total">{toNumber(i.total).toLocaleString()}</td>
-                <td data-label="Comment">{i.comment ?? "—"}</td>
-                {canAddAdhoc && (
-                  <td>
-                    <form action={deleteCostEstimateItemAction.bind(null, i.id, jobId)}>
-                      <button className="btn btn-sm btn-danger" type="submit">Delete</button>
-                    </form>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
-      )}
-
-      {canAddAdhoc && <AddCostEstimateItemForm jobId={jobId} category={category} />}
-    </div>
-  );
-}
-
 export async function CostEstimateTab({
   job,
   user,
@@ -164,8 +41,25 @@ export async function CostEstimateTab({
   locked: boolean;
 }) {
   const materials = await prisma.material.findMany({ where: { active: true }, orderBy: { name: "asc" } });
-  const cashMaterials = materials.filter((m) => m.category === "cash");
-  const stockMaterials = materials.filter((m) => m.category === "stock");
+  // CostEstimateCategorySheet is a client component (needs live Qty→Total
+  // math as you type) — Prisma's Decimal fields can't cross that
+  // server/client boundary as-is (React silently drops them), so they're
+  // converted to plain numbers here before being passed down.
+  const plainMaterials = materials.map((m) => ({
+    id: m.id,
+    name: m.name,
+    unit: m.unit,
+    category: m.category,
+    rate: m.rate === null ? null : toNumber(m.rate),
+  }));
+  const plainItems = job.costEstimateItems.map((i) => ({
+    ...i,
+    qty: toNumber(i.qty),
+    unitPrice: toNumber(i.unitPrice),
+    total: toNumber(i.total),
+  }));
+  const cashMaterials = plainMaterials.filter((m) => m.category === "cash");
+  const stockMaterials = plainMaterials.filter((m) => m.category === "stock");
 
   const editableQty = can(user, "manageCostEstimate") && !locked;
   const canAddAdhoc = can(user, "addCostEstimateItem") && !locked;
@@ -183,20 +77,20 @@ export async function CostEstimateTab({
     <div style={{ display: "grid", gap: 16 }}>
       {locked && <p className="label">This job&apos;s Cost Estimate is locked (status is past Draft).</p>}
 
-      <CategorySheet
+      <CostEstimateCategorySheet
         category="cash"
         label="Cash"
         materials={cashMaterials}
-        items={job.costEstimateItems}
+        items={plainItems}
         jobId={job.id}
         editable={editableQty}
         canAddAdhoc={canAddAdhoc}
       />
-      <CategorySheet
+      <CostEstimateCategorySheet
         category="stock"
         label="Stock"
         materials={stockMaterials}
-        items={job.costEstimateItems}
+        items={plainItems}
         jobId={job.id}
         editable={editableQty}
         canAddAdhoc={canAddAdhoc}
