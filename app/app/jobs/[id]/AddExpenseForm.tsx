@@ -32,24 +32,24 @@ export function AddExpenseForm({ jobId, entryType }: { jobId: string; entryType:
       className="card"
       style={{ padding: 16, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap", marginTop: 12 }}
     >
-      <div>
+      <div style={{ flex: "1 1 150px" }}>
         <label className="label">Date</label>
         <input className="input" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
       </div>
-      <div>
+      <div style={{ flex: "1 1 140px" }}>
         <label className="label">Purchaser</label>
         <input className="input" name="purchaser" />
       </div>
-      <div>
+      <div style={{ flex: "1 1 140px" }}>
         <label className="label">Item</label>
         <input className="input" name="item" required />
       </div>
-      <div>
+      <div style={{ flex: "1 1 160px" }}>
         <label className="label">Description</label>
         <input className="input" name="description" />
       </div>
       {entryType === "purchase" && (
-        <div>
+        <div style={{ flex: "1 1 130px" }}>
           <label className="label">Category</label>
           <select className="input" name="category" value={category} onChange={(e) => setCategory(e.target.value as "cash" | "stock")}>
             <option value="cash">Cash</option>
@@ -59,21 +59,21 @@ export function AddExpenseForm({ jobId, entryType }: { jobId: string; entryType:
       )}
       {entryType === "purchase" && category === "stock" ? (
         <>
-          <div>
+          <div style={{ flex: "1 1 90px" }}>
             <label className="label">Qty</label>
-            <input className="input" name="qty" type="number" step="0.01" min="0" required style={{ width: 90 }} />
+            <input className="input" name="qty" type="number" step="0.01" min="0" required style={{ width: "100%" }} />
           </div>
-          <div>
+          <div style={{ flex: "1 1 80px" }}>
             <label className="label">Unit</label>
-            <input className="input" name="unit" required style={{ width: 80 }} />
+            <input className="input" name="unit" required style={{ width: "100%" }} />
           </div>
-          <div>
+          <div style={{ flex: "1 1 110px" }}>
             <label className="label">Unit Price</label>
-            <input className="input" name="unitPrice" type="number" step="0.01" min="0" required style={{ width: 100 }} />
+            <input className="input" name="unitPrice" type="number" step="0.01" min="0" required style={{ width: "100%" }} />
           </div>
         </>
       ) : (
-        <div>
+        <div style={{ flex: "1 1 140px" }}>
           <label className="label">Total Price (ETB)</label>
           <input className="input" name="totalPrice" type="number" step="0.01" min="0" required />
         </div>

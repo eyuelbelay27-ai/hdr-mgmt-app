@@ -95,40 +95,44 @@ export default async function DashboardPage({
 
         <div style={{ marginTop: 20 }}>
           {activeStatus && (
+            <div className="card dtable-wrap">
             <table className="dtable">
               <thead><tr><th>Job #</th><th>Client</th><th>Status</th></tr></thead>
               <tbody>
                 {activeJobs.map((j) => (
                   <tr key={j.id}>
-                    <td className="mono"><a href={`/jobs/${j.id}`}>{j.jobNumber}</a></td>
-                    <td>
+                    <td className="mono" data-label="Job #"><a href={`/jobs/${j.id}`}>{j.jobNumber}</a></td>
+                    <td data-label="Client">
                       <a href={`/jobs/${j.id}`} style={{ display: "flex", gap: 8, alignItems: "center", color: "inherit" }}>
                         {j.clientName}
                         {j.deadline && <DeadlineBadge deadline={j.deadline} status={j.status} />}
                       </a>
                     </td>
-                    <td><StatusBadge status={j.status} /></td>
+                    <td data-label="Status"><StatusBadge status={j.status} /></td>
                   </tr>
                 ))}
                 {activeJobs.length === 0 && <tr><td className="label" colSpan={3}>No jobs in this status.</td></tr>}
               </tbody>
             </table>
+            </div>
           )}
 
           {activeTab === "dash_remaining" && (
+            <div className="card dtable-wrap">
             <table className="dtable">
               <thead><tr><th>Job #</th><th>Client</th><th>Remaining</th></tr></thead>
               <tbody>
                 {remainingRows.map(({ job, remaining }) => (
                   <tr key={job.id}>
-                    <td className="mono"><a href={`/jobs/${job.id}`}>{job.jobNumber}</a></td>
-                    <td>{job.clientName}</td>
-                    <td className="mono">{remaining.toLocaleString()} ETB</td>
+                    <td className="mono" data-label="Job #"><a href={`/jobs/${job.id}`}>{job.jobNumber}</a></td>
+                    <td data-label="Client">{job.clientName}</td>
+                    <td className="mono" data-label="Remaining">{remaining.toLocaleString()} ETB</td>
                   </tr>
                 ))}
                 {remainingRows.length === 0 && <tr><td className="label" colSpan={3}>No outstanding balances.</td></tr>}
               </tbody>
             </table>
+            </div>
           )}
 
           {activeTab === "dash_purchaseOrders" && <PurchaseOrdersPanel user={user} />}

@@ -23,13 +23,13 @@ export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; job
   if (!editable) {
     return (
       <tr>
-        <td>{item.label}</td>
-        <td>{item.category === "cash" ? "Cash" : "Stock"}</td>
-        <td className="mono">
+        <td data-label="Description">{item.label}</td>
+        <td data-label="Category">{item.category === "cash" ? "Cash" : "Stock"}</td>
+        <td className="mono" data-label="Amount / Qty+Unit">
           {item.category === "stock" ? `${String(item.qty)} ${item.unit ?? ""}` : String(item.amount)}
         </td>
-        <td>{item.comment ?? "—"}</td>
-        <td className="label">{item.source === "CostEstimate" ? "Cost Estimate" : "Manual"}</td>
+        <td data-label="Comment">{item.comment ?? "—"}</td>
+        <td data-label="Source" className="label">{item.source === "CostEstimate" ? "Cost Estimate" : "Manual"}</td>
       </tr>
     );
   }
@@ -42,8 +42,8 @@ export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; job
         </td>
       </tr>
       <tr>
-        <td><input className="input" form={formId} name="label" defaultValue={item.label} required /></td>
-        <td>
+        <td data-label="Description"><input className="input" form={formId} name="label" defaultValue={item.label} required /></td>
+        <td data-label="Category">
           <select
             className="input"
             form={formId}
@@ -55,7 +55,7 @@ export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; job
             <option value="stock">Stock</option>
           </select>
         </td>
-        <td>
+        <td data-label="Amount / Qty+Unit">
           {category === "stock" ? (
             <div style={{ display: "flex", gap: 4 }}>
               <input
@@ -80,8 +80,8 @@ export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; job
             />
           )}
         </td>
-        <td><input className="input" form={formId} name="comment" defaultValue={item.comment ?? ""} /></td>
-        <td style={{ display: "flex", gap: 6 }}>
+        <td data-label="Comment"><input className="input" form={formId} name="comment" defaultValue={item.comment ?? ""} /></td>
+        <td data-label="Actions" style={{ display: "flex", gap: 6 }}>
           <button className="btn btn-sm" form={formId} type="submit">Save</button>
           <form action={deleteAction}>
             <button className="btn btn-sm btn-danger" type="submit">Delete</button>

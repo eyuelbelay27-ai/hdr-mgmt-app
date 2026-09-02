@@ -21,7 +21,8 @@ export function AddCostEstimateItemForm({ jobId, category }: { jobId: string; ca
     <form
       ref={formRef}
       action={formAction}
-      style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 2fr auto", gap: 8, alignItems: "end", marginTop: 8 }}
+      className="form-row"
+      style={{ marginTop: 8 }}
     >
       <div>
         <label className="label">Name</label>

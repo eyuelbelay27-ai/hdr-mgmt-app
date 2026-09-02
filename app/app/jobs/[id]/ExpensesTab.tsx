@@ -48,7 +48,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
+      <div className="form-row">
         {[
           { label: "Total Purchases", value: `${stats.totalPurchases.toLocaleString()} ETB` },
           { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} ETB` },
@@ -64,7 +64,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
       </div>
 
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <h3 style={{ margin: 0 }}>Purchases</h3>
           {editable && (
             <form action={pullExpensesFromBudgetAction.bind(null, job.id)}>
@@ -72,7 +72,8 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
             </form>
           )}
         </div>
-        <table className="dtable" style={{ marginTop: 8 }}>
+        <div className="dtable-wrap" style={{ marginTop: 8 }}>
+        <table className="dtable">
           <thead>
             <tr>
               <th>Date</th>
@@ -92,15 +93,15 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
           <tbody>
             {purchases.map((p) => (
               <tr key={p.id} style={p.flagged ? { background: "var(--danger-soft)" } : undefined}>
-                <td>{p.date.toISOString().slice(0, 10)}</td>
-                <td>{p.purchaser ?? "—"}</td>
-                <td>{p.item}</td>
-                <td>{p.category === "cash" ? "Cash" : "Stock"}</td>
-                <td className="mono">{p.category === "stock" ? `${String(p.qty)} ${p.unit ?? ""}` : "—"}</td>
-                <td className="mono">{toNumber(p.totalPrice).toLocaleString()}</td>
-                <td className="label">{p.budgetRef ?? "—"}</td>
-                <td className="mono">{toNumber(p.withholding).toLocaleString()}</td>
-                <td>
+                <td data-label="Date">{p.date.toISOString().slice(0, 10)}</td>
+                <td data-label="Purchaser">{p.purchaser ?? "—"}</td>
+                <td data-label="Item">{p.item}</td>
+                <td data-label="Category">{p.category === "cash" ? "Cash" : "Stock"}</td>
+                <td className="mono" data-label="Qty/Unit">{p.category === "stock" ? `${String(p.qty)} ${p.unit ?? ""}` : "—"}</td>
+                <td className="mono" data-label="Total">{toNumber(p.totalPrice).toLocaleString()}</td>
+                <td className="label" data-label="Budget Ref">{p.budgetRef ?? "—"}</td>
+                <td className="mono" data-label="Withholding">{toNumber(p.withholding).toLocaleString()}</td>
+                <td data-label="Actual Spent">
                   {editable ? (
                     <form action={updateActualSpentAction.bind(null, p.id, job.id)} style={{ display: "flex", gap: 4 }}>
                       <input
@@ -118,8 +119,8 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                     p.actualSpent === null ? "—" : String(p.actualSpent)
                   )}
                 </td>
-                <td><VarianceCell row={p} /></td>
-                <td>
+                <td data-label="Variance"><VarianceCell row={p} /></td>
+                <td data-label="Receipt">
                   {p.receiptUrl && (
                     <Lightbox file={{ name: p.receiptName ?? "receipt", url: p.receiptUrl, kind: p.receiptKind ?? "" }} size={36} />
                   )}
@@ -138,12 +139,14 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
             )}
           </tbody>
         </table>
+        </div>
         {editable && <AddExpenseForm jobId={job.id} entryType="purchase" />}
       </div>
 
       <div>
         <h3 style={{ margin: 0 }}>Receipts</h3>
-        <table className="dtable" style={{ marginTop: 8 }}>
+        <div className="dtable-wrap" style={{ marginTop: 8 }}>
+        <table className="dtable">
           <thead>
             <tr>
               <th>Date</th>
@@ -159,13 +162,13 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
           <tbody>
             {receipts.map((r) => (
               <tr key={r.id}>
-                <td>{r.date.toISOString().slice(0, 10)}</td>
-                <td>{r.purchaser ?? "—"}</td>
-                <td>{r.item}</td>
-                <td>{r.description ?? "—"}</td>
-                <td className="mono">{toNumber(r.totalPrice).toLocaleString()}</td>
-                <td className="mono">{toNumber(r.withholding).toLocaleString()}</td>
-                <td>
+                <td data-label="Date">{r.date.toISOString().slice(0, 10)}</td>
+                <td data-label="Purchaser">{r.purchaser ?? "—"}</td>
+                <td data-label="Item">{r.item}</td>
+                <td data-label="Description">{r.description ?? "—"}</td>
+                <td className="mono" data-label="Total">{toNumber(r.totalPrice).toLocaleString()}</td>
+                <td className="mono" data-label="Withholding">{toNumber(r.withholding).toLocaleString()}</td>
+                <td data-label="Receipt">
                   {r.receiptUrl && (
                     <Lightbox file={{ name: r.receiptName ?? "receipt", url: r.receiptUrl, kind: r.receiptKind ?? "" }} size={36} />
                   )}
@@ -184,6 +187,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
             )}
           </tbody>
         </table>
+        </div>
         {editable && <AddExpenseForm jobId={job.id} entryType="receipt" />}
       </div>
     </div>

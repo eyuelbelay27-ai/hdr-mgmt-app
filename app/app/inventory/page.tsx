@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { can, canSeePage } from "@/lib/permissions";
 import { getInventoryBalances } from "@/lib/calc/inventory";
 import { AppNav } from "../AppNav";
+import { ActiveTabAutoScroll } from "../ActiveTabAutoScroll";
 import { RecordForm } from "./RecordForm";
 
 const TABS = [
@@ -53,11 +54,12 @@ export default async function InventoryPage({
       <main className="app-main">
         <h1 style={{ marginTop: 0 }}>Inventory</h1>
 
-        <table className="card" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20 }}>
+        <div className="card dtable-wrap" style={{ marginBottom: 20 }}>
+        <table className="dtable">
           <thead>
             <tr>
               {["Material", "Balance", "Unit"].map((h) => (
-                <th key={h} className="label" style={{ textAlign: "left", padding: "10px 12px" }}>
+                <th key={h}>
                   {h}
                 </th>
               ))}
@@ -65,33 +67,36 @@ export default async function InventoryPage({
           </thead>
           <tbody>
             {balances.map((b) => (
-              <tr key={b.key} style={{ borderTop: "1px solid var(--border-soft)" }}>
-                <td style={{ padding: "10px 12px" }}>{b.label}</td>
-                <td className="mono" style={{ padding: "10px 12px" }}>{b.balance.toLocaleString()}</td>
-                <td style={{ padding: "10px 12px" }}>{b.unit ?? "—"}</td>
+              <tr key={b.key}>
+                <td data-label="Material">{b.label}</td>
+                <td className="mono" data-label="Balance">{b.balance.toLocaleString()}</td>
+                <td data-label="Unit">{b.unit ?? "—"}</td>
               </tr>
             ))}
             {balances.length === 0 && (
               <tr>
-                <td className="label" style={{ padding: "10px 12px" }} colSpan={3}>No stock movements recorded yet.</td>
+                <td className="label" colSpan={3}>No stock movements recorded yet.</td>
               </tr>
             )}
           </tbody>
         </table>
+        </div>
 
-        <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", overflowX: "auto" }}>
           {TABS.map((t) => (
-            <a key={t.key} href={`?tab=${t.key}`} className={`tab${activeTab === t.key ? " active" : ""}`}>
+            <a key={t.key} href={`?tab=${t.key}`} className={`tab${activeTab === t.key ? " active" : ""}`} style={{ whiteSpace: "nowrap" }}>
               {t.label}
             </a>
           ))}
         </div>
+        <ActiveTabAutoScroll />
 
         <div style={{ marginTop: 16, display: "grid", gap: 16 }}>
           {canManage && activeTab !== "transactions" && (
             <RecordForm direction={activeTab as "in" | "out"} materials={stockMaterials} />
           )}
 
+          <div className="dtable-wrap">
           <table className="dtable">
             <thead>
               <tr>
@@ -108,20 +113,20 @@ export default async function InventoryPage({
             <tbody>
               {entries.map((e) => (
                 <tr key={e.id}>
-                  <td>{e.date.toISOString().slice(0, 10)}</td>
-                  <td>{e.direction === "in" ? "In" : "Out"}</td>
-                  <td>{e.itemName}</td>
-                  <td className="mono">{String(e.qty)}</td>
-                  <td>{e.unit ?? "—"}</td>
-                  <td className="label">{e.source}</td>
-                  <td>
+                  <td data-label="Date">{e.date.toISOString().slice(0, 10)}</td>
+                  <td data-label="Direction">{e.direction === "in" ? "In" : "Out"}</td>
+                  <td data-label="Item">{e.itemName}</td>
+                  <td className="mono" data-label="Qty">{String(e.qty)}</td>
+                  <td data-label="Unit">{e.unit ?? "—"}</td>
+                  <td className="label" data-label="Source">{e.source}</td>
+                  <td data-label="Project">
                     {e.job ? (
                       <a href={`/jobs/${e.job.id}`}>{e.job.jobNumber} — {e.job.clientName}</a>
                     ) : (
                       "—"
                     )}
                   </td>
-                  <td>{e.note ?? "—"}</td>
+                  <td data-label="Note">{e.note ?? "—"}</td>
                 </tr>
               ))}
               {entries.length === 0 && (
@@ -131,6 +136,7 @@ export default async function InventoryPage({
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </main>
     </div>

@@ -57,12 +57,13 @@ function CategorySheet({
 
   return (
     <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
         <h3 style={{ margin: 0 }}>{label} Items</h3>
         <div className="mono">{categoryTotal.toLocaleString()} ETB</div>
       </div>
 
       <form action={saveCostEstimateQuantitiesAction.bind(null, jobId, category)} style={{ marginTop: 10 }}>
+        <div className="dtable-wrap">
         <table className="dtable">
           <thead>
             <tr>
@@ -78,10 +79,10 @@ function CategorySheet({
               const existing = itemsByMaterial.get(m.id);
               return (
                 <tr key={m.id}>
-                  <td>{m.name}</td>
-                  <td>{m.unit}</td>
-                  <td className="mono">{m.rate === null ? "—" : toNumber(m.rate).toLocaleString()}</td>
-                  <td>
+                  <td data-label="Material">{m.name}</td>
+                  <td data-label="Unit">{m.unit}</td>
+                  <td className="mono" data-label="Rate">{m.rate === null ? "—" : toNumber(m.rate).toLocaleString()}</td>
+                  <td data-label="Qty">
                     {editable ? (
                       <input
                         className="input"
@@ -97,12 +98,13 @@ function CategorySheet({
                       (existing && String(existing.qty)) || "—"
                     )}
                   </td>
-                  <td className="mono">{existing ? toNumber(existing.total).toLocaleString() : "—"}</td>
+                  <td className="mono" data-label="Total">{existing ? toNumber(existing.total).toLocaleString() : "—"}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        </div>
         {editable && (
           <button className="btn btn-sm btn-primary" type="submit" style={{ marginTop: 8 }}>
             Save {label} Quantities
@@ -111,7 +113,8 @@ function CategorySheet({
       </form>
 
       {manualItems.length > 0 && (
-        <table className="dtable" style={{ marginTop: 12 }}>
+        <div className="dtable-wrap" style={{ marginTop: 12 }}>
+        <table className="dtable">
           <thead>
             <tr>
               <th>Ad-hoc Item</th>
@@ -126,12 +129,12 @@ function CategorySheet({
           <tbody>
             {manualItems.map((i) => (
               <tr key={i.id}>
-                <td>{i.name}</td>
-                <td>{i.unit}</td>
-                <td className="mono">{String(i.qty)}</td>
-                <td className="mono">{toNumber(i.unitPrice).toLocaleString()}</td>
-                <td className="mono">{toNumber(i.total).toLocaleString()}</td>
-                <td>{i.comment ?? "—"}</td>
+                <td data-label="Ad-hoc Item">{i.name}</td>
+                <td data-label="Unit">{i.unit}</td>
+                <td className="mono" data-label="Qty">{String(i.qty)}</td>
+                <td className="mono" data-label="Unit Price">{toNumber(i.unitPrice).toLocaleString()}</td>
+                <td className="mono" data-label="Total">{toNumber(i.total).toLocaleString()}</td>
+                <td data-label="Comment">{i.comment ?? "—"}</td>
                 {canAddAdhoc && (
                   <td>
                     <form action={deleteCostEstimateItemAction.bind(null, i.id, jobId)}>
@@ -143,6 +146,7 @@ function CategorySheet({
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       {canAddAdhoc && <AddCostEstimateItemForm jobId={jobId} category={category} />}
@@ -214,7 +218,7 @@ export async function CostEstimateTab({
               {job.costEstimateCommissionActive ? "active" : "off"}
             </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginTop: 14 }}>
+          <div className="form-row" style={{ marginTop: 14 }}>
             <div>
               <div className="label">Sub Total</div>
               <div className="mono">{totals.subTotal.toLocaleString()} ETB</div>

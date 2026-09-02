@@ -31,8 +31,8 @@ export function RequestRevisionControl({ jobId }: { jobId: string }) {
   }
 
   return (
-    <form action={formAction} style={{ display: "flex", gap: 8, alignItems: "end" }}>
-      <div style={{ flex: 1 }}>
+    <form action={formAction} style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
+      <div style={{ flex: "1 1 160px" }}>
         <label className="label">Reason (required)</label>
         <input className="input" name="note" value={note} onChange={(e) => setNote(e.target.value)} />
       </div>

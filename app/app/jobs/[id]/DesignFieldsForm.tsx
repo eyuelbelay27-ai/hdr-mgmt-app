@@ -22,7 +22,7 @@ export function DesignFieldsForm({
 
   return (
     <form action={formAction} className="card" style={{ padding: 16, display: "grid", gap: 10 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      <div className="form-row">
         <div>
           <label className="label" htmlFor="designer">Designer</label>
           <input className="input" id="designer" name="designer" defaultValue={designer ?? ""} />

@@ -14,6 +14,7 @@ export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject })
     <div style={{ display: "grid", gap: 16 }}>
       {can(user, "submitPurchaseOrder") && <CreatePOForm />}
 
+      <div className="card dtable-wrap">
       <table className="dtable">
         <thead>
           <tr>
@@ -24,15 +25,15 @@ export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject })
         <tbody>
           {orders.map((po) => (
             <tr key={po.id}>
-              <td className="mono">{po.poNumber}</td>
-              <td>{po.date.toISOString().slice(0, 10)}</td>
-              <td>{po.purchaser}</td>
-              <td>{po.item}</td>
-              <td>{po.category === "cash" ? "Cash" : "Stock"}</td>
-              <td className="mono">{String(po.qty)}</td>
-              <td className="mono">{toNumber(po.total).toLocaleString()}</td>
-              <td>{po.status}</td>
-              <td>{po.note ?? "—"}</td>
+              <td className="mono" data-label="PO #">{po.poNumber}</td>
+              <td data-label="Date">{po.date.toISOString().slice(0, 10)}</td>
+              <td data-label="Purchaser">{po.purchaser}</td>
+              <td data-label="Item">{po.item}</td>
+              <td data-label="Category">{po.category === "cash" ? "Cash" : "Stock"}</td>
+              <td className="mono" data-label="Qty">{String(po.qty)}</td>
+              <td className="mono" data-label="Total">{toNumber(po.total).toLocaleString()}</td>
+              <td data-label="Status">{po.status}</td>
+              <td data-label="Note">{po.note ?? "—"}</td>
               {canApprove && (
                 <td>
                   {po.status === "Pending" && (
@@ -52,6 +53,7 @@ export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject })
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

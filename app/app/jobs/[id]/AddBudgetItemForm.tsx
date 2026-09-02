@@ -25,11 +25,11 @@ export function AddBudgetItemForm({ jobId }: { jobId: string }) {
       className="card"
       style={{ padding: 16, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap", marginTop: 12 }}
     >
-      <div>
+      <div style={{ flex: "1 1 160px" }}>
         <label className="label">Description</label>
         <input className="input" name="label" required />
       </div>
-      <div>
+      <div style={{ flex: "1 1 140px" }}>
         <label className="label">Category</label>
         <select
           className="input"
@@ -42,23 +42,23 @@ export function AddBudgetItemForm({ jobId }: { jobId: string }) {
         </select>
       </div>
       {category === "cash" ? (
-        <div>
+        <div style={{ flex: "1 1 140px" }}>
           <label className="label">Amount (ETB)</label>
           <input className="input" name="amount" type="number" step="0.01" min="0" required />
         </div>
       ) : (
         <>
-          <div>
+          <div style={{ flex: "1 1 120px" }}>
             <label className="label">Qty</label>
             <input className="input" name="qty" type="number" step="0.01" min="0" required />
           </div>
-          <div>
+          <div style={{ flex: "1 1 120px" }}>
             <label className="label">Unit</label>
             <input className="input" name="unit" required />
           </div>
         </>
       )}
-      <div>
+      <div style={{ flex: "1 1 160px" }}>
         <label className="label">Comment</label>
         <input className="input" name="comment" />
       </div>

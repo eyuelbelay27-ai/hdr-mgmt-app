@@ -28,7 +28,7 @@ export function PaymentsTab({
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      <div style={{ display: "flex", gap: 12 }}>
+      <div className="form-row">
         <div className="card" style={{ padding: 12 }}>
           <div className="label">Sold Price</div>
           <div style={{ fontSize: 18, fontWeight: 700 }}>{toNumber(job.costEstimateSoldPrice).toLocaleString()} ETB</div>
@@ -39,6 +39,7 @@ export function PaymentsTab({
         </div>
       </div>
 
+      <div className="card dtable-wrap">
       <table className="dtable">
         <thead>
           <tr>
@@ -53,12 +54,12 @@ export function PaymentsTab({
         <tbody>
           {job.payments.map((p) => (
             <tr key={p.id}>
-              <td>{p.date.toISOString().slice(0, 10)}</td>
-              <td>{p.type}</td>
-              <td className="mono">{toNumber(p.amount).toLocaleString()}</td>
-              <td>{p.method ?? "—"}</td>
-              <td>{p.notes ?? "—"}</td>
-              <td>
+              <td data-label="Date">{p.date.toISOString().slice(0, 10)}</td>
+              <td data-label="Type">{p.type}</td>
+              <td className="mono" data-label="Amount">{toNumber(p.amount).toLocaleString()}</td>
+              <td data-label="Method">{p.method ?? "—"}</td>
+              <td data-label="Notes">{p.notes ?? "—"}</td>
+              <td data-label="Receipt">
                 {p.receiptUrl && (
                   <Lightbox file={{ name: p.receiptName ?? "receipt", url: p.receiptUrl, kind: p.receiptKind ?? "" }} size={36} />
                 )}
@@ -70,6 +71,7 @@ export function PaymentsTab({
           )}
         </tbody>
       </table>
+      </div>
 
       {editable && <RecordPaymentForm jobId={job.id} />}
     </div>

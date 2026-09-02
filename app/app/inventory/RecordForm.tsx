@@ -29,7 +29,7 @@ export function RecordForm({
       className="card"
       style={{ padding: 16, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap" }}
     >
-      <div>
+      <div style={{ flex: "1 1 160px" }}>
         <label className="label">Material</label>
         <select className="input" name="materialId" defaultValue="">
           <option value="">— type a name instead —</option>
@@ -38,15 +38,15 @@ export function RecordForm({
           ))}
         </select>
       </div>
-      <div>
+      <div style={{ flex: "1 1 140px" }}>
         <label className="label">Or Item Name</label>
         <input className="input" name="itemName" />
       </div>
-      <div>
+      <div style={{ flex: "1 1 100px" }}>
         <label className="label">Qty</label>
         <input className="input" name="qty" type="number" step="0.01" min="0" required />
       </div>
-      <div>
+      <div style={{ flex: "1 1 150px" }}>
         <label className="label">Date</label>
         <input className="input" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
       </div>

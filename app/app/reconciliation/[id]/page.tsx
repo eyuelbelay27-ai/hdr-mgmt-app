@@ -61,6 +61,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
           <p className="label">
             Total Allocated (Cash): {allocated.toLocaleString()} ETB · Actual Total Expenses: {actual.toLocaleString()} ETB
           </p>
+          <div className="dtable-wrap">
           <table className="dtable">
             <thead>
               <tr><th>Item</th><th>Category</th><th>Budgeted</th><th>Actual (ETB)</th><th>Variance</th></tr>
@@ -73,11 +74,11 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
                 const variance = Math.round((actualETB - budgetedETB) * 100) / 100;
                 return (
                   <tr key={b.id}>
-                    <td>{b.label}</td>
-                    <td>{b.category === "cash" ? "Cash" : "Stock"}</td>
-                    <td className="mono">{b.category === "stock" ? `${String(b.qty)} ${b.unit ?? ""}` : budgetedETB.toLocaleString()}</td>
-                    <td className="mono">{actualETB.toLocaleString()}</td>
-                    <td className="mono" style={{ color: variance > 0 ? "var(--danger)" : "var(--success)" }}>
+                    <td data-label="Item">{b.label}</td>
+                    <td data-label="Category">{b.category === "cash" ? "Cash" : "Stock"}</td>
+                    <td className="mono" data-label="Budgeted">{b.category === "stock" ? `${String(b.qty)} ${b.unit ?? ""}` : budgetedETB.toLocaleString()}</td>
+                    <td className="mono" data-label="Actual (ETB)">{actualETB.toLocaleString()}</td>
+                    <td className="mono" data-label="Variance" style={{ color: variance > 0 ? "var(--danger)" : "var(--success)" }}>
                       {variance.toLocaleString()}
                     </td>
                   </tr>
@@ -85,9 +86,10 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
               })}
             </tbody>
           </table>
+          </div>
 
           {canReconcile && (
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               {job.reconciliationStatus !== "Reconciled" && (
                 <form action={markReconciledAction.bind(null, job.id)}>
                   <button className="btn btn-sm btn-primary" type="submit">Mark Reconciled</button>
@@ -105,15 +107,16 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
         <section style={{ marginTop: 24 }}>
           <h3>2. Payment Records</h3>
+          <div className="dtable-wrap">
           <table className="dtable">
             <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Receipt</th></tr></thead>
             <tbody>
               {job.payments.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.date.toISOString().slice(0, 10)}</td>
-                  <td>{p.type}</td>
-                  <td className="mono">{toNumber(p.amount).toLocaleString()}</td>
-                  <td>
+                  <td data-label="Date">{p.date.toISOString().slice(0, 10)}</td>
+                  <td data-label="Type">{p.type}</td>
+                  <td className="mono" data-label="Amount">{toNumber(p.amount).toLocaleString()}</td>
+                  <td data-label="Receipt">
                     {p.receiptUrl && (
                       <Lightbox file={{ name: p.receiptName ?? "receipt", url: p.receiptUrl, kind: p.receiptKind ?? "" }} size={36} />
                     )}
@@ -123,6 +126,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
               {job.payments.length === 0 && <tr><td className="label" colSpan={4}>No payments recorded.</td></tr>}
             </tbody>
           </table>
+          </div>
         </section>
 
         <section style={{ marginTop: 24 }}>
@@ -147,7 +151,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
         <section style={{ marginTop: 24 }}>
           <h3>5. Final Checklist</h3>
-          <div style={{ display: "flex", gap: 16 }}>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input
                 type="checkbox"
@@ -168,7 +172,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
             </label>
           </div>
           {canReconcile && (
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
               <form action={toggleChecklistAction.bind(null, job.id, "checklistWithholdingCollected", !job.checklistWithholdingCollected)}>
                 <button className="btn btn-sm" type="submit">
                   {job.checklistWithholdingCollected ? "Uncheck" : "Check"} Withholding Collected

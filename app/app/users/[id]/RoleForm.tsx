@@ -20,7 +20,7 @@ export function RoleForm({ userId, role }: { userId: string; role: string }) {
   const [state, formAction] = useFormState(boundAction, initialState);
 
   return (
-    <form action={formAction} style={{ display: "flex", gap: 8, alignItems: "end" }}>
+    <form action={formAction} style={{ display: "flex", gap: 8, alignItems: "end", flexWrap: "wrap" }}>
       <div>
         <label className="label">Role</label>
         <select className="input" name="role" defaultValue={role}>

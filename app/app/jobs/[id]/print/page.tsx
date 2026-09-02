@@ -45,7 +45,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
 
   return (
     <div style={{ padding: 24 }}>
-      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+      <div className="no-print" style={{ display: "flex", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
         <a href={`/jobs/${job.id}`} className="label">&larr; Back to Job</a>
         <PrintButton />
       </div>

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { canSeePage, canSeeTab, can, type TabKey } from "@/lib/permissions";
 import { isContentLocked } from "@/lib/job-status";
 import { AppNav } from "../../AppNav";
+import { ActiveTabAutoScroll } from "../../ActiveTabAutoScroll";
 import { StatusBadge, DeadlineBadge } from "../../StatusBadge";
 import { OverviewTab } from "./OverviewTab";
 import { DesignTab } from "./DesignTab";
@@ -74,7 +75,7 @@ export default async function JobDetailPage({
       <AppNav user={user} activePage="jobs" />
       <main className="app-main">
         <a href="/jobs" className="label">&larr; Back to Jobs</a>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4, flexWrap: "wrap", gap: 12 }}>
           <div>
             <h1 style={{ margin: "0 0 6px" }}>
               {job.jobNumber} — {job.clientName}
@@ -144,6 +145,7 @@ export default async function JobDetailPage({
             </a>
           ))}
         </div>
+        <ActiveTabAutoScroll />
 
         <div style={{ marginTop: 16 }}>
           {activeKey === "overview" && <OverviewTab job={job} user={user} />}
