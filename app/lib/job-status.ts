@@ -13,11 +13,11 @@ export const STATUS_LABEL: Record<JobStatus, string> = {
 /** bg/fg pair per status, ported from the prototype's STATUS_COLOR map. */
 export const STATUS_COLOR: Record<JobStatus, { bg: string; fg: string }> = {
   Draft: { bg: "var(--surface-3)", fg: "var(--text-dim)" },
-  WaitingForApproval: { bg: "var(--info-soft)", fg: "#8FBEE8" },
+  WaitingForApproval: { bg: "var(--info-soft)", fg: "var(--info)" },
   ApprovedBudget: { bg: "var(--accent-soft)", fg: "var(--accent-text)" },
-  WaitingForReconciliation: { bg: "var(--warn-soft)", fg: "#F0C878" },
-  Closed: { bg: "var(--success-soft)", fg: "#8FD1A8" },
-  Cancelled: { bg: "var(--danger-soft)", fg: "#F0A99F" },
+  WaitingForReconciliation: { bg: "var(--warn-soft)", fg: "var(--warn)" },
+  Closed: { bg: "var(--success-soft)", fg: "var(--success)" },
+  Cancelled: { bg: "var(--danger-soft)", fg: "var(--danger)" },
 };
 
 /**
