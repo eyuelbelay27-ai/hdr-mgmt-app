@@ -33,7 +33,7 @@ export function BudgetTab({ job, user }: { job: BudgetJob; user: PermissionSubje
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
         <div>
           <div className="label">Total Allocated (Cash)</div>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>{totalCash.toLocaleString()} ETB</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>{totalCash.toLocaleString()} Br</div>
         </div>
         {job.status === "WaitingForApproval" && job.budgetStatus === "Draft" && can(user, "approveBudget") && (
           <ApproveBudgetControl jobId={job.id} />

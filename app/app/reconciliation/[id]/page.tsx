@@ -59,12 +59,12 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
         <section style={{ marginTop: 20 }}>
           <h3>1. Budget vs. Expense Variance</h3>
           <p className="label">
-            Total Allocated (Cash): {allocated.toLocaleString()} ETB · Actual Total Expenses: {actual.toLocaleString()} ETB
+            Total Allocated (Cash): {allocated.toLocaleString()} Br · Actual Total Expenses: {actual.toLocaleString()} Br
           </p>
           <div className="dtable-wrap">
           <table className="dtable">
             <thead>
-              <tr><th>Item</th><th>Category</th><th>Budgeted</th><th>Actual (ETB)</th><th>Variance</th></tr>
+              <tr><th>Item</th><th>Category</th><th>Budgeted</th><th>Actual (Br)</th><th>Variance</th></tr>
             </thead>
             <tbody>
               {job.budgetItems.map((b) => {
@@ -77,7 +77,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
                     <td data-label="Item">{b.label}</td>
                     <td data-label="Category">{b.category === "cash" ? "Cash" : "Stock"}</td>
                     <td className="mono" data-label="Budgeted">{b.category === "stock" ? `${String(b.qty)} ${b.unit ?? ""}` : budgetedETB.toLocaleString()}</td>
-                    <td className="mono" data-label="Actual (ETB)">{actualETB.toLocaleString()}</td>
+                    <td className="mono" data-label="Actual (Br)">{actualETB.toLocaleString()}</td>
                     <td className="mono" data-label="Variance" style={{ color: variance > 0 ? "var(--danger)" : "var(--success)" }}>
                       {variance.toLocaleString()}
                     </td>
@@ -131,7 +131,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
         <section style={{ marginTop: 24 }}>
           <h3>3. Receipts & Withholdings</h3>
-          <div className="label" style={{ marginBottom: 8 }}>Total Withholding: {withholdingTotal.toLocaleString()} ETB</div>
+          <div className="label" style={{ marginBottom: 8 }}>Total Withholding: {withholdingTotal.toLocaleString()} Br</div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {receiptedExpenses.map((e) => (
               <Lightbox key={e.id} file={{ name: e.receiptName ?? "receipt", url: e.receiptUrl as string, kind: e.receiptKind ?? "" }} />
@@ -143,7 +143,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
         <section className="card" style={{ marginTop: 24, padding: 16 }}>
           <h3 style={{ marginTop: 0 }}>4. Final Profit After Expenses</h3>
           <div className="label">Sold Price − Actual Total Expenses − Commission</div>
-          <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>{finalProfit.toLocaleString()} ETB</div>
+          <div style={{ fontSize: 22, fontWeight: 700, marginTop: 6 }}>{finalProfit.toLocaleString()} Br</div>
           <div className="label" style={{ marginTop: 6 }}>
             {toNumber(job.costEstimateSoldPrice).toLocaleString()} − {actual.toLocaleString()} − {totals.commission.toLocaleString()}
           </div>

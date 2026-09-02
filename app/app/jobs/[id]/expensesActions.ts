@@ -143,7 +143,7 @@ export async function addExpenseAction(
     });
   }
 
-  await logActivity(jobId, `${user.name} logged a ${entryType} of ${totalPrice} ETB ("${item}").`);
+  await logActivity(jobId, `${user.name} logged a ${entryType} of ${totalPrice} Br ("${item}").`);
   revalidatePath(`/jobs/${jobId}`);
   return { error: null };
 }

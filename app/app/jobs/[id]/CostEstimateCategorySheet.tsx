@@ -18,11 +18,22 @@ interface CostItem {
   comment: string | null;
 }
 
+const ROW_GRID = "1fr 56px 84px";
+
 /**
  * A client component (not the whole tab) so the Qty → Total math updates
  * as you type, instead of only after "Save Quantities" round-trips to the
  * server. Save still persists via the same server action and `name`d
- * inputs as before — this only adds a live local preview on top.
+ * inputs as before — this only adds an instant local preview on top.
+ *
+ * Collapsible, one-line-per-material layout: the previous version was a
+ * real <table> with Material/Unit/Rate/Qty/Total as five separate
+ * columns, which on a phone became five stacked label/value lines per
+ * material — scrolling a 50-item Price Database meant scrolling past
+ * hundreds of lines. Rate+unit is now a subtitle under the material name
+ * instead of two columns, the whole category collapses to one row when
+ * you're not touching it, and a small header row above the list keeps
+ * the Qty/Total columns readable like a table, at every screen width.
  */
 export function CostEstimateCategorySheet({
   category,
@@ -41,6 +52,8 @@ export function CostEstimateCategorySheet({
   editable: boolean;
   canAddAdhoc: boolean;
 }) {
+  const [open, setOpen] = useState(true);
+
   const itemsByMaterial = useMemo(
     () => new Map(items.filter((i) => i.materialId).map((i) => [i.materialId as string, i])),
     [items]
@@ -57,112 +70,160 @@ export function CostEstimateCategorySheet({
     return init;
   });
 
-  const rowTotal = (materialId: string, rate: unknown) => {
+  const rowTotal = (materialId: string, rate: number | null) => {
     const qty = Number(qtys[materialId]);
     if (!Number.isFinite(qty) || qty <= 0) return 0;
     return round2(qty * toNumber(rate));
   };
 
-  const categoryTotal =
-    manualTotal + materials.reduce((sum, m) => sum + rowTotal(m.id, m.rate), 0);
+  const categoryTotal = manualTotal + materials.reduce((sum, m) => sum + rowTotal(m.id, m.rate), 0);
 
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-        <h3 style={{ margin: 0 }}>{label} Items</h3>
-        <div className="mono">{categoryTotal.toLocaleString()} ETB</div>
+    <div className="card" style={{ overflow: "hidden" }}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", cursor: "pointer", userSelect: "none" }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            transition: "transform 0.15s ease",
+            transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            color: "var(--text-dim)",
+            fontSize: 12,
+          }}
+        >
+          &#9656;
+        </span>
+        <h3 style={{ margin: 0, flex: 1, fontSize: 15 }}>{label} Items</h3>
+        <div className="mono" style={{ fontWeight: 600 }}>{categoryTotal.toLocaleString()} Br</div>
       </div>
 
-      <form action={saveCostEstimateQuantitiesAction.bind(null, jobId, category)} style={{ marginTop: 10 }}>
-        <div className="dtable-wrap">
-        <table className="dtable">
-          <thead>
-            <tr>
-              <th>Material</th>
-              <th>Unit</th>
-              <th>Rate</th>
-              <th>Qty</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
+      {open && (
+        <div style={{ borderTop: "1px solid var(--border)", padding: "4px 16px 16px" }}>
+          <form action={saveCostEstimateQuantitiesAction.bind(null, jobId, category)}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: ROW_GRID,
+                gap: 8,
+                padding: "8px 4px 6px",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--text-dim)",
+                textTransform: "uppercase",
+                letterSpacing: "0.03em",
+              }}
+            >
+              <span>Material</span>
+              <span style={{ textAlign: "right" }}>Qty</span>
+              <span style={{ textAlign: "right" }}>Total</span>
+            </div>
+
             {materials.map((m) => {
               const existing = itemsByMaterial.get(m.id);
               const total = rowTotal(m.id, m.rate);
               return (
-                <tr key={m.id}>
-                  <td data-label="Material">{m.name}</td>
-                  <td data-label="Unit">{m.unit}</td>
-                  <td className="mono" data-label="Rate">{m.rate === null ? "—" : toNumber(m.rate).toLocaleString()}</td>
-                  <td data-label="Qty">
-                    {editable ? (
-                      <input
-                        className="input"
-                        style={{ width: 90 }}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        name={`qty_${m.id}`}
-                        value={qtys[m.id] ?? ""}
-                        onChange={(e) => setQtys((prev) => ({ ...prev, [m.id]: e.target.value }))}
-                        disabled={m.rate === null}
-                      />
-                    ) : (
-                      (existing && String(existing.qty)) || "—"
-                    )}
-                  </td>
-                  <td className="mono" data-label="Total">{total > 0 ? total.toLocaleString() : "—"}</td>
-                </tr>
+                <div
+                  key={m.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: ROW_GRID,
+                    gap: 8,
+                    alignItems: "center",
+                    padding: "8px 4px",
+                    borderTop: "1px solid var(--border-soft)",
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.25 }}>{m.name}</div>
+                    <div className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                      {m.rate === null ? "no rate set" : `${toNumber(m.rate).toLocaleString()}/${m.unit}`}
+                    </div>
+                  </div>
+                  {editable ? (
+                    <input
+                      className="input"
+                      style={{ width: "100%", textAlign: "right", padding: "6px 4px", minHeight: 34 }}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      name={`qty_${m.id}`}
+                      value={qtys[m.id] ?? ""}
+                      onChange={(e) => setQtys((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                      disabled={m.rate === null}
+                    />
+                  ) : (
+                    <div className="mono" style={{ textAlign: "right", fontSize: 13.5 }}>
+                      {(existing && String(existing.qty)) || "—"}
+                    </div>
+                  )}
+                  <div
+                    className="mono"
+                    style={{
+                      textAlign: "right",
+                      fontSize: 13.5,
+                      fontWeight: total > 0 ? 600 : 400,
+                      color: total > 0 ? "var(--text)" : "var(--text-faint)",
+                    }}
+                  >
+                    {total > 0 ? total.toLocaleString() : "—"}
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-        </div>
-        {editable && (
-          <button className="btn btn-sm btn-primary" type="submit" style={{ marginTop: 8 }}>
-            Save {label} Quantities
-          </button>
-        )}
-      </form>
 
-      {manualItems.length > 0 && (
-        <div className="dtable-wrap" style={{ marginTop: 12 }}>
-        <table className="dtable">
-          <thead>
-            <tr>
-              <th>Ad-hoc Item</th>
-              <th>Unit</th>
-              <th>Qty</th>
-              <th>Unit Price</th>
-              <th>Total</th>
-              <th>Comment</th>
-              {canAddAdhoc && <th />}
-            </tr>
-          </thead>
-          <tbody>
-            {manualItems.map((i) => (
-              <tr key={i.id}>
-                <td data-label="Ad-hoc Item">{i.name}</td>
-                <td data-label="Unit">{i.unit}</td>
-                <td className="mono" data-label="Qty">{String(i.qty)}</td>
-                <td className="mono" data-label="Unit Price">{toNumber(i.unitPrice).toLocaleString()}</td>
-                <td className="mono" data-label="Total">{toNumber(i.total).toLocaleString()}</td>
-                <td data-label="Comment">{i.comment ?? "—"}</td>
-                {canAddAdhoc && (
-                  <td>
+            {editable && (
+              <button className="btn btn-sm btn-primary" type="submit" style={{ marginTop: 12 }}>
+                Save {label} Quantities
+              </button>
+            )}
+          </form>
+
+          {manualItems.length > 0 && (
+            <div style={{ marginTop: 16 }}>
+              <div className="label" style={{ marginBottom: 4 }}>Ad-hoc Items</div>
+              {manualItems.map((i) => (
+                <div
+                  key={i.id}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 4px", borderTop: "1px solid var(--border-soft)" }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{i.name}</div>
+                    <div className="mono" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                      {toNumber(i.qty)} {i.unit} &times; {toNumber(i.unitPrice).toLocaleString()}
+                      {i.comment ? ` · ${i.comment}` : ""}
+                    </div>
+                  </div>
+                  <div className="mono" style={{ fontSize: 13.5, fontWeight: 600, flexShrink: 0 }}>
+                    {toNumber(i.total).toLocaleString()}
+                  </div>
+                  {canAddAdhoc && (
                     <form action={deleteCostEstimateItemAction.bind(null, i.id, jobId)}>
                       <button className="btn btn-sm btn-danger" type="submit">Delete</button>
                     </form>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {canAddAdhoc && (
+            <div style={{ marginTop: 16 }}>
+              <AddCostEstimateItemForm jobId={jobId} category={category} />
+            </div>
+          )}
         </div>
       )}
-
-      {canAddAdhoc && <AddCostEstimateItemForm jobId={jobId} category={category} />}
     </div>
   );
 }

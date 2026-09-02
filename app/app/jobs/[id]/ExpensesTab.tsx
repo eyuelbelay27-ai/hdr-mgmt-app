@@ -35,7 +35,7 @@ function VarianceCell({ row }: { row: ExpenseRow }) {
   if (v.status === "on") return <span>On Budget</span>;
   return (
     <span style={{ color: v.status === "over" ? "var(--danger)" : "var(--success)" }}>
-      {VARIANCE_LABEL[v.status]} {Math.abs(v.amountETB ?? 0).toLocaleString()} ETB
+      {VARIANCE_LABEL[v.status]} {Math.abs(v.amountETB ?? 0).toLocaleString()} Br
     </span>
   );
 }
@@ -50,11 +50,11 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
     <div style={{ display: "grid", gap: 20 }}>
       <div className="form-row">
         {[
-          { label: "Total Purchases", value: `${stats.totalPurchases.toLocaleString()} ETB` },
-          { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} ETB` },
+          { label: "Total Purchases", value: `${stats.totalPurchases.toLocaleString()} Br` },
+          { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} Br` },
           { label: "Collected Receipts", value: stats.collectedReceipts },
-          { label: "Over Budget", value: `${stats.overBudget.toLocaleString()} ETB` },
-          { label: "Under Budget", value: `${stats.underBudget.toLocaleString()} ETB` },
+          { label: "Over Budget", value: `${stats.overBudget.toLocaleString()} Br` },
+          { label: "Under Budget", value: `${stats.underBudget.toLocaleString()} Br` },
         ].map((s) => (
           <div key={s.label} className="card" style={{ padding: 12 }}>
             <div className="label">{s.label}</div>
@@ -101,7 +101,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                 <td className="mono" data-label="Total">{toNumber(p.totalPrice).toLocaleString()}</td>
                 <td className="label" data-label="Budget Ref">{p.budgetRef ?? "—"}</td>
                 <td className="mono" data-label="Withholding">{toNumber(p.withholding).toLocaleString()}</td>
-                <td data-label="Actual Spent">
+                <td data-label="Actual Spent" data-span={editable ? "full" : undefined}>
                   {editable ? (
                     <form action={updateActualSpentAction.bind(null, p.id, job.id)} style={{ display: "flex", gap: 4 }}>
                       <input
@@ -111,7 +111,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                         step="0.01"
                         defaultValue={p.actualSpent === null ? "" : String(p.actualSpent)}
                         style={{ width: 90 }}
-                        placeholder={p.category === "stock" ? "qty" : "ETB"}
+                        placeholder={p.category === "stock" ? "qty" : "Br"}
                       />
                       <button className="btn btn-sm" type="submit">Save</button>
                     </form>

@@ -56,7 +56,7 @@ export async function recordPaymentAction(
     },
   });
 
-  await logActivity(jobId, `${user.name} recorded a ${type} payment of ${amount} ETB.`);
+  await logActivity(jobId, `${user.name} recorded a ${type} payment of ${amount} Br.`);
   revalidatePath(`/jobs/${jobId}`);
   return { error: null };
 }

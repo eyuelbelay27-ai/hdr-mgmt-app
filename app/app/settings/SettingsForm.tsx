@@ -25,7 +25,7 @@ export function SettingsForm({ ratePercent, threshold }: { ratePercent: number; 
         />
       </div>
       <div>
-        <label className="label" htmlFor="withholdingThreshold">Withholding Threshold (ETB)</label>
+        <label className="label" htmlFor="withholdingThreshold">Withholding Threshold (Br)</label>
         <input
           className="input"
           id="withholdingThreshold"

@@ -68,7 +68,7 @@ export async function createJobAction(
       },
       activity: {
         create: {
-          text: `Job ${jobNumber} created by ${user.name} with an advance payment of ${advanceAmount} ETB.`,
+          text: `Job ${jobNumber} created by ${user.name} with an advance payment of ${advanceAmount} Br.`,
         },
       },
     },

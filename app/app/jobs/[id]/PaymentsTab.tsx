@@ -31,11 +31,11 @@ export function PaymentsTab({
       <div className="form-row">
         <div className="card" style={{ padding: 12 }}>
           <div className="label">Sold Price</div>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{toNumber(job.costEstimateSoldPrice).toLocaleString()} ETB</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{toNumber(job.costEstimateSoldPrice).toLocaleString()} Br</div>
         </div>
         <div className="card" style={{ padding: 12 }}>
           <div className="label">Remaining Payment</div>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{remaining.toLocaleString()} ETB</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{remaining.toLocaleString()} Br</div>
         </div>
       </div>
 

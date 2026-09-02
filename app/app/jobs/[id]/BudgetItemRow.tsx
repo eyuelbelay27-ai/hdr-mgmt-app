@@ -55,7 +55,7 @@ export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; job
             <option value="stock">Stock</option>
           </select>
         </td>
-        <td data-label="Amount / Qty+Unit">
+        <td data-label="Amount / Qty+Unit" data-span={category === "stock" ? "full" : undefined}>
           {category === "stock" ? (
             <div style={{ display: "flex", gap: 4 }}>
               <input
