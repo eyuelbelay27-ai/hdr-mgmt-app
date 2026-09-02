@@ -80,7 +80,7 @@ export default async function DashboardPage({
           {showRemaining && (
             <a href="?tab=dash_remaining" className="card" style={{ padding: "14px 18px", minWidth: 160, color: "inherit", textDecoration: "none", borderColor: activeTab === "dash_remaining" ? "var(--accent)" : undefined }}>
               <div className="label" style={{ marginBottom: 6 }}>Remaining Payments</div>
-              <div style={{ fontSize: 26, fontWeight: 700 }}>{remainingTotal.toLocaleString()} ETB</div>
+              <div style={{ fontSize: 26, fontWeight: 700 }}>{remainingTotal.toLocaleString()} Br</div>
             </a>
           )}
           {showPO && (
@@ -126,7 +126,7 @@ export default async function DashboardPage({
                   <tr key={job.id}>
                     <td className="mono" data-label="Job #"><a href={`/jobs/${job.id}`}>{job.jobNumber}</a></td>
                     <td data-label="Client">{job.clientName}</td>
-                    <td className="mono" data-label="Remaining">{remaining.toLocaleString()} ETB</td>
+                    <td className="mono" data-label="Remaining">{remaining.toLocaleString()} Br</td>
                   </tr>
                 ))}
                 {remainingRows.length === 0 && <tr><td className="label" colSpan={3}>No outstanding balances.</td></tr>}

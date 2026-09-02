@@ -76,7 +76,7 @@ export function OverviewTab({ job, user }: { job: OverviewJob; user: PermissionS
               />
             )}
             <div>
-              <div style={{ fontWeight: 700 }}>{String(advance.amount)} ETB</div>
+              <div style={{ fontWeight: 700 }}>{String(advance.amount)} Br</div>
               <div className="label" style={{ marginTop: 2 }}>
                 {advance.date.toISOString().slice(0, 10)} · {advance.receiptName ?? "no file"}
               </div>

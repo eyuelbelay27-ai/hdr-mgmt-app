@@ -39,7 +39,7 @@ export function RecordPaymentForm({ jobId }: { jobId: string }) {
         </select>
       </div>
       <div style={{ flex: "1 1 130px" }}>
-        <label className="label">Amount (ETB)</label>
+        <label className="label">Amount (Br)</label>
         <input className="input" name="amount" type="number" step="0.01" min="0" required />
       </div>
       <div style={{ flex: "1 1 130px" }}>

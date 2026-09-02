@@ -101,12 +101,12 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
             ))}
           </tbody>
         </table>
-        <p>Sub Total: {totals.subTotal.toLocaleString()} ETB</p>
+        <p>Sub Total: {totals.subTotal.toLocaleString()} Br</p>
         {canSeeFinancials && (
           <>
-            <p>Commission: {totals.commission.toLocaleString()} ETB</p>
-            <p>Sold Price: {totals.grandTotal.toLocaleString()} ETB</p>
-            <p>Profit: {totals.profit.toLocaleString()} ETB</p>
+            <p>Commission: {totals.commission.toLocaleString()} Br</p>
+            <p>Sold Price: {totals.grandTotal.toLocaleString()} Br</p>
+            <p>Profit: {totals.profit.toLocaleString()} Br</p>
           </>
         )}
 
@@ -123,7 +123,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
             ))}
           </tbody>
         </table>
-        <p>Total Allocated (Cash): {allocated.toLocaleString()} ETB</p>
+        <p>Total Allocated (Cash): {allocated.toLocaleString()} Br</p>
 
         <h2>Expenses</h2>
         <table className="dtable">
@@ -140,7 +140,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
             ))}
           </tbody>
         </table>
-        <p>Actual Total Expenses: {actual.toLocaleString()} ETB</p>
+        <p>Actual Total Expenses: {actual.toLocaleString()} Br</p>
 
         {canSeeFinancials && (
           <>
@@ -157,8 +157,8 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
                 ))}
               </tbody>
             </table>
-            <p>Remaining Payment: {remaining.toLocaleString()} ETB</p>
-            <p><strong>Final Profit After Expenses: {finalProfit.toLocaleString()} ETB</strong></p>
+            <p>Remaining Payment: {remaining.toLocaleString()} Br</p>
+            <p><strong>Final Profit After Expenses: {finalProfit.toLocaleString()} Br</strong></p>
           </>
         )}
 

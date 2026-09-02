@@ -382,12 +382,14 @@ input[type="radio"] {
 }
 
 @media (max-width: 640px) {
-  /* Card-stack transform: each row becomes a bordered card, each cell
-     becomes a label/value line using the cell's own data-label attribute.
-     Chosen over a horizontally-scrolling table because these tables mix
-     numbers, dropdowns, checkboxes and action buttons — a shrunk-down
-     scrollable table is unusable one-handed, this keeps every control at
-     full tap size. */
+  /* Card-stack transform: each row becomes a bordered card of compact
+     label/value blocks, two per line, using the cell's own data-label
+     attribute. Chosen over a horizontally-scrolling table because these
+     tables mix numbers, dropdowns, checkboxes and action buttons — a
+     shrunk-down scrollable table is unusable one-handed, this keeps
+     every control at full tap size while pairing short fields two-up so
+     a row with a dozen columns isn't a dozen full-width lines of scroll.
+  */
   .dtable-wrap {
     overflow-x: visible;
   }
@@ -395,46 +397,53 @@ input[type="radio"] {
     display: none;
   }
   .dtable,
-  .dtable tbody,
-  .dtable tr,
-  .dtable td {
+  .dtable tbody {
     display: block;
     width: 100%;
   }
   .dtable tr {
-    margin-bottom: 12px;
-    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 10px;
+    padding: 4px 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);
   }
   .dtable td {
     border-bottom: none;
-    padding: 6px 0;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    text-align: right;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 7px 4px;
+    text-align: left;
+    min-width: 0;
   }
   .dtable td[data-label]::before {
     content: attr(data-label);
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: var(--text-dim);
-    text-align: left;
-    margin-right: auto;
-    flex-shrink: 0;
   }
   .dtable td:empty {
     display: none;
   }
-  /* A cell with no data-label (rare: a full-width action row) spans
-     normally instead of trying to split into a label/value pair. */
-  .dtable td:not([data-label]) {
-    justify-content: flex-start;
+  /* A cell with no data-label (an action button/form, a receipt
+     thumbnail) spans the full card width instead of sharing a half.
+     Same for a labeled cell that opts in via data-span="full" — a couple
+     of cells hold a fixed-width input/button pair too wide for half a
+     card (e.g. a stock item's Qty+Unit inputs, or Actual Spent's
+     input+Save button). */
+  .dtable td:not([data-label]),
+  .dtable td[data-span="full"] {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
   }
   .form-row {
     grid-template-columns: 1fr;

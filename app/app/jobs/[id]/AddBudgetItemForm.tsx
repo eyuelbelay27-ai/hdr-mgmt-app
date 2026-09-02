@@ -43,7 +43,7 @@ export function AddBudgetItemForm({ jobId }: { jobId: string }) {
       </div>
       {category === "cash" ? (
         <div style={{ flex: "1 1 140px" }}>
-          <label className="label">Amount (ETB)</label>
+          <label className="label">Amount (Br)</label>
           <input className="input" name="amount" type="number" step="0.01" min="0" required />
         </div>
       ) : (

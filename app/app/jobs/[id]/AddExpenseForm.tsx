@@ -74,7 +74,7 @@ export function AddExpenseForm({ jobId, entryType }: { jobId: string; entryType:
         </>
       ) : (
         <div style={{ flex: "1 1 140px" }}>
-          <label className="label">Total Price (ETB)</label>
+          <label className="label">Total Price (Br)</label>
           <input className="input" name="totalPrice" type="number" step="0.01" min="0" required />
         </div>
       )}

@@ -22,7 +22,7 @@ export function SoldPriceForm({
   return (
     <form action={formAction} style={{ display: "flex", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
       <div>
-        <label className="label" htmlFor="soldPrice">Sold Price (ETB)</label>
+        <label className="label" htmlFor="soldPrice">Sold Price (Br)</label>
         <input className="input" id="soldPrice" name="soldPrice" type="number" step="0.01" min="0" defaultValue={soldPrice} />
       </div>
       <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>

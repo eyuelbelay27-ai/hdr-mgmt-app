@@ -40,7 +40,7 @@ export function NewJobForm() {
         <input className="input" id="title" name="title" required />
       </div>
       <div>
-        <label className="label" htmlFor="advanceAmount">Advance Payment (ETB)</label>
+        <label className="label" htmlFor="advanceAmount">Advance Payment (Br)</label>
         <input className="input" id="advanceAmount" name="advanceAmount" type="number" min="0" step="0.01" required />
       </div>
       <FileField id="advanceProof" name="advanceProof" label="Advance Payment Proof (receipt/screenshot)" required />

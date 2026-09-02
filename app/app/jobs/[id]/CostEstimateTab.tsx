@@ -108,26 +108,26 @@ export async function CostEstimateTab({
             />
           ) : (
             <div className="label">
-              Sold Price: {toNumber(job.costEstimateSoldPrice).toLocaleString()} ETB · Commission{" "}
+              Sold Price: {toNumber(job.costEstimateSoldPrice).toLocaleString()} Br · Commission{" "}
               {job.costEstimateCommissionActive ? "active" : "off"}
             </div>
           )}
           <div className="form-row" style={{ marginTop: 14 }}>
             <div>
               <div className="label">Sub Total</div>
-              <div className="mono">{totals.subTotal.toLocaleString()} ETB</div>
+              <div className="mono">{totals.subTotal.toLocaleString()} Br</div>
             </div>
             <div>
               <div className="label">Commission (7%)</div>
-              <div className="mono">{totals.commission.toLocaleString()} ETB</div>
+              <div className="mono">{totals.commission.toLocaleString()} Br</div>
             </div>
             <div>
               <div className="label">Profit</div>
-              <div className="mono">{totals.profit.toLocaleString()} ETB</div>
+              <div className="mono">{totals.profit.toLocaleString()} Br</div>
             </div>
             <div>
               <div className="label">Grand Total (Sold Price)</div>
-              <div className="mono">{totals.grandTotal.toLocaleString()} ETB</div>
+              <div className="mono">{totals.grandTotal.toLocaleString()} Br</div>
             </div>
           </div>
         </div>
