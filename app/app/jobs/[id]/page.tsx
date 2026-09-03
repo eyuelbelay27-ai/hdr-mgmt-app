@@ -23,6 +23,7 @@ import {
 } from "./statusActions";
 import { RequestRevisionControl } from "./RequestRevisionControl";
 import { CancelJobControl } from "./CancelJobControl";
+import { DeleteJobControl } from "./DeleteJobControl";
 
 const TAB_DEFS: { key: string; tabKey: TabKey; label: string }[] = [
   { key: "overview", tabKey: "tab_overview", label: "Overview" },
@@ -120,6 +121,7 @@ export default async function JobDetailPage({
               ) : (
                 job.status !== "Closed" && <CancelJobControl jobId={job.id} />
               ))}
+            {can(user, "deleteJob") && <DeleteJobControl jobId={job.id} jobNumber={job.jobNumber} />}
           </div>
         </div>
 

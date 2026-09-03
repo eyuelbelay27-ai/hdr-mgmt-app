@@ -37,6 +37,7 @@ export const ACTION_KEYS = [
   { key: "closeJob", label: "Close a job" },
   { key: "reopenJob", label: "Reopen a closed job" },
   { key: "cancelJob", label: "Cancel a job" },
+  { key: "deleteJob", label: "Delete a job completely (irreversible)" },
   { key: "manageSignagePrices", label: "Edit the Price Database" },
   { key: "manageInventory", label: "Record manual Stock In/Out" },
   { key: "submitPurchaseOrder", label: "Issue a Purchase Order" },

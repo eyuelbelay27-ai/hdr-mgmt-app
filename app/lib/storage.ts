@@ -1,7 +1,7 @@
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 /**
  * File storage abstraction (Section 2 / 10 / 11 of the handoff brief).
@@ -90,4 +90,31 @@ export async function saveUpload(file: File): Promise<StoredFile> {
 export function getUploadedFile(formData: FormData, field: string): File | null {
   const value = formData.get(field);
   return value instanceof File && value.size > 0 ? value : null;
+}
+
+async function deleteUploadS3(url: string): Promise<void> {
+  const prefix = `${S3_PUBLIC_URL_BASE}/`;
+  if (!url.startsWith(prefix)) return;
+  await s3Client!.send(new DeleteObjectCommand({ Bucket: S3_BUCKET, Key: url.slice(prefix.length) }));
+}
+
+async function deleteUploadLocal(url: string): Promise<void> {
+  if (!url.startsWith("/uploads/")) return;
+  await unlink(path.join(LOCAL_UPLOAD_DIR, url.slice("/uploads/".length)));
+}
+
+/**
+ * Best-effort delete for a stored file's url (used when a whole job is
+ * deleted, Section 9). Swallows failures — an already-missing object or a
+ * transient storage error shouldn't block the record deletion that already
+ * succeeded by the time this runs.
+ */
+export async function deleteUpload(url: string | null | undefined): Promise<void> {
+  if (!url) return;
+  try {
+    if (s3Client) await deleteUploadS3(url);
+    else await deleteUploadLocal(url);
+  } catch {
+    // Orphaned file cleanup is best-effort only.
+  }
 }
