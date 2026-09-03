@@ -1,8 +1,8 @@
 import { JobStatus } from "@prisma/client";
-import { FileEdit, Clock, CircleDollarSign, CalendarClock, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { FileEdit, Clock, CircleDollarSign, CalendarClock, CheckCircle2, XCircle, AlertTriangle, type LucideIcon } from "lucide-react";
 import { STATUS_COLOR, STATUS_LABEL, deadlineBadgeTone } from "@/lib/job-status";
 
-const STATUS_ICON: Record<JobStatus, typeof FileEdit> = {
+export const STATUS_ICON: Record<JobStatus, LucideIcon> = {
   Draft: FileEdit,
   WaitingForApproval: Clock,
   ApprovedBudget: CircleDollarSign,
