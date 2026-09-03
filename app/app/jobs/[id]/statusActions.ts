@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, PermissionError } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
+import { deleteUpload } from "@/lib/storage";
 import type { ActionState } from "./actions";
 
 /** Draft → Waiting for Approval (Section 6). Clears any prior revision note. */
@@ -114,4 +116,57 @@ export async function restoreCancelledJobAction(jobId: string): Promise<void> {
   });
   await logActivity(jobId, `${user.name} restored the job from Cancelled.`);
   revalidatePath(`/jobs/${jobId}`);
+}
+
+/**
+ * Permanently deletes a job and everything under it — every child row
+ * (components, cut files, cost estimate items, budget items, expenses,
+ * payments, activity log, inventory entries) cascades at the DB level
+ * (schema.prisma `onDelete: Cascade`). Available at any job status, gated
+ * by the separate `deleteJob` permission so it can be granted to specific
+ * users independent of role. The client requires typing the exact job
+ * number before submitting, but that's a UX nicety only — this re-checks
+ * the match server-side since the client can't be trusted.
+ */
+export async function deleteJobAction(
+  jobId: string,
+  _prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const user = await requireCurrentUser();
+  try {
+    requireAction(user, "deleteJob", "edit");
+  } catch (err) {
+    if (err instanceof PermissionError) return { error: err.message };
+    throw err;
+  }
+
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+    include: {
+      components: { select: { artUrl: true } },
+      cutFiles: { select: { url: true } },
+      expenses: { select: { receiptUrl: true } },
+      payments: { select: { receiptUrl: true } },
+    },
+  });
+  if (!job) throw new Error("Job not found");
+
+  const confirmation = String(formData.get("confirmJobNumber") ?? "").trim();
+  if (confirmation !== job.jobNumber) {
+    return { error: `Type the exact job number (${job.jobNumber}) to confirm deletion.` };
+  }
+
+  const fileUrls = [
+    job.costEstimatePriceListUrl,
+    ...job.components.map((c) => c.artUrl),
+    ...job.cutFiles.map((c) => c.url as string | null),
+    ...job.expenses.map((e) => e.receiptUrl),
+    ...job.payments.map((p) => p.receiptUrl),
+  ];
+
+  await prisma.job.delete({ where: { id: jobId } });
+  await Promise.all(fileUrls.map((url) => deleteUpload(url)));
+
+  redirect("/jobs");
 }
