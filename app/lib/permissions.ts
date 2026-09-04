@@ -45,6 +45,7 @@ export const ACTION_KEYS = [
   { key: "revertPurchaseOrderApproval", label: "Undo an approved Purchase Order" },
   { key: "uploadPurchaseOrderReceipt", label: "Upload a Purchase Order's receipt" },
   { key: "auditPurchaseOrder", label: "Mark a Purchase Order Audited" },
+  { key: "deletePurchaseOrder", label: "Delete a Pending/Rejected Purchase Order" },
   { key: "manageUsers", label: "Manage users & permissions" },
 ] as const;
 

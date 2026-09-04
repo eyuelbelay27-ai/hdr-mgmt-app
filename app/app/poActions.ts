@@ -59,6 +59,26 @@ export async function createPurchaseOrderAction(
 }
 
 /**
+ * Delete — only ever available for Pending or Rejected orders (Section
+ * 8.7 addendum). An Approved order must be reverted first (Undo Approval,
+ * which already reverses its linked Inventory entry) before it can be
+ * deleted, so this never needs to touch Inventory itself.
+ */
+export async function deletePurchaseOrderAction(poId: string): Promise<void> {
+  const user = await requireCurrentUser();
+  requireAction(user, "deletePurchaseOrder", "edit");
+
+  const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
+  if (!po) throw new Error("Purchase order not found");
+  if (po.status !== "Pending" && po.status !== "Rejected") {
+    throw new PermissionError("Only a Pending or Rejected purchase order can be deleted. Undo its approval first.");
+  }
+
+  await prisma.purchaseOrder.delete({ where: { id: poId } });
+  revalidatePath("/");
+}
+
+/**
  * Approving a Stock-category PO also posts a stock-in to the Inventory
  * Ledger (Section 4.4), linked back via fromPurchaseOrderId so an Undo can
  * find and remove exactly this entry.

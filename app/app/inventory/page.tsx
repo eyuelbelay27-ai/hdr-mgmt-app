@@ -1,3 +1,4 @@
+import { Package } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
@@ -6,6 +7,8 @@ import { getInventoryBalances } from "@/lib/calc/inventory";
 import { AppNav } from "../AppNav";
 import { ActiveTabAutoScroll } from "../ActiveTabAutoScroll";
 import { RecordForm } from "./RecordForm";
+import { RecordFormToggle } from "./RecordFormToggle";
+import { InventoryRow } from "./InventoryRow";
 
 const TABS = [
   { key: "in", label: "Stock In" },
@@ -54,32 +57,17 @@ export default async function InventoryPage({
       <main className="app-main">
         <h1 style={{ marginTop: 0 }}>Inventory</h1>
 
-        <div className="card dtable-wrap" style={{ marginBottom: 20 }}>
-        <table className="dtable">
-          <thead>
-            <tr>
-              {["Material", "Balance", "Unit"].map((h) => (
-                <th key={h}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {balances.map((b) => (
-              <tr key={b.key}>
-                <td data-label="Material">{b.label}</td>
-                <td className="mono" data-label="Balance">{b.balance.toLocaleString()}</td>
-                <td data-label="Unit">{b.unit ?? "—"}</td>
-              </tr>
-            ))}
-            {balances.length === 0 && (
-              <tr>
-                <td className="label" colSpan={3}>No stock movements recorded yet.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div className="dash-stats-grid" style={{ marginBottom: 20 }}>
+          {balances.map((b) => (
+            <div key={b.key} className="card inv-balance-card">
+              <span className="inv-balance-icon"><Package size={16} strokeWidth={2} /></span>
+              <div style={{ minWidth: 0 }}>
+                <div className="label" style={{ marginBottom: 2 }}>{b.label}</div>
+                <div className="inv-balance-value">{b.balance.toLocaleString()} {b.unit ?? ""}</div>
+              </div>
+            </div>
+          ))}
+          {balances.length === 0 && <p className="label">No stock movements recorded yet.</p>}
         </div>
 
         <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", overflowX: "auto" }}>
@@ -93,9 +81,17 @@ export default async function InventoryPage({
 
         <div style={{ marginTop: 16, display: "grid", gap: 16 }}>
           {canManage && activeTab !== "transactions" && (
-            <RecordForm direction={activeTab as "in" | "out"} materials={stockMaterials} />
+            <>
+              <div className="inv-desktop-table">
+                <RecordForm direction={activeTab as "in" | "out"} materials={stockMaterials} />
+              </div>
+              <div className="inv-mobile-cards">
+                <RecordFormToggle direction={activeTab as "in" | "out"} materials={stockMaterials} />
+              </div>
+            </>
           )}
 
+          <div className="inv-desktop-table">
           <div className="dtable-wrap">
           <table className="dtable">
             <thead>
@@ -136,6 +132,14 @@ export default async function InventoryPage({
               )}
             </tbody>
           </table>
+          </div>
+          </div>
+
+          <div className="inv-mobile-cards">
+            {entries.map((e) => (
+              <InventoryRow key={e.id} row={e} />
+            ))}
+            {entries.length === 0 && <p className="label">No entries.</p>}
           </div>
         </div>
       </main>
