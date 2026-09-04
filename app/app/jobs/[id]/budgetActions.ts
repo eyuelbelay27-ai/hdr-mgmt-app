@@ -146,8 +146,9 @@ export interface ApproveBudgetState {
  * Two-step deadline-approval flow (Section 6.1). Both entry points (the
  * header shortcut and the Budget tab button) call this same action so
  * they behave identically. On confirm: job -> Approved Budget, budget ->
- * Approved, deadline set, and every Stock-category budget line with a
- * real quantity is automatically deducted from Inventory.
+ * Approved, deadline set. Approval itself never touches Inventory —
+ * Inventory only reacts to Stock items once they're registered in the
+ * Expenses tab (Manual add or Pull From Budget, Section 7.4/7.5).
  */
 export async function approveBudgetAction(
   jobId: string,
@@ -166,7 +167,7 @@ export async function approveBudgetAction(
   const deadline = deadlineRaw ? new Date(deadlineRaw) : null;
   if (!deadline || Number.isNaN(deadline.getTime())) return { error: "Choose a deadline." };
 
-  const job = await prisma.job.findUnique({ where: { id: jobId }, include: { budgetItems: true } });
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job) return { error: "Job not found." };
   if (job.status !== "WaitingForApproval") {
     return { error: "Only a job Waiting for Approval can have its budget approved." };
@@ -184,22 +185,6 @@ export async function approveBudgetAction(
       },
     });
 
-    const stockLines = job.budgetItems.filter((b) => b.category === "stock" && b.qty && toNumber(b.qty) > 0);
-    for (const line of stockLines) {
-      await tx.inventoryEntry.create({
-        data: {
-          date: new Date(),
-          direction: "out",
-          materialId: line.materialId,
-          itemName: line.label,
-          qty: line.qty as unknown as number,
-          unit: line.unit,
-          source: `Budget approved — ${job.jobNumber}`,
-          jobId,
-        },
-      });
-    }
-
     await tx.activityEntry.create({
       data: { jobId, text: `${user.name} approved the budget with a deadline of ${deadline.toISOString().slice(0, 10)}.` },
     });
@@ -209,12 +194,7 @@ export async function approveBudgetAction(
   return { error: null };
 }
 
-/**
- * Undo Approval — only available after an Admin unlock (Section 6.1). The
- * automatic Inventory deductions are reversed by adding offsetting Stock
- * In entries, never by deleting the original Stock Out entries, so the
- * ledger always reads as a complete, honest audit trail.
- */
+/** Undo Approval — only available after an Admin unlock (Section 6.1). */
 export async function undoBudgetApprovalAction(jobId: string): Promise<void> {
   const user = await requireCurrentUser();
   requireAction(user, "approveBudget", "edit");
@@ -228,26 +208,7 @@ export async function undoBudgetApprovalAction(jobId: string): Promise<void> {
     throw new PermissionError("This budget isn't approved.");
   }
 
-  const deductions = await prisma.inventoryEntry.findMany({
-    where: { jobId, source: `Budget approved — ${job.jobNumber}`, direction: "out" },
-  });
-
   await prisma.$transaction(async (tx) => {
-    for (const d of deductions) {
-      await tx.inventoryEntry.create({
-        data: {
-          date: new Date(),
-          direction: "in",
-          materialId: d.materialId,
-          itemName: d.itemName,
-          qty: d.qty as unknown as number,
-          unit: d.unit,
-          source: `Budget approval undone — ${job.jobNumber}`,
-          jobId,
-        },
-      });
-    }
-
     await tx.job.update({
       where: { id: jobId },
       data: {
@@ -260,7 +221,7 @@ export async function undoBudgetApprovalAction(jobId: string): Promise<void> {
     });
 
     await tx.activityEntry.create({
-      data: { jobId, text: `${user.name} undid the budget approval; ${deductions.length} inventory deduction(s) reversed.` },
+      data: { jobId, text: `${user.name} undid the budget approval.` },
     });
   });
 

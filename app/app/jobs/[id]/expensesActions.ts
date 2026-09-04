@@ -12,9 +12,64 @@ import { logActivity } from "@/lib/activity";
 import type { ActionState } from "./actions";
 
 /**
+ * Keeps Inventory in sync with a Stock Expense row (Section 4.4/7.4/7.5) —
+ * the single source of truth for Inventory movements caused by Expenses,
+ * called after every create/update of a Stock row so there is exactly one
+ * linked InventoryEntry per row, always holding Actual Spent once it's
+ * recorded (falling back to the originally registered qty until then).
+ * Deleting the Expense row cascade-deletes this entry automatically
+ * (schema-level onDelete: Cascade) — Inventory only ever reacts to what's
+ * currently registered in Expenses, never to Budget approval.
+ */
+async function syncStockInventory(expense: {
+  id: string;
+  jobId: string;
+  jobNumber: string;
+  category: string | null;
+  source: string;
+  item: string;
+  qty: unknown;
+  unit: string | null;
+  materialId: string | null;
+  actualSpent: unknown;
+}): Promise<void> {
+  if (expense.category !== "stock") {
+    await prisma.inventoryEntry.deleteMany({ where: { expenseId: expense.id } });
+    return;
+  }
+
+  const committedQty = toNumber(expense.qty);
+  const hasActual = expense.actualSpent !== null && expense.actualSpent !== undefined;
+  const qty = round2(hasActual ? toNumber(expense.actualSpent) : committedQty);
+
+  if (qty <= 0) {
+    await prisma.inventoryEntry.deleteMany({ where: { expenseId: expense.id } });
+    return;
+  }
+
+  await prisma.inventoryEntry.upsert({
+    where: { expenseId: expense.id },
+    create: {
+      date: new Date(),
+      direction: "out",
+      materialId: expense.materialId,
+      itemName: expense.item,
+      qty,
+      unit: expense.unit,
+      source: `${expense.source === "Manual" ? "Manual purchase" : "Budget pull"} — ${expense.jobNumber}`,
+      jobId: expense.jobId,
+      expenseId: expense.id,
+    },
+    update: { qty, itemName: expense.item, unit: expense.unit, materialId: expense.materialId },
+  });
+}
+
+/**
  * "Pull From Budget" (Section 8.3) — pulls both Cash and Stock lines,
  * idempotent via the unique budgetItemId link: re-running only refreshes
- * previously-generated Purchase rows, never manually-added ones.
+ * previously-generated Purchase rows, never manually-added ones. Stock
+ * lines drive Inventory here (and only here, or via a Manual add) —
+ * Budget approval itself no longer touches Inventory.
  */
 export async function pullExpensesFromBudgetAction(jobId: string): Promise<void> {
   const user = await requireCurrentUser();
@@ -32,7 +87,7 @@ export async function pullExpensesFromBudgetAction(jobId: string): Promise<void>
     const qty = isStock ? toNumber(line.qty) : null;
     const totalPrice = isStock ? round2((qty ?? 0) * (unitPrice ?? 0)) : toNumber(line.amount);
 
-    await prisma.expense.upsert({
+    const expense = await prisma.expense.upsert({
       where: { budgetItemId: line.id },
       create: {
         jobId,
@@ -60,6 +115,8 @@ export async function pullExpensesFromBudgetAction(jobId: string): Promise<void>
         materialId: line.materialId,
       },
     });
+
+    await syncStockInventory({ ...expense, jobNumber: job.jobNumber });
   }
 
   await logActivity(jobId, `${user.name} pulled expenses from the Budget.`);
@@ -108,14 +165,24 @@ export async function addExpenseAction(
   const settings = await getSettings();
   const withholding = computeWithholding(totalPrice, settings.withholdingRatePercent, settings.withholdingThreshold);
 
-  const receiptFile = getUploadedFile(formData, "receipt");
-  if (!receiptFile) return { error: "A receipt is required." };
-  const receipt = await saveUpload(receiptFile);
+  // A Purchase never carries its own receipt — receipts are only ever
+  // registered in the Receipts tab (Section 7.6).
+  let receiptName: string | null = null;
+  let receiptUrl: string | null = null;
+  let receiptKind: string | null = null;
+  if (entryType === "receipt") {
+    const receiptFile = getUploadedFile(formData, "receipt");
+    if (!receiptFile) return { error: "A receipt is required." };
+    const receipt = await saveUpload(receiptFile);
+    receiptName = receipt.name;
+    receiptUrl = receipt.url;
+    receiptKind = receipt.kind;
+  }
 
   const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobNumber: true } });
   if (!job) return { error: "Job not found." };
 
-  await prisma.expense.create({
+  const expense = await prisma.expense.create({
     data: {
       jobId,
       entryType,
@@ -130,39 +197,20 @@ export async function addExpenseAction(
       unitPrice,
       totalPrice,
       withholding,
-      receiptName: receipt.name,
-      receiptUrl: receipt.url,
-      receiptKind: receipt.kind,
+      receiptName,
+      receiptUrl,
+      receiptKind,
     },
   });
 
-  // A Manual Stock purchase deducts Inventory immediately at creation time
-  // (Section 4.4 / 7.5) — Budget-pulled Stock rows were already deducted
-  // when the budget was approved (Section 6.1).
-  if (entryType === "purchase" && category === "stock" && qty) {
-    await prisma.inventoryEntry.create({
-      data: {
-        date,
-        direction: "out",
-        itemName: item,
-        qty,
-        unit,
-        source: `Manual purchase — ${job.jobNumber}`,
-        jobId,
-      },
-    });
-  }
+  await syncStockInventory({ ...expense, jobNumber: job.jobNumber });
 
   await logActivity(jobId, `${user.name} logged a ${entryType} of ${totalPrice} Br ("${item}").`);
   revalidatePath(`/jobs/${jobId}`);
   return { error: null };
 }
 
-/**
- * Stock Actual Spent → automatic Inventory reconciliation (Section 7.5).
- * Re-editing Actual Spent replaces the previous correction rather than
- * stacking a new one, via the unique adjustmentForExpenseId link.
- */
+/** Stock Actual Spent → automatic Inventory reconciliation (Section 7.5). */
 export async function updateActualSpentAction(expenseId: string, jobId: string, formData: FormData): Promise<void> {
   const user = await requireCurrentUser();
   requireAction(user, "manageExpenses", "edit");
@@ -175,35 +223,14 @@ export async function updateActualSpentAction(expenseId: string, jobId: string, 
 
   await prisma.expense.update({ where: { id: expenseId }, data: { actualSpent } });
 
-  if (expense.category === "stock") {
-    const committedQty = toNumber(expense.qty);
-    const actualQty = actualSpent ?? committedQty;
-    const delta = round2(actualQty - committedQty);
-
-    await prisma.inventoryEntry.deleteMany({ where: { adjustmentForExpenseId: expenseId } });
-
-    if (delta !== 0) {
-      const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobNumber: true } });
-      await prisma.inventoryEntry.create({
-        data: {
-          date: new Date(),
-          direction: delta > 0 ? "out" : "in",
-          materialId: expense.materialId,
-          itemName: expense.item,
-          unit: expense.unit,
-          qty: Math.abs(delta),
-          source: `Actual spent adjustment — ${job?.jobNumber ?? ""}`,
-          jobId,
-          adjustmentForExpenseId: expenseId,
-        },
-      });
-    }
-  }
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobNumber: true } });
+  await syncStockInventory({ ...expense, actualSpent, jobNumber: job?.jobNumber ?? "" });
 
   await logActivity(jobId, `${user.name} recorded Actual Spent on "${expense.item}".`);
   revalidatePath(`/jobs/${jobId}`);
 }
 
+/** Deleting a Stock row cascade-deletes its linked InventoryEntry (schema-level onDelete: Cascade). */
 export async function deleteExpenseAction(expenseId: string, jobId: string): Promise<void> {
   const user = await requireCurrentUser();
   requireAction(user, "manageExpenses", "edit");

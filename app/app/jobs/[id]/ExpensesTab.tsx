@@ -131,7 +131,6 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
               <th>Withholding</th>
               <th>Actual Spent</th>
               <th>Variance</th>
-              <th>Receipt</th>
               {editable && <th />}
             </tr>
           </thead>
@@ -150,11 +149,6 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                   <ActualSpentDisplay row={p} jobId={job.id} editable={editable} />
                 </td>
                 <td data-label="Variance"><VarianceCell row={p} /></td>
-                <td data-label="Receipt">
-                  {p.receiptUrl && (
-                    <Lightbox file={{ name: p.receiptName ?? "receipt", url: p.receiptUrl, kind: p.receiptKind ?? "" }} size={36} />
-                  )}
-                </td>
                 {editable && (
                   <td>
                     <form action={deleteExpenseAction.bind(null, p.id, job.id)}>
@@ -165,7 +159,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
               </tr>
             ))}
             {purchases.length === 0 && (
-              <tr><td className="label" colSpan={12}>No purchases logged yet.</td></tr>
+              <tr><td className="label" colSpan={11}>No purchases logged yet.</td></tr>
             )}
           </tbody>
         </table>
@@ -175,7 +169,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
 
         <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
           {purchases.map((p) => (
-            <MobileExpenseCard key={p.id} row={p} jobId={job.id} editable={editable} />
+            <MobileExpenseCard key={p.id} row={p} jobId={job.id} editable={editable} entryType="purchase" />
           ))}
           {purchases.length === 0 && <p className="label">No purchases logged yet.</p>}
           {editable && <AddExpenseToggle jobId={job.id} entryType="purchase" />}
@@ -195,10 +189,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
               <th>Item</th>
               <th>Description</th>
               <th>Total</th>
-              <th>Budget Ref</th>
               <th>Withholding</th>
-              <th>Actual Spent</th>
-              <th>Variance</th>
               <th>Receipt</th>
               {editable && <th />}
             </tr>
@@ -211,12 +202,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                 <td data-label="Item">{r.item}</td>
                 <td data-label="Description">{r.description ?? "—"}</td>
                 <td className="mono" data-label="Total">{toNumber(r.totalPrice).toLocaleString()}</td>
-                <td className="label" data-label="Budget Ref">—</td>
                 <td className="mono" data-label="Withholding">{toNumber(r.withholding).toLocaleString()}</td>
-                <td data-label="Actual Spent" data-span={editable ? "full" : undefined}>
-                  <ActualSpentDisplay row={r} jobId={job.id} editable={editable} />
-                </td>
-                <td data-label="Variance"><VarianceCell row={r} /></td>
                 <td data-label="Receipt">
                   {r.receiptUrl && (
                     <Lightbox file={{ name: r.receiptName ?? "receipt", url: r.receiptUrl, kind: r.receiptKind ?? "" }} size={36} />
@@ -232,7 +218,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
               </tr>
             ))}
             {receipts.length === 0 && (
-              <tr><td className="label" colSpan={10}>No receipts logged yet.</td></tr>
+              <tr><td className="label" colSpan={8}>No receipts logged yet.</td></tr>
             )}
           </tbody>
         </table>
@@ -242,7 +228,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
 
         <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
           {receipts.map((r) => (
-            <MobileExpenseCard key={r.id} row={r} jobId={job.id} editable={editable} />
+            <MobileExpenseCard key={r.id} row={r} jobId={job.id} editable={editable} entryType="receipt" />
           ))}
           {receipts.length === 0 && <p className="label">No receipts logged yet.</p>}
           {editable && <AddExpenseToggle jobId={job.id} entryType="receipt" />}

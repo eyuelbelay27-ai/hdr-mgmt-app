@@ -32,9 +32,21 @@ interface Row {
 }
 
 /** Compact single-row card for the Expenses tab, mobile only (Section 7.4/7.6). Tap to
- * expand in place for Actual Spent editing, Budget Ref, Withholding, Receipt, and Delete. */
-export function MobileExpenseCard({ row, jobId, editable }: { row: Row; jobId: string; editable: boolean }) {
+ * expand in place. Purchases get Budget Ref/Actual Spent/Variance; a Receipt is simpler —
+ * just its total, Withholding, and its own Receipt file (Section 7.6). */
+export function MobileExpenseCard({
+  row,
+  jobId,
+  editable,
+  entryType,
+}: {
+  row: Row;
+  jobId: string;
+  editable: boolean;
+  entryType: "purchase" | "receipt";
+}) {
   const [open, setOpen] = useState(false);
+  const isPurchase = entryType === "purchase";
   const isStock = row.category === "stock";
   const v = purchaseVariance(row);
   const spentLabel = isStock
@@ -67,13 +79,17 @@ export function MobileExpenseCard({ row, jobId, editable }: { row: Row; jobId: s
           <div className="expense-row-total">
             {isStock ? `${String(row.qty)} ${row.unit ?? ""}` : `${toNumber(row.totalPrice).toLocaleString()} Br`}
           </div>
-          <div className="expense-row-spent">Spent: {spentLabel}</div>
-          {v.status && (
-            <div style={{ color: v.status === "over" ? "var(--danger)" : v.status === "under" ? "var(--success)" : "var(--text-dim)" }}>
-              {v.status === "on"
-                ? VARIANCE_LABEL.on
-                : `${VARIANCE_LABEL[v.status]} ${Math.abs((isStock ? v.amountQty : v.amountETB) ?? 0).toLocaleString()} ${isStock ? row.unit ?? "" : "Br"}`}
-            </div>
+          {isPurchase && (
+            <>
+              <div className="expense-row-spent">Spent: {spentLabel}</div>
+              {v.status && (
+                <div style={{ color: v.status === "over" ? "var(--danger)" : v.status === "under" ? "var(--success)" : "var(--text-dim)" }}>
+                  {v.status === "on"
+                    ? VARIANCE_LABEL.on
+                    : `${VARIANCE_LABEL[v.status]} ${Math.abs((isStock ? v.amountQty : v.amountETB) ?? 0).toLocaleString()} ${isStock ? row.unit ?? "" : "Br"}`}
+                </div>
+              )}
+            </>
           )}
         </div>
         <ChevronRight size={16} strokeWidth={2} className="expense-row-chevron" style={{ transform: open ? "rotate(90deg)" : undefined }} />
@@ -82,36 +98,42 @@ export function MobileExpenseCard({ row, jobId, editable }: { row: Row; jobId: s
       {open && (
         <div className="expense-row-detail">
           <div className="expense-row-detail-grid">
-            <div>
-              <div className="label" style={{ marginBottom: 2 }}>Budget Ref</div>
-              <div style={{ fontSize: 13.5 }}>{row.budgetRef ?? "—"}</div>
-            </div>
+            {isPurchase && (
+              <>
+                <div>
+                  <div className="label" style={{ marginBottom: 2 }}>Budget Ref</div>
+                  <div style={{ fontSize: 13.5 }}>{row.budgetRef ?? "—"}</div>
+                </div>
+                <div>
+                  <div className="label" style={{ marginBottom: 2 }}>Actual Spent</div>
+                  {editable ? (
+                    <ActualSpentCell
+                      key={String(row.actualSpent)}
+                      expenseId={row.id}
+                      jobId={jobId}
+                      actualSpent={row.actualSpent}
+                      placeholder={isStock ? "qty" : "Br"}
+                    />
+                  ) : (
+                    <span>{row.actualSpent === null ? "—" : String(row.actualSpent)}</span>
+                  )}
+                </div>
+              </>
+            )}
             <div>
               <div className="label" style={{ marginBottom: 2 }}>Withholding</div>
               <div className="mono" style={{ fontSize: 13.5 }}>{toNumber(row.withholding).toLocaleString()} Br</div>
             </div>
-            <div>
-              <div className="label" style={{ marginBottom: 2 }}>Actual Spent</div>
-              {editable ? (
-                <ActualSpentCell
-                  key={String(row.actualSpent)}
-                  expenseId={row.id}
-                  jobId={jobId}
-                  actualSpent={row.actualSpent}
-                  placeholder={isStock ? "qty" : "Br"}
-                />
-              ) : (
-                <span>{row.actualSpent === null ? "—" : String(row.actualSpent)}</span>
-              )}
-            </div>
-            <div>
-              <div className="label" style={{ marginBottom: 2 }}>Receipt</div>
-              {row.receiptUrl ? (
-                <Lightbox file={{ name: row.receiptName ?? "receipt", url: row.receiptUrl, kind: row.receiptKind ?? "" }} size={32} />
-              ) : (
-                <span className="label">None</span>
-              )}
-            </div>
+            {!isPurchase && (
+              <div>
+                <div className="label" style={{ marginBottom: 2 }}>Receipt</div>
+                {row.receiptUrl ? (
+                  <Lightbox file={{ name: row.receiptName ?? "receipt", url: row.receiptUrl, kind: row.receiptKind ?? "" }} size={32} />
+                ) : (
+                  <span className="label">None</span>
+                )}
+              </div>
+            )}
           </div>
           {editable && (
             <form action={deleteExpenseAction.bind(null, row.id, jobId)} style={{ marginTop: 10 }}>
