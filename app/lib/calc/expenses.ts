@@ -98,11 +98,16 @@ interface ExpenseRow {
 
 /** Expenses tab stat cards. */
 export function expensesStats(expenses: ExpenseRow[]) {
-  // Money actually spent so far, across Purchases and Receipts alike —
-  // Budget-pulled commitments with no Actual Spent recorded yet contribute
-  // nothing (nothing has actually been bought), so this is never inflated
-  // by unfulfilled budget lines the way a raw sum of `totalPrice` would be.
-  const totalSpent = round2(expenses.reduce((sum, e) => sum + actualSpentETB(e), 0));
+  // Money actually spent so far — Purchases only. A Receipt just registers
+  // a cost that already happened elsewhere (e.g. it's proof for something
+  // tracked another way); it isn't itself a new expense, so it never
+  // contributes to Total Spent. Budget-pulled commitments with no Actual
+  // Spent recorded yet contribute nothing either (nothing has actually
+  // been bought), so this is never inflated by unfulfilled budget lines
+  // the way a raw sum of `totalPrice` would be.
+  const totalSpent = round2(
+    expenses.filter((e) => e.entryType === "purchase").reduce((sum, e) => sum + actualSpentETB(e), 0)
+  );
   // Withholding legitimately applies to both sheets.
   const totalWithholding = round2(expenses.reduce((sum, e) => sum + toNumber(e.withholding), 0));
   // Birr value of expenses a receipt is actually on file for, not a count.
