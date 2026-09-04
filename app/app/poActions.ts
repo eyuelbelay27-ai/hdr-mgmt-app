@@ -168,7 +168,6 @@ export async function markPurchaseOrderAuditedAction(poId: string): Promise<void
   const po = await prisma.purchaseOrder.findUnique({ where: { id: poId } });
   if (!po) throw new Error("Purchase order not found");
   if (po.status !== "Approved") throw new PermissionError("Only an approved purchase order can be audited.");
-  if (!po.receiptUrl) throw new PermissionError("Upload a receipt before marking this purchase order audited.");
 
   await prisma.purchaseOrder.update({
     where: { id: poId },
