@@ -64,7 +64,7 @@ export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject })
                       </>
                     )}
                     {po.status === "Approved" && canRevert && <UndoApprovalControl poId={po.id} />}
-                    {po.status === "Approved" && !po.audited && po.receiptUrl && canAudit && (
+                    {po.status === "Approved" && !po.audited && canAudit && (
                       <form action={markPurchaseOrderAuditedAction.bind(null, po.id)}>
                         <button className="btn btn-sm btn-primary" type="submit">Mark Audited</button>
                       </form>

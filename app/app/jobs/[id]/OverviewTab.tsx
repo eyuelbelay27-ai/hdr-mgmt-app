@@ -44,7 +44,6 @@ export function OverviewTab({ job, user }: { job: OverviewJob; user: PermissionS
     <div style={{ display: "grid", gap: 16 }}>
       <div className="card" style={{ padding: 16, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
         <Field label="Client" value={job.clientName} />
-        <Field label="Contact" value={job.clientContact} />
         <Field label="Phone" value={job.clientPhone} />
         <Field label="Address" value={job.clientAddress} />
         <Field label="Job Title" value={job.title} />
