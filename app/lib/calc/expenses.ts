@@ -8,7 +8,10 @@ export function computeWithholding(amount: number, ratePercent: number, threshol
 export type VarianceStatus = "over" | "under" | "on" | null;
 export interface Variance {
   status: VarianceStatus;
+  /** ETB variance — populated for Cash rows and Receipts, null for Stock. */
   amountETB: number | null;
+  /** Quantity variance — populated for Stock rows only, null otherwise. */
+  amountQty: number | null;
 }
 
 interface PurchaseRow {
@@ -22,37 +25,64 @@ interface PurchaseRow {
 
 /**
  * Purchases sheet Actual Spent & Variance (Section 7.4) — the trickiest
- * rule in the app. Cash rows: Actual Spent is an ETB amount. Stock rows:
- * Actual Spent is a quantity, converted to an ETB variance for display.
+ * rule in the app. Cash rows and Receipts: Actual Spent is an ETB amount,
+ * and variance is expressed in ETB. Stock rows: Actual Spent is a
+ * quantity, and variance stays a quantity too (different stock items use
+ * different units, so a Birr conversion can't be summed meaningfully) —
+ * only the direction (over/under) and the row's own qty figure matter.
  *
  * source === "Manual" (never pulled from a budget line): the row's full
  * amount always counts as Over Budget, never "Under" — there was never a
- * budget line to be under. For a Manual Stock row specifically, the brief
- * doesn't spell out how a quantity-shaped Actual Spent becomes an ETB
- * "over budget" figure the way it does for the Budget-sourced case; this
- * converts it the same way (actualQty × unitPrice) rather than inventing a
- * separate rule, falling back to the originally-entered totalPrice when
- * Actual Spent is blank, exactly as the brief specifies.
+ * budget line to be under.
  */
 export function purchaseVariance(row: PurchaseRow): Variance {
   const totalPrice = toNumber(row.totalPrice);
-  const unitPrice = toNumber(row.unitPrice);
   const budgetedQty = toNumber(row.qty);
   const hasActual = row.actualSpent !== null && row.actualSpent !== undefined;
   const actual = toNumber(row.actualSpent);
+  const isStock = row.category === "stock";
 
   if (row.source === "Manual") {
-    const amountETB =
-      row.category === "stock" ? (hasActual ? actual * unitPrice : totalPrice) : hasActual ? actual : totalPrice;
-    return { status: "over", amountETB: round2(amountETB) };
+    if (isStock) {
+      return { status: "over", amountETB: null, amountQty: round2(hasActual ? actual : budgetedQty) };
+    }
+    return { status: "over", amountETB: round2(hasActual ? actual : totalPrice), amountQty: null };
   }
 
-  if (!hasActual) return { status: null, amountETB: null };
+  if (!hasActual) return { status: null, amountETB: null, amountQty: null };
 
-  const varianceETB = row.category === "stock" ? (actual - budgetedQty) * unitPrice : actual - totalPrice;
-  const rounded = round2(varianceETB);
-  const status: VarianceStatus = rounded > 0 ? "over" : rounded < 0 ? "under" : "on";
-  return { status, amountETB: rounded };
+  if (isStock) {
+    const varianceQty = round2(actual - budgetedQty);
+    const status: VarianceStatus = varianceQty > 0 ? "over" : varianceQty < 0 ? "under" : "on";
+    return { status, amountETB: null, amountQty: varianceQty };
+  }
+
+  const varianceETB = round2(actual - totalPrice);
+  const status: VarianceStatus = varianceETB > 0 ? "over" : varianceETB < 0 ? "under" : "on";
+  return { status, amountETB: varianceETB, amountQty: null };
+}
+
+/**
+ * Actual money spent so far on a row, in ETB — used for the Expenses tab's
+ * Total Spent and Collected Receipts stats. A Manual row is already a real
+ * transaction, so its recorded total counts as spent even before an Actual
+ * Spent correction is entered. A Budget-pulled row is only a commitment —
+ * nothing has actually been bought yet until Actual Spent is recorded.
+ */
+export function actualSpentETB(row: PurchaseRow): number {
+  const totalPrice = toNumber(row.totalPrice);
+  const unitPrice = toNumber(row.unitPrice);
+  const hasActual = row.actualSpent !== null && row.actualSpent !== undefined;
+  const actual = toNumber(row.actualSpent);
+  const isStock = row.category === "stock";
+
+  if (row.source === "Manual") {
+    if (isStock) return round2(hasActual ? actual * unitPrice : totalPrice);
+    return round2(hasActual ? actual : totalPrice);
+  }
+
+  if (!hasActual) return 0;
+  return round2(isStock ? actual * unitPrice : actual);
 }
 
 interface ExpenseRow {
@@ -67,30 +97,39 @@ interface ExpenseRow {
   actualSpent: unknown;
 }
 
-/** Expenses tab stat cards (Section 7.4, 7.6). */
+/** Expenses tab stat cards. */
 export function expensesStats(expenses: ExpenseRow[]) {
-  const purchases = expenses.filter((e) => e.entryType === "purchase");
-
-  // Never includes Receipts — summing all of job.expenses here was a real
-  // bug in the prototype that had to be fixed.
-  const totalPurchases = round2(purchases.reduce((sum, e) => sum + toNumber(e.totalPrice), 0));
+  // Money actually spent so far, across Purchases and Receipts alike —
+  // Budget-pulled commitments with no Actual Spent recorded yet contribute
+  // nothing (nothing has actually been bought), so this is never inflated
+  // by unfulfilled budget lines the way a raw sum of `totalPrice` would be.
+  const totalSpent = round2(expenses.reduce((sum, e) => sum + actualSpentETB(e), 0));
   // Withholding legitimately applies to both sheets.
   const totalWithholding = round2(expenses.reduce((sum, e) => sum + toNumber(e.withholding), 0));
-  const collectedReceipts = expenses.filter((e) => e.receiptUrl).length;
+  // Birr value of expenses a receipt is actually on file for, not a count.
+  const collectedReceiptsBr = round2(
+    expenses.filter((e) => e.receiptUrl).reduce((sum, e) => sum + actualSpentETB(e), 0)
+  );
 
+  // Over/Under Budget is a Birr-only indicator: Stock rows carry their own
+  // per-row quantity variance instead (different items use different
+  // units, so they can't be summed into one Birr figure) and are excluded
+  // here automatically since purchaseVariance leaves amountETB null for
+  // them. This never touches Inventory — it's purely an at-a-glance
+  // spent-vs-budgeted signal; Inventory only reacts to actual expense qty.
   let overBudget = 0;
   let underBudget = 0;
-  for (const p of purchases) {
-    const v = purchaseVariance(p);
+  for (const e of expenses) {
+    const v = purchaseVariance(e);
     if (v.amountETB === null) continue;
     if (v.status === "over") overBudget += v.amountETB;
     if (v.status === "under") underBudget += Math.abs(v.amountETB);
   }
 
   return {
-    totalPurchases,
+    totalSpent,
     totalWithholding,
-    collectedReceipts,
+    collectedReceiptsBr,
     overBudget: round2(overBudget),
     underBudget: round2(underBudget),
   };
