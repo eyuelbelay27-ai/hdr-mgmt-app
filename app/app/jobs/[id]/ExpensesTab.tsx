@@ -5,7 +5,9 @@ import { toNumber } from "@/lib/money";
 import { Lightbox } from "../../Lightbox";
 import { pullExpensesFromBudgetAction, deleteExpenseAction } from "./expensesActions";
 import { AddExpenseForm } from "./AddExpenseForm";
+import { AddExpenseToggle } from "./AddExpenseToggle";
 import { ActualSpentCell } from "./ActualSpentCell";
+import { MobileExpenseCard } from "./MobileExpenseCard";
 
 interface ExpenseRow {
   id: string;
@@ -64,67 +66,6 @@ function ActualSpentDisplay({ row, jobId, editable }: { row: ExpenseRow; jobId: 
       actualSpent={row.actualSpent}
       placeholder={row.category === "stock" ? "qty" : "Br"}
     />
-  );
-}
-
-/** Purchase or Receipt row, as a compact mobile card — same fields either way. */
-function ExpenseCard({ row, jobId, editable }: { row: ExpenseRow; jobId: string; editable: boolean }) {
-  const isStock = row.category === "stock";
-  return (
-    <div className="card expense-card" style={row.flagged ? { background: "var(--danger-soft)" } : undefined}>
-      <div className="expense-card-top">
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14 }}>{row.item}</div>
-          <div className="expense-card-meta">
-            {row.date.toISOString().slice(0, 10)} · {row.purchaser ?? "—"}
-          </div>
-        </div>
-        {row.category && (
-          <span
-            className="badge"
-            style={isStock ? { background: "var(--info-soft)", color: "var(--info)" } : { background: "var(--accent-soft)", color: "var(--accent-text)" }}
-          >
-            {isStock ? "Stock" : "Cash"}
-          </span>
-        )}
-      </div>
-
-      <div className="expense-card-financials">
-        <div className="expense-card-fin-item">
-          <div className="label" style={{ marginBottom: 2 }}>{isStock ? "Qty" : "Total"}</div>
-          <div className="mono" style={{ fontSize: 13.5 }}>
-            {isStock ? `${String(row.qty)} ${row.unit ?? ""}` : `${toNumber(row.totalPrice).toLocaleString()} Br`}
-          </div>
-        </div>
-        <div className="expense-card-fin-item">
-          <div className="label" style={{ marginBottom: 2 }}>Actual Spent</div>
-          <ActualSpentDisplay row={row} jobId={jobId} editable={editable} />
-        </div>
-        <div className="expense-card-fin-item" style={{ gridColumn: "1 / -1" }}>
-          <div className="label" style={{ marginBottom: 2 }}>Variance</div>
-          <VarianceCell row={row} />
-        </div>
-        {row.budgetRef && (
-          <div className="expense-card-fin-item" style={{ gridColumn: "1 / -1" }}>
-            <div className="label" style={{ marginBottom: 2 }}>Budget Ref</div>
-            <div style={{ fontSize: 13.5 }}>{row.budgetRef}</div>
-          </div>
-        )}
-      </div>
-
-      <div className="expense-card-footer">
-        {row.receiptUrl ? (
-          <Lightbox file={{ name: row.receiptName ?? "receipt", url: row.receiptUrl, kind: row.receiptKind ?? "" }} size={36} />
-        ) : (
-          <span className="label">No receipt</span>
-        )}
-        {editable && (
-          <form action={deleteExpenseAction.bind(null, row.id, jobId)}>
-            <button className="btn btn-sm btn-danger" type="submit">Delete</button>
-          </form>
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -229,16 +170,16 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
           </tbody>
         </table>
         </div>
+        {editable && <AddExpenseForm jobId={job.id} entryType="purchase" />}
         </div>
 
         <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
           {purchases.map((p) => (
-            <ExpenseCard key={p.id} row={p} jobId={job.id} editable={editable} />
+            <MobileExpenseCard key={p.id} row={p} jobId={job.id} editable={editable} />
           ))}
           {purchases.length === 0 && <p className="label">No purchases logged yet.</p>}
+          {editable && <AddExpenseToggle jobId={job.id} entryType="purchase" />}
         </div>
-
-        {editable && <AddExpenseForm jobId={job.id} entryType="purchase" />}
       </div>
 
       <div>
@@ -296,16 +237,16 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
           </tbody>
         </table>
         </div>
+        {editable && <AddExpenseForm jobId={job.id} entryType="receipt" />}
         </div>
 
         <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
           {receipts.map((r) => (
-            <ExpenseCard key={r.id} row={r} jobId={job.id} editable={editable} />
+            <MobileExpenseCard key={r.id} row={r} jobId={job.id} editable={editable} />
           ))}
           {receipts.length === 0 && <p className="label">No receipts logged yet.</p>}
+          {editable && <AddExpenseToggle jobId={job.id} entryType="receipt" />}
         </div>
-
-        {editable && <AddExpenseForm jobId={job.id} entryType="receipt" />}
       </div>
     </div>
   );
