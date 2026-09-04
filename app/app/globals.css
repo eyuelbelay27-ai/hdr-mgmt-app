@@ -882,40 +882,110 @@ input[type="radio"] {
 .expenses-mobile-cards {
   display: none;
 }
-.expense-card {
-  padding: 14px 16px;
-  margin-bottom: 10px;
+/* Compact single-row expense card (mobile only) — date block, item +
+   category, right-aligned total/spent/variance, and a chevron that
+   toggles an in-place detail panel (Actual Spent, Budget Ref,
+   Withholding, Receipt, Delete). */
+.expense-row {
+  padding: 0;
+  margin-bottom: 8px;
+  overflow: hidden;
 }
-.expense-card-top {
+.expense-row-header {
+  width: 100%;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
 }
-.expense-card-meta {
-  font-size: 12px;
+.expense-row-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  width: 36px;
+}
+.expense-row-date-month {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+.expense-row-date-day {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+.expense-row-date-year {
+  font-size: 9.5px;
+  color: var(--text-faint);
+}
+.expense-row-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border-soft);
+  flex-shrink: 0;
+}
+.expense-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.expense-row-item {
+  font-weight: 700;
+  font-size: 13.5px;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expense-row-amounts {
+  text-align: right;
+  flex-shrink: 0;
+}
+.expense-row-total {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 15px;
+}
+.expense-row-spent {
+  font-size: 11.5px;
   color: var(--text-dim);
   margin-top: 2px;
 }
-.expense-card-financials {
+.expense-row-amounts > div:last-child {
+  font-size: 11.5px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.expense-row-chevron {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  transition: transform 0.15s ease;
+}
+.expense-row-detail {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
+}
+.expense-row-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-soft);
 }
-.expense-card-fin-item {
-  min-width: 0;
-}
-.expense-card-footer {
+.expense-add-toggle {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-soft);
+  gap: 6px;
 }
 @media (max-width: 640px) {
   .expenses-desktop-table {
