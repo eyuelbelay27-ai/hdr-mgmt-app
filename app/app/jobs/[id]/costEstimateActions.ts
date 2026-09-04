@@ -7,7 +7,6 @@ import { requireAction, PermissionError } from "@/lib/permissions";
 import { isContentLocked } from "@/lib/job-status";
 import { round2, toNumber } from "@/lib/money";
 import { logActivity } from "@/lib/activity";
-import { getUploadedFile, saveUpload } from "@/lib/storage";
 import type { ActionState } from "./actions";
 
 async function assertEditable(jobId: string) {
@@ -161,20 +160,10 @@ export async function updateCostEstimateNotesAction(
     throw err;
   }
 
-  const priceListFile = getUploadedFile(formData, "priceListFile");
-  const priceList = priceListFile ? await saveUpload(priceListFile) : null;
-
   await prisma.job.update({
     where: { id: jobId },
     data: {
       costEstimateNotes: String(formData.get("notes") ?? "").trim() || null,
-      ...(priceList
-        ? {
-            costEstimatePriceListName: priceList.name,
-            costEstimatePriceListUrl: priceList.url,
-            costEstimatePriceListKind: priceList.kind,
-          }
-        : {}),
     },
   });
   revalidatePath(`/jobs/${jobId}`);

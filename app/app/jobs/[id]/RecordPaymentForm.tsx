@@ -54,7 +54,7 @@ export function RecordPaymentForm({ jobId }: { jobId: string }) {
         <label className="label">Notes</label>
         <input className="input" name="notes" />
       </div>
-      <FileField id="payment-receipt" name="receipt" label="Receipt (optional)" />
+      <FileField id="payment-receipt" name="receipt" label="Receipt" required />
       <SubmitButton label="Record Payment" pendingLabel="Saving…" className="btn btn-sm btn-primary" />
       {state.error && <p className="login-error">{state.error}</p>}
     </form>

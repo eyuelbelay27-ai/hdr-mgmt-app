@@ -40,7 +40,8 @@ export async function recordPaymentAction(
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   const receiptFile = getUploadedFile(formData, "receipt");
-  const receipt = receiptFile ? await saveUpload(receiptFile) : null;
+  if (!receiptFile) return { error: "A receipt is required." };
+  const receipt = await saveUpload(receiptFile);
 
   await prisma.payment.create({
     data: {
@@ -50,9 +51,9 @@ export async function recordPaymentAction(
       method,
       date,
       notes,
-      receiptName: receipt?.name,
-      receiptUrl: receipt?.url,
-      receiptKind: receipt?.kind,
+      receiptName: receipt.name,
+      receiptUrl: receipt.url,
+      receiptKind: receipt.kind,
     },
   });
 

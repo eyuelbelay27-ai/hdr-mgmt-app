@@ -66,7 +66,6 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
             <tr><td className="label">Phone</td><td>{job.clientPhone || "—"}</td></tr>
             <tr><td className="label">Address</td><td>{job.clientAddress || "—"}</td></tr>
             <tr><td className="label">Designer</td><td>{job.designer || "—"}</td></tr>
-            <tr><td className="label">Supervisor</td><td>{job.supervisor || "—"}</td></tr>
           </tbody>
         </table>
 

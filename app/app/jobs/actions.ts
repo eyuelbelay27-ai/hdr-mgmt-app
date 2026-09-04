@@ -35,12 +35,16 @@ export async function createJobAction(
 
   const clientName = String(formData.get("clientName") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
+  const clientPhone = String(formData.get("clientPhone") ?? "").trim();
+  const clientAddress = String(formData.get("clientAddress") ?? "").trim();
   const advanceAmountRaw = String(formData.get("advanceAmount") ?? "").trim();
   const advanceAmount = Number(advanceAmountRaw);
   const proofFile = getUploadedFile(formData, "advanceProof");
 
   if (!clientName) return { error: "Client name is required." };
   if (!title) return { error: "Job title is required." };
+  if (!clientPhone) return { error: "Client phone is required." };
+  if (!clientAddress) return { error: "Client address is required." };
   if (!advanceAmountRaw || !Number.isFinite(advanceAmount) || advanceAmount <= 0) {
     return { error: "Advance payment amount is required and must be greater than zero." };
   }
@@ -56,6 +60,8 @@ export async function createJobAction(
       jobNumber,
       clientName,
       title,
+      clientPhone,
+      clientAddress,
       payments: {
         create: {
           amount: advanceAmount,

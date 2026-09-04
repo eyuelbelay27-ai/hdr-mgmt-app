@@ -42,6 +42,9 @@ export const ACTION_KEYS = [
   { key: "manageInventory", label: "Record manual Stock In/Out" },
   { key: "submitPurchaseOrder", label: "Issue a Purchase Order" },
   { key: "approvePurchaseOrder", label: "Approve/reject a Purchase Order" },
+  { key: "revertPurchaseOrderApproval", label: "Undo an approved Purchase Order" },
+  { key: "uploadPurchaseOrderReceipt", label: "Upload a Purchase Order's receipt" },
+  { key: "auditPurchaseOrder", label: "Mark a Purchase Order Audited" },
   { key: "manageUsers", label: "Manage users & permissions" },
 ] as const;
 

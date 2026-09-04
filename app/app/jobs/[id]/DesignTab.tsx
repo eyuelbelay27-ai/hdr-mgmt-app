@@ -1,10 +1,9 @@
 import { can } from "@/lib/permissions";
 import type { PermissionSubject } from "@/lib/permissions";
 import { Lightbox } from "../../Lightbox";
-import { FileField } from "../../FileField";
 import { DesignFieldsForm } from "./DesignFieldsForm";
 import { AddComponentForm } from "./AddComponentForm";
-import { updateComponentAction, deleteComponentAction } from "./actions";
+import { ComponentRow } from "./ComponentRow";
 
 interface Component {
   id: string;
@@ -21,7 +20,6 @@ interface Component {
 interface DesignJob {
   id: string;
   designer: string | null;
-  supervisor: string | null;
   productionNotes: string | null;
   components: Component[];
 }
@@ -50,7 +48,6 @@ export function DesignTab({
         <DesignFieldsForm
           jobId={job.id}
           designer={job.designer}
-          supervisor={job.supervisor}
           productionNotes={job.productionNotes}
         />
       ) : (
@@ -58,10 +55,6 @@ export function DesignTab({
           <div>
             <div className="label">Designer</div>
             <div>{job.designer || "—"}</div>
-          </div>
-          <div>
-            <div className="label">Supervisor</div>
-            <div>{job.supervisor || "—"}</div>
           </div>
           <div style={{ gridColumn: "1 / -1" }}>
             <div className="label">Production Notes</div>
@@ -75,52 +68,7 @@ export function DesignTab({
         <div style={{ display: "grid", gap: 10 }}>
           {job.components.map((c) =>
             editable ? (
-              <form
-                key={c.id}
-                action={updateComponentAction.bind(null, c.id, job.id)}
-                encType="multipart/form-data"
-                className="card form-row"
-                style={{ padding: 12 }}
-              >
-                <div>
-                  <label className="label">Name</label>
-                  <input className="input" name="name" defaultValue={c.name} required />
-                </div>
-                <div>
-                  <label className="label">Width (m)</label>
-                  <input className="input" name="width" type="number" step="0.01" defaultValue={String(c.width)} required />
-                </div>
-                <div>
-                  <label className="label">Height (m)</label>
-                  <input className="input" name="height" type="number" step="0.01" defaultValue={String(c.height)} required />
-                </div>
-                <div>
-                  <label className="label">Qty</label>
-                  <input className="input" name="qty" type="number" step="1" defaultValue={c.qty} required />
-                </div>
-                <div>
-                  <label className="label">LED Colour</label>
-                  <input className="input" name="ledColor" defaultValue={c.ledColor ?? ""} />
-                </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <button className="btn btn-sm" type="submit">Save</button>
-                  <button
-                    className="btn btn-sm btn-danger"
-                    type="submit"
-                    formAction={deleteComponentAction.bind(null, c.id, job.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-                <div style={{ gridColumn: "1 / -1", display: "flex", gap: 10, alignItems: "center" }}>
-                  {c.artUrl && (
-                    <Lightbox file={{ name: c.artName ?? "art", url: c.artUrl, kind: c.artKind ?? "" }} />
-                  )}
-                  <div style={{ flex: 1 }}>
-                    <FileField id={`art-${c.id}`} name="art" label="Replace art (optional)" />
-                  </div>
-                </div>
-              </form>
+              <ComponentRow key={c.id} component={c} jobId={job.id} />
             ) : (
               <div key={c.id} className="card" style={{ padding: 12, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
                 {c.artUrl && (
