@@ -1,3 +1,4 @@
+import { Wallet, Landmark, Receipt as ReceiptIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { can, type PermissionSubject } from "@/lib/permissions";
 import { expensesStats, purchaseVariance } from "@/lib/calc/expenses";
 import { toNumber } from "@/lib/money";
@@ -34,10 +35,96 @@ function VarianceCell({ row }: { row: ExpenseRow }) {
   const v = purchaseVariance(row);
   if (v.status === null) return <span className="label">—</span>;
   if (v.status === "on") return <span>On Budget</span>;
+  const isStock = row.category === "stock";
+  const magnitude = Math.abs((isStock ? v.amountQty : v.amountETB) ?? 0);
+  const suffix = isStock ? (row.unit ?? "") : "Br";
   return (
     <span style={{ color: v.status === "over" ? "var(--danger)" : "var(--success)" }}>
-      {VARIANCE_LABEL[v.status]} {Math.abs(v.amountETB ?? 0).toLocaleString()} Br
+      {VARIANCE_LABEL[v.status]} {magnitude.toLocaleString()} {suffix}
     </span>
+  );
+}
+
+function ActualSpentDisplay({ row, jobId, editable }: { row: ExpenseRow; jobId: string; editable: boolean }) {
+  if (!editable) {
+    if (row.actualSpent === null) return <span className="label">—</span>;
+    return <span>{String(row.actualSpent)}</span>;
+  }
+  return (
+    <ActualSpentCell
+      // Both the desktop table and mobile card list render this row at
+      // once (CSS just hides one), so two instances share one expenseId.
+      // Keying on the current value forces a fresh mount — and fresh
+      // local state — whenever the other instance's edit saves and this
+      // row re-renders with a new server value, instead of silently
+      // going stale.
+      key={String(row.actualSpent)}
+      expenseId={row.id}
+      jobId={jobId}
+      actualSpent={row.actualSpent}
+      placeholder={row.category === "stock" ? "qty" : "Br"}
+    />
+  );
+}
+
+/** Purchase or Receipt row, as a compact mobile card — same fields either way. */
+function ExpenseCard({ row, jobId, editable }: { row: ExpenseRow; jobId: string; editable: boolean }) {
+  const isStock = row.category === "stock";
+  return (
+    <div className="card expense-card" style={row.flagged ? { background: "var(--danger-soft)" } : undefined}>
+      <div className="expense-card-top">
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14 }}>{row.item}</div>
+          <div className="expense-card-meta">
+            {row.date.toISOString().slice(0, 10)} · {row.purchaser ?? "—"}
+          </div>
+        </div>
+        {row.category && (
+          <span
+            className="badge"
+            style={isStock ? { background: "var(--info-soft)", color: "var(--info)" } : { background: "var(--accent-soft)", color: "var(--accent-text)" }}
+          >
+            {isStock ? "Stock" : "Cash"}
+          </span>
+        )}
+      </div>
+
+      <div className="expense-card-financials">
+        <div className="expense-card-fin-item">
+          <div className="label" style={{ marginBottom: 2 }}>{isStock ? "Qty" : "Total"}</div>
+          <div className="mono" style={{ fontSize: 13.5 }}>
+            {isStock ? `${String(row.qty)} ${row.unit ?? ""}` : `${toNumber(row.totalPrice).toLocaleString()} Br`}
+          </div>
+        </div>
+        <div className="expense-card-fin-item">
+          <div className="label" style={{ marginBottom: 2 }}>Actual Spent</div>
+          <ActualSpentDisplay row={row} jobId={jobId} editable={editable} />
+        </div>
+        <div className="expense-card-fin-item" style={{ gridColumn: "1 / -1" }}>
+          <div className="label" style={{ marginBottom: 2 }}>Variance</div>
+          <VarianceCell row={row} />
+        </div>
+        {row.budgetRef && (
+          <div className="expense-card-fin-item" style={{ gridColumn: "1 / -1" }}>
+            <div className="label" style={{ marginBottom: 2 }}>Budget Ref</div>
+            <div style={{ fontSize: 13.5 }}>{row.budgetRef}</div>
+          </div>
+        )}
+      </div>
+
+      <div className="expense-card-footer">
+        {row.receiptUrl ? (
+          <Lightbox file={{ name: row.receiptName ?? "receipt", url: row.receiptUrl, kind: row.receiptKind ?? "" }} size={36} />
+        ) : (
+          <span className="label">No receipt</span>
+        )}
+        {editable && (
+          <form action={deleteExpenseAction.bind(null, row.id, jobId)}>
+            <button className="btn btn-sm btn-danger" type="submit">Delete</button>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -47,21 +134,35 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
   const receipts = job.expenses.filter((e) => e.entryType === "receipt");
   const stats = expensesStats(job.expenses);
 
+  const gridStats = [
+    { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} Br`, icon: Landmark },
+    { label: "Collected Receipts", value: `${stats.collectedReceiptsBr.toLocaleString()} Br`, icon: ReceiptIcon },
+    { label: "Over Budget", value: `${stats.overBudget.toLocaleString()} Br`, icon: TrendingUp },
+    { label: "Under Budget", value: `${stats.underBudget.toLocaleString()} Br`, icon: TrendingDown },
+  ];
+
   return (
     <div style={{ display: "grid", gap: 20 }}>
-      <div className="form-row">
-        {[
-          { label: "Total Purchases", value: `${stats.totalPurchases.toLocaleString()} Br` },
-          { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} Br` },
-          { label: "Collected Receipts", value: stats.collectedReceipts },
-          { label: "Over Budget", value: `${stats.overBudget.toLocaleString()} Br` },
-          { label: "Under Budget", value: `${stats.underBudget.toLocaleString()} Br` },
-        ].map((s) => (
-          <div key={s.label} className="card" style={{ padding: 12 }}>
-            <div className="label">{s.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4 }}>{s.value}</div>
-          </div>
-        ))}
+      <div>
+        <div className="expense-hero-card">
+          <span className="expense-hero-icon"><Wallet size={18} strokeWidth={2} color="#fff" /></span>
+          <div className="expense-hero-label">Total Spent</div>
+          <div className="expense-hero-value">{stats.totalSpent.toLocaleString()} Br</div>
+        </div>
+        <div className="dash-stats-grid" style={{ marginTop: 12 }}>
+          {gridStats.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.label} className="card dash-stat-card" style={{ paddingRight: 16 }}>
+                <span className="dash-stat-icon"><Icon size={17} strokeWidth={2} /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="label" style={{ marginBottom: 2 }}>{s.label}</div>
+                  <div className="dash-stat-value" style={{ fontSize: 16 }}>{s.value}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div>
@@ -73,6 +174,8 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
             </form>
           )}
         </div>
+
+        <div className="expenses-desktop-table">
         <div className="dtable-wrap" style={{ marginTop: 8 }}>
         <table className="dtable">
           <thead>
@@ -103,16 +206,7 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                 <td className="label" data-label="Budget Ref">{p.budgetRef ?? "—"}</td>
                 <td className="mono" data-label="Withholding">{toNumber(p.withholding).toLocaleString()}</td>
                 <td data-label="Actual Spent" data-span={editable ? "full" : undefined}>
-                  {editable ? (
-                    <ActualSpentCell
-                      expenseId={p.id}
-                      jobId={job.id}
-                      actualSpent={p.actualSpent}
-                      placeholder={p.category === "stock" ? "qty" : "Br"}
-                    />
-                  ) : (
-                    p.actualSpent === null ? "—" : String(p.actualSpent)
-                  )}
+                  <ActualSpentDisplay row={p} jobId={job.id} editable={editable} />
                 </td>
                 <td data-label="Variance"><VarianceCell row={p} /></td>
                 <td data-label="Receipt">
@@ -135,11 +229,22 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
           </tbody>
         </table>
         </div>
+        </div>
+
+        <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
+          {purchases.map((p) => (
+            <ExpenseCard key={p.id} row={p} jobId={job.id} editable={editable} />
+          ))}
+          {purchases.length === 0 && <p className="label">No purchases logged yet.</p>}
+        </div>
+
         {editable && <AddExpenseForm jobId={job.id} entryType="purchase" />}
       </div>
 
       <div>
         <h3 style={{ margin: 0 }}>Receipts</h3>
+
+        <div className="expenses-desktop-table">
         <div className="dtable-wrap" style={{ marginTop: 8 }}>
         <table className="dtable">
           <thead>
@@ -149,7 +254,10 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
               <th>Item</th>
               <th>Description</th>
               <th>Total</th>
+              <th>Budget Ref</th>
               <th>Withholding</th>
+              <th>Actual Spent</th>
+              <th>Variance</th>
               <th>Receipt</th>
               {editable && <th />}
             </tr>
@@ -162,7 +270,12 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
                 <td data-label="Item">{r.item}</td>
                 <td data-label="Description">{r.description ?? "—"}</td>
                 <td className="mono" data-label="Total">{toNumber(r.totalPrice).toLocaleString()}</td>
+                <td className="label" data-label="Budget Ref">—</td>
                 <td className="mono" data-label="Withholding">{toNumber(r.withholding).toLocaleString()}</td>
+                <td data-label="Actual Spent" data-span={editable ? "full" : undefined}>
+                  <ActualSpentDisplay row={r} jobId={job.id} editable={editable} />
+                </td>
+                <td data-label="Variance"><VarianceCell row={r} /></td>
                 <td data-label="Receipt">
                   {r.receiptUrl && (
                     <Lightbox file={{ name: r.receiptName ?? "receipt", url: r.receiptUrl, kind: r.receiptKind ?? "" }} size={36} />
@@ -178,11 +291,20 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
               </tr>
             ))}
             {receipts.length === 0 && (
-              <tr><td className="label" colSpan={8}>No receipts logged yet.</td></tr>
+              <tr><td className="label" colSpan={10}>No receipts logged yet.</td></tr>
             )}
           </tbody>
         </table>
         </div>
+        </div>
+
+        <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
+          {receipts.map((r) => (
+            <ExpenseCard key={r.id} row={r} jobId={job.id} editable={editable} />
+          ))}
+          {receipts.length === 0 && <p className="label">No receipts logged yet.</p>}
+        </div>
+
         {editable && <AddExpenseForm jobId={job.id} entryType="receipt" />}
       </div>
     </div>

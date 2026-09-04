@@ -49,7 +49,16 @@ export async function pullExpensesFromBudgetAction(jobId: string): Promise<void>
         budgetItemId: line.id,
         materialId: line.materialId,
       },
-      update: { item: line.label, qty, unit: line.unit, unitPrice, totalPrice, budgetRef: line.label, materialId: line.materialId },
+      update: {
+        item: line.label,
+        category: line.category,
+        qty,
+        unit: line.unit,
+        unitPrice,
+        totalPrice,
+        budgetRef: line.label,
+        materialId: line.materialId,
+      },
     });
   }
 
