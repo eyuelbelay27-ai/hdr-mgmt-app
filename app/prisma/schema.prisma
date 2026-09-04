@@ -358,7 +358,11 @@ model Expense {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  inventoryAdjustment InventoryEntry?
+  // The single Inventory movement this Stock row is responsible for —
+  // created when the row is registered (Manual add or Pull From Budget),
+  // kept in sync with Actual Spent, and removed automatically (cascade)
+  // if the row is deleted. Null for Cash rows and Receipts.
+  inventoryEntry InventoryEntry?
 
   @@index([jobId])
 }
@@ -452,8 +456,8 @@ model InventoryEntry {
   qty        Decimal            @db.Decimal(14, 3)
   unit       String?
 
-  // e.g. "Budget approved — HAD-2026-0002", "Manual purchase — HAD-2026-0002",
-  // "Actual spent adjustment — HAD-2026-0002", "Manual"
+  // e.g. "Manual purchase — HAD-2026-0002", "Budget pull — HAD-2026-0002",
+  // "Manual"
   source String
   note   String?
 
@@ -461,12 +465,12 @@ model InventoryEntry {
   job       Job?    @relation(fields: [jobId], references: [id])
   jobId     String?
 
-  // Links a qty-reconciliation entry back to the Expense row that
-  // triggered it (Section 7.5), so re-editing Actual Spent replaces the
-  // adjustment instead of stacking a new one. At most one adjustment
-  // entry may exist per expense at any time.
-  adjustmentForExpense   Expense? @relation(fields: [adjustmentForExpenseId], references: [id])
-  adjustmentForExpenseId String?  @unique
+  // Links this movement back to the Stock Expense row responsible for it
+  // (Section 7.4/7.5) — kept in sync (qty updated) as Actual Spent is
+  // edited, and cascade-deleted if the Expense row itself is deleted, so
+  // Inventory only ever reflects what's currently registered in Expenses.
+  expense   Expense? @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expenseId String?  @unique
 
   // Links a stock-in entry back to the Purchase Order that approving it
   // created, so undoing the approval can remove exactly this entry. At
