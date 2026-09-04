@@ -4,6 +4,7 @@ import { toNumber } from "@/lib/money";
 import { CreatePOForm } from "./CreatePOForm";
 import { RejectPOControl } from "./RejectPOControl";
 import { UndoApprovalControl } from "./UndoApprovalControl";
+import { DeletePOControl } from "./DeletePOControl";
 import { POReceiptUpload } from "./POReceiptUpload";
 import { Lightbox } from "./Lightbox";
 import { approvePurchaseOrderAction, markPurchaseOrderAuditedAction } from "./poActions";
@@ -15,7 +16,8 @@ export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject })
   const canRevert = can(user, "revertPurchaseOrderApproval");
   const canUploadReceipt = can(user, "uploadPurchaseOrderReceipt");
   const canAudit = can(user, "auditPurchaseOrder");
-  const showActions = canApprove || canRevert || canAudit;
+  const canDelete = can(user, "deletePurchaseOrder");
+  const showActions = canApprove || canRevert || canAudit || canDelete;
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -68,6 +70,9 @@ export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject })
                       <form action={markPurchaseOrderAuditedAction.bind(null, po.id)}>
                         <button className="btn btn-sm btn-primary" type="submit">Mark Audited</button>
                       </form>
+                    )}
+                    {(po.status === "Pending" || po.status === "Rejected") && canDelete && (
+                      <DeletePOControl poId={po.id} />
                     )}
                   </div>
                 </td>

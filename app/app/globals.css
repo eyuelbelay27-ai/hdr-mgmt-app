@@ -882,10 +882,12 @@ input[type="radio"] {
 .expenses-mobile-cards {
   display: none;
 }
-/* Compact single-row expense card (mobile only) — date block, item +
-   category, right-aligned total/spent/variance, and a chevron that
-   toggles an in-place detail panel (Actual Spent, Budget Ref,
-   Withholding, Receipt, Delete). */
+/* Compact single-row card (mobile only) — date block, item + a status
+   badge, right-aligned figures, and a chevron that toggles an in-place
+   detail panel. Originally built for the Expenses tab (Actual Spent,
+   Budget Ref, Withholding, Receipt, Delete) and reused as-is by the
+   Inventory Transactions list (Section 4.4), whose detail panel is just
+   Source/Project/Note — same row shape, so no separate class family. */
 .expense-row {
   padding: 0;
   margin-bottom: 8px;
@@ -992,6 +994,46 @@ input[type="radio"] {
     display: none;
   }
   .expenses-mobile-cards {
+    display: block;
+  }
+}
+
+/* Inventory redesign (Section 4.4) — same desktop-table/mobile-card split,
+   compact single-row transaction cards (borrowing the Expenses tab's
+   .expense-row layout language), and a static tappable-free balance grid. */
+.inv-balance-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+}
+.inv-balance-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.inv-balance-value {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+}
+.inv-desktop-table {
+  display: block;
+}
+.inv-mobile-cards {
+  display: none;
+}
+@media (max-width: 640px) {
+  .inv-desktop-table {
+    display: none;
+  }
+  .inv-mobile-cards {
     display: block;
   }
 }
