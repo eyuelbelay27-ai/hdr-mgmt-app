@@ -412,7 +412,16 @@ model PurchaseOrder {
   // Rejection reason — required when status is Rejected.
   note        String?
 
-  history PurchaseOrderHistoryEntry[]
+  // Proof of purchase, uploaded once Approved; reviewed, then marked Audited.
+  receiptName String?
+  receiptUrl  String?
+  receiptKind String?
+  audited     Boolean   @default(false)
+  auditedBy   String?
+  auditedAt   DateTime?
+
+  history         PurchaseOrderHistoryEntry[]
+  inventoryEntry  InventoryEntry?
 
   createdAt DateTime @default(now())
 }
@@ -458,6 +467,12 @@ model InventoryEntry {
   // entry may exist per expense at any time.
   adjustmentForExpense   Expense? @relation(fields: [adjustmentForExpenseId], references: [id])
   adjustmentForExpenseId String?  @unique
+
+  // Links a stock-in entry back to the Purchase Order that approving it
+  // created, so undoing the approval can remove exactly this entry. At
+  // most one such entry may exist per PO at any time.
+  fromPurchaseOrder   PurchaseOrder? @relation(fields: [fromPurchaseOrderId], references: [id])
+  fromPurchaseOrderId String?        @unique
 
   createdAt DateTime @default(now())
 

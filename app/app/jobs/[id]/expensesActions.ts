@@ -100,7 +100,8 @@ export async function addExpenseAction(
   const withholding = computeWithholding(totalPrice, settings.withholdingRatePercent, settings.withholdingThreshold);
 
   const receiptFile = getUploadedFile(formData, "receipt");
-  const receipt = receiptFile ? await saveUpload(receiptFile) : null;
+  if (!receiptFile) return { error: "A receipt is required." };
+  const receipt = await saveUpload(receiptFile);
 
   const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobNumber: true } });
   if (!job) return { error: "Job not found." };
@@ -120,9 +121,9 @@ export async function addExpenseAction(
       unitPrice,
       totalPrice,
       withholding,
-      receiptName: receipt?.name,
-      receiptUrl: receipt?.url,
-      receiptKind: receipt?.kind,
+      receiptName: receipt.name,
+      receiptUrl: receipt.url,
+      receiptKind: receipt.kind,
     },
   });
 

@@ -8,17 +8,14 @@ import { SaveStatusBadge } from "../../SaveStatusBadge";
 export function DesignFieldsForm({
   jobId,
   designer,
-  supervisor,
   productionNotes,
 }: {
   jobId: string;
   designer: string | null;
-  supervisor: string | null;
   productionNotes: string | null;
 }) {
   const [fields, setFields] = useState({
     designer: designer ?? "",
-    supervisor: supervisor ?? "",
     productionNotes: productionNotes ?? "",
   });
   const autosave = useAutosave((formData) => updateDesignFieldsAction(jobId, { error: null }, formData));
@@ -26,7 +23,6 @@ export function DesignFieldsForm({
   const buildFormData = (values: typeof fields) => {
     const fd = new FormData();
     fd.set("designer", values.designer);
-    fd.set("supervisor", values.supervisor);
     fd.set("productionNotes", values.productionNotes);
     return fd;
   };
@@ -39,25 +35,14 @@ export function DesignFieldsForm({
 
   return (
     <div className="card" style={{ padding: 16, display: "grid", gap: 10 }}>
-      <div className="form-row">
-        <div>
-          <label className="label" htmlFor="designer">Designer</label>
-          <input
-            className="input"
-            id="designer"
-            value={fields.designer}
-            onChange={(e) => update("designer", e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="supervisor">Supervisor</label>
-          <input
-            className="input"
-            id="supervisor"
-            value={fields.supervisor}
-            onChange={(e) => update("supervisor", e.target.value)}
-          />
-        </div>
+      <div>
+        <label className="label" htmlFor="designer">Designer</label>
+        <input
+          className="input"
+          id="designer"
+          value={fields.designer}
+          onChange={(e) => update("designer", e.target.value)}
+        />
       </div>
       <div>
         <label className="label" htmlFor="productionNotes">

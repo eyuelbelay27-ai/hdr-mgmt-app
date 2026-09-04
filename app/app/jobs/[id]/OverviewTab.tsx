@@ -9,7 +9,6 @@ interface OverviewJob {
   clientNotes: string | null;
   title: string;
   designer: string | null;
-  supervisor: string | null;
   createdAt: Date;
   payments: {
     id: string;
@@ -50,7 +49,6 @@ export function OverviewTab({ job, user }: { job: OverviewJob; user: PermissionS
         <Field label="Address" value={job.clientAddress} />
         <Field label="Job Title" value={job.title} />
         <Field label="Designer" value={job.designer} />
-        <Field label="Supervisor" value={job.supervisor} />
         <Field label="Created" value={job.createdAt.toISOString().slice(0, 10)} />
       </div>
 

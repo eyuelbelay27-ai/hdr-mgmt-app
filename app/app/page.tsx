@@ -77,6 +77,7 @@ export default async function DashboardPage({
 
   const showRemaining = canSeeTab(user, "dash_remaining");
   const showPO = canSeeTab(user, "dash_purchaseOrders");
+  const pendingPOCount = showPO ? await prisma.purchaseOrder.count({ where: { status: "Pending" } }) : 0;
 
   const activeTab = (["dash_draft", "dash_approval", "dash_budget", "dash_reconciliation", "dash_remaining", "dash_purchaseOrders"].includes(sp.tab ?? "")
     ? sp.tab
@@ -166,6 +167,8 @@ export default async function DashboardPage({
                   <div className="font-display" style={{ fontWeight: 700, fontSize: 15, flex: 1 }}>Purchase Orders</div>
                   <ChevronRight size={16} strokeWidth={2} color="var(--text-faint)" />
                 </div>
+                <div className="label" style={{ marginTop: 8, marginBottom: 2 }}>Pending Approval</div>
+                <div className="dash-stat-value">{pendingPOCount}</div>
                 <div className="dash-po-link">View all orders</div>
               </a>
             )}

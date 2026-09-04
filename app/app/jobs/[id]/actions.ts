@@ -41,7 +41,6 @@ export async function updateDesignFieldsAction(
     where: { id: jobId },
     data: {
       designer: String(formData.get("designer") ?? "").trim() || null,
-      supervisor: String(formData.get("supervisor") ?? "").trim() || null,
       productionNotes: String(formData.get("productionNotes") ?? "").trim() || null,
     },
   });

@@ -40,6 +40,14 @@ export function NewJobForm() {
         <input className="input" id="title" name="title" required />
       </div>
       <div>
+        <label className="label" htmlFor="clientPhone">Client Phone</label>
+        <input className="input" id="clientPhone" name="clientPhone" type="tel" required />
+      </div>
+      <div>
+        <label className="label" htmlFor="clientAddress">Client Address</label>
+        <input className="input" id="clientAddress" name="clientAddress" required />
+      </div>
+      <div>
         <label className="label" htmlFor="advanceAmount">Advance Payment (Br)</label>
         <input className="input" id="advanceAmount" name="advanceAmount" type="number" min="0" step="0.01" required />
       </div>

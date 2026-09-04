@@ -78,7 +78,7 @@ export function AddExpenseForm({ jobId, entryType }: { jobId: string; entryType:
           <input className="input" name="totalPrice" type="number" step="0.01" min="0" required />
         </div>
       )}
-      <FileField id={`receipt-${entryType}`} name="receipt" label="Receipt (optional)" />
+      <FileField id={`receipt-${entryType}`} name="receipt" label="Receipt" required />
       <SubmitButton
         label={entryType === "purchase" ? "Add Purchase" : "Add Receipt"}
         pendingLabel="Adding…"
