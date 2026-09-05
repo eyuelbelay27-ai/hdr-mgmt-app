@@ -40,6 +40,7 @@ export const ACTION_KEYS = [
   { key: "deleteJob", label: "Delete a job completely (irreversible)" },
   { key: "manageSignagePrices", label: "Edit the Price Database" },
   { key: "manageInventory", label: "Record manual Stock In/Out" },
+  { key: "resetInventory", label: "Reset Inventory: permanently delete the entire ledger (irreversible)" },
   { key: "submitPurchaseOrder", label: "Issue a Purchase Order" },
   { key: "approvePurchaseOrder", label: "Approve/reject a Purchase Order" },
   { key: "revertPurchaseOrderApproval", label: "Undo an approved Purchase Order" },
