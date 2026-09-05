@@ -60,3 +60,26 @@ export async function recordManualInventoryAction(
   revalidatePath("/inventory");
   return { error: null };
 }
+
+/**
+ * Reset Inventory — permanently deletes every entry in the Inventory
+ * ledger, system-wide (not scoped to one job). Irreversible by design: a
+ * true fresh start, not an offsetting reversal like the rest of the app's
+ * undo actions. Approved Purchase Orders and Stock Expense rows keep
+ * their own status/history untouched — only their linked Inventory
+ * movement disappears along with everything else.
+ */
+export async function resetInventoryAction(_prevState: ActionState, _formData: FormData): Promise<ActionState> {
+  const user = await requireCurrentUser();
+  try {
+    requirePage(user, "inventory");
+    requireAction(user, "resetInventory", "edit");
+  } catch (err) {
+    if (err instanceof PermissionError) return { error: err.message };
+    throw err;
+  }
+
+  await prisma.inventoryEntry.deleteMany({});
+  revalidatePath("/inventory");
+  return { error: null };
+}

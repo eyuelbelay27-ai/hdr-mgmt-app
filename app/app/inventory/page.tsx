@@ -9,6 +9,7 @@ import { ActiveTabAutoScroll } from "../ActiveTabAutoScroll";
 import { RecordForm } from "./RecordForm";
 import { RecordFormToggle } from "./RecordFormToggle";
 import { InventoryRow } from "./InventoryRow";
+import { ResetInventoryControl } from "./ResetInventoryControl";
 
 const TABS = [
   { key: "in", label: "Stock In" },
@@ -43,6 +44,7 @@ export default async function InventoryPage({
     select: { id: true, name: true },
   });
   const canManage = can(user, "manageInventory");
+  const canReset = can(user, "resetInventory");
 
   const entries = await prisma.inventoryEntry.findMany({
     where: activeTab === "in" ? { direction: "in" } : activeTab === "out" ? { direction: "out" } : {},
@@ -55,7 +57,10 @@ export default async function InventoryPage({
     <div className="app-shell">
       <AppNav user={user} activePage="inventory" />
       <main className="app-main">
-        <h1 style={{ marginTop: 0 }}>Inventory</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <h1 style={{ marginTop: 0, marginBottom: 0 }}>Inventory</h1>
+          {canReset && <ResetInventoryControl />}
+        </div>
 
         <div className="dash-stats-grid" style={{ marginBottom: 20 }}>
           {balances.map((b) => (
