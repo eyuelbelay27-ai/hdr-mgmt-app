@@ -133,11 +133,30 @@ export function expensesStats(expenses: ExpenseRow[]) {
     if (v.status === "under") underBudget += Math.abs(v.amountETB);
   }
 
+  // Materials Over/Under Budget, in Birr (Section 6 reconciliation) — the
+  // same per-row quantity variance as above, converted through the row's
+  // own locked-in unitPrice into a currency figure. Kept separate from
+  // overBudget/underBudget above rather than merged in: cash overspend and
+  // materials overuse are different problems, and merging them would hide
+  // which one actually moved the number.
+  let stockOverBudgetBr = 0;
+  let stockUnderBudgetBr = 0;
+  for (const e of expenses) {
+    if (e.entryType !== "purchase" || e.category !== "stock") continue;
+    const v = purchaseVariance(e);
+    if (v.amountQty === null) continue;
+    const br = round2(v.amountQty * toNumber(e.unitPrice));
+    if (v.status === "over") stockOverBudgetBr += br;
+    if (v.status === "under") stockUnderBudgetBr += Math.abs(br);
+  }
+
   return {
     totalSpent,
     totalWithholding,
     collectedReceiptsBr,
     overBudget: round2(overBudget),
     underBudget: round2(underBudget),
+    stockOverBudgetBr: round2(stockOverBudgetBr),
+    stockUnderBudgetBr: round2(stockUnderBudgetBr),
   };
 }
