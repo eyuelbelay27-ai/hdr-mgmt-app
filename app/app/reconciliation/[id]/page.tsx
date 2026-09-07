@@ -1,16 +1,20 @@
 import { notFound, redirect } from "next/navigation";
+import { Wallet, Landmark, Receipt as ReceiptIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { canSeePage, can } from "@/lib/permissions";
 import { totalAllocatedCash } from "@/lib/calc/budget";
 import { actualExpenseAmount, actualTotalExpenses, finalProfitAfterExpenses } from "@/lib/calc/reconciliation";
+import { expensesStats } from "@/lib/calc/expenses";
 import { costEstimateTotals } from "@/lib/calc/cost-estimate";
 import { toNumber } from "@/lib/money";
 import { AppNav } from "../../AppNav";
 import { StatusBadge } from "../../StatusBadge";
 import { Lightbox } from "../../Lightbox";
-import { markReconciledAction, revertToPendingAction, toggleChecklistAction, closeJobAction, reopenJobAction } from "../actions";
+import { markReconciledAction, revertToPendingAction, closeJobAction, reopenJobAction } from "../actions";
 import { FlagForReviewControl } from "../FlagForReviewControl";
+import { ChecklistToggle } from "../ChecklistToggle";
+import { ChecklistImageUpload } from "../ChecklistImageUpload";
 
 export default async function ReconciliationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,7 +24,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
   const job = await prisma.job.findUnique({
     where: { id },
-    include: { budgetItems: true, expenses: true, payments: true, costEstimateItems: true },
+    include: { budgetItems: true, expenses: true, payments: true, costEstimateItems: true, checklistImages: true },
   });
   if (!job) notFound();
 
@@ -28,13 +32,25 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
   const actual = actualTotalExpenses(job.expenses);
   const totals = costEstimateTotals(job.costEstimateItems, job.costEstimateSoldPrice, job.costEstimateCommissionActive);
   const finalProfit = finalProfitAfterExpenses(job.costEstimateSoldPrice, job.expenses, totals.commission);
-  const withholdingTotal = job.expenses.reduce((s, e) => s + toNumber(e.withholding), 0);
+  const stats = expensesStats(job.expenses);
   const receiptedExpenses = job.expenses.filter((e) => e.receiptUrl);
 
   const canReconcile = can(user, "reconcileBudget");
   const canClose = can(user, "closeJob");
   const canReopen = can(user, "reopenJob");
-  const checklistDone = job.checklistWithholdingCollected && job.checklistReceiptAttached;
+  // VAT is deliberately excluded — optional, never blocks closing (mirrors closeJobAction).
+  const checklistDone =
+    job.checklistWithholdingCollected && job.checklistReceiptAttached && job.checklistBudgetVarianceSettled;
+
+  const statCards = [
+    { label: "Actual Expense", value: `${stats.totalSpent.toLocaleString()} Br`, icon: Wallet },
+    { label: "Over Budget", value: `${stats.overBudget.toLocaleString()} Br`, icon: TrendingUp },
+    { label: "Under Budget", value: `${stats.underBudget.toLocaleString()} Br`, icon: TrendingDown },
+    { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} Br`, icon: Landmark },
+    { label: "Total Receipts Collected", value: `${stats.collectedReceiptsBr.toLocaleString()} Br`, icon: ReceiptIcon },
+  ];
+
+  const imagesFor = (key: string) => job.checklistImages.filter((img) => img.itemKey === key);
 
   return (
     <div className="app-shell">
@@ -56,7 +72,22 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
           </div>
         )}
 
-        <section style={{ marginTop: 20 }}>
+        <div className="dash-stats-grid" style={{ marginTop: 16 }}>
+          {statCards.map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.label} className="card dash-stat-card" style={{ paddingRight: 16 }}>
+                <span className="dash-stat-icon"><Icon size={17} strokeWidth={2} /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div className="label" style={{ marginBottom: 2 }}>{s.label}</div>
+                  <div className="dash-stat-value" style={{ fontSize: 16 }}>{s.value}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <section style={{ marginTop: 24 }}>
           <h3>1. Budget vs. Expense Variance</h3>
           <p className="label">
             Total Allocated (Cash): {allocated.toLocaleString()} Br · Actual Total Expenses: {actual.toLocaleString()} Br
@@ -131,7 +162,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
         <section style={{ marginTop: 24 }}>
           <h3>3. Receipts & Withholdings</h3>
-          <div className="label" style={{ marginBottom: 8 }}>Total Withholding: {withholdingTotal.toLocaleString()} Br</div>
+          <div className="label" style={{ marginBottom: 8 }}>Total Withholding: {stats.totalWithholding.toLocaleString()} Br</div>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {receiptedExpenses.map((e) => (
               <Lightbox key={e.id} file={{ name: e.receiptName ?? "receipt", url: e.receiptUrl as string, kind: e.receiptKind ?? "" }} />
@@ -151,40 +182,48 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
         <section style={{ marginTop: 24 }}>
           <h3>5. Final Checklist</h3>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <input
-                type="checkbox"
-                defaultChecked={job.checklistWithholdingCollected}
-                disabled={!canReconcile}
-                readOnly
+          <div style={{ display: "grid", gap: 14 }}>
+            <div>
+              <ChecklistToggle
+                jobId={job.id}
+                field="checklistWithholdingCollected"
+                checked={job.checklistWithholdingCollected}
+                label="Withholding Collected"
+                editable={canReconcile}
               />
-              Withholding Collected
-            </label>
-            <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <input
-                type="checkbox"
-                defaultChecked={job.checklistReceiptAttached}
-                disabled={!canReconcile}
-                readOnly
-              />
-              Receipt Attached
-            </label>
-          </div>
-          {canReconcile && (
-            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-              <form action={toggleChecklistAction.bind(null, job.id, "checklistWithholdingCollected", !job.checklistWithholdingCollected)}>
-                <button className="btn btn-sm" type="submit">
-                  {job.checklistWithholdingCollected ? "Uncheck" : "Check"} Withholding Collected
-                </button>
-              </form>
-              <form action={toggleChecklistAction.bind(null, job.id, "checklistReceiptAttached", !job.checklistReceiptAttached)}>
-                <button className="btn btn-sm" type="submit">
-                  {job.checklistReceiptAttached ? "Uncheck" : "Check"} Receipt Attached
-                </button>
-              </form>
+              <ChecklistImageUpload jobId={job.id} itemKey="withholding" images={imagesFor("withholding")} editable={canReconcile} />
             </div>
-          )}
+            <div>
+              <ChecklistToggle
+                jobId={job.id}
+                field="checklistReceiptAttached"
+                checked={job.checklistReceiptAttached}
+                label="Expense Receipts Received"
+                editable={canReconcile}
+              />
+              <ChecklistImageUpload jobId={job.id} itemKey="receipts" images={imagesFor("receipts")} editable={canReconcile} />
+            </div>
+            <div>
+              <ChecklistToggle
+                jobId={job.id}
+                field="checklistVatReceiptIssued"
+                checked={job.checklistVatReceiptIssued}
+                label="Issue VAT Receipt (if applicable)"
+                editable={canReconcile}
+              />
+              <ChecklistImageUpload jobId={job.id} itemKey="vat" images={imagesFor("vat")} editable={canReconcile} />
+            </div>
+            <div>
+              <ChecklistToggle
+                jobId={job.id}
+                field="checklistBudgetVarianceSettled"
+                checked={job.checklistBudgetVarianceSettled}
+                label="Receive or Pay the Overbudget/Underbudget"
+                editable={canReconcile}
+              />
+              <ChecklistImageUpload jobId={job.id} itemKey="variance" images={imagesFor("variance")} editable={canReconcile} />
+            </div>
+          </div>
 
           <div style={{ marginTop: 16 }}>
             {job.reconciliationStatus !== "Reconciled" ? (

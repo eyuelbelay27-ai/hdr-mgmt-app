@@ -30,6 +30,17 @@ export function isContentLocked(job: { status: JobStatus; adminUnlocked: boolean
   return job.status !== "Draft" && !job.adminUnlocked;
 }
 
+/**
+ * Once a job is submitted for reconciliation, its Expenses (Purchases &
+ * Receipts) are frozen — no adding, editing, deleting, or receipt uploads
+ * — all the way through Closed. The only way out is Flag for Review
+ * (reverts to Approved Budget) or, for a Closed job, Reopen Job followed
+ * by Flag for Review.
+ */
+export function isReconciliationLocked(job: { status: JobStatus }): boolean {
+  return job.status === "WaitingForReconciliation" || job.status === "Closed";
+}
+
 const OPEN_STATUSES: JobStatus[] = [
   "Draft",
   "WaitingForApproval",

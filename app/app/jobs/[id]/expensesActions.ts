@@ -9,7 +9,11 @@ import { computeWithholding } from "@/lib/calc/expenses";
 import { getSettings } from "@/lib/settings";
 import { getUploadedFile, saveUpload } from "@/lib/storage";
 import { logActivity } from "@/lib/activity";
+import { isReconciliationLocked } from "@/lib/job-status";
 import type { ActionState } from "./actions";
+
+const RECONCILIATION_LOCK_MESSAGE =
+  "This job's expenses are locked because it's been sent to reconciliation. Ask an approver to Flag for Review to make changes.";
 
 /**
  * Keeps Inventory in sync with a Stock Expense row (Section 4.4/7.4/7.5) —
@@ -80,6 +84,7 @@ export async function pullExpensesFromBudgetAction(jobId: string): Promise<void>
     include: { budgetItems: { include: { material: true } } },
   });
   if (!job) throw new Error("Job not found");
+  if (isReconciliationLocked(job)) throw new PermissionError(RECONCILIATION_LOCK_MESSAGE);
 
   for (const line of job.budgetItems) {
     const isStock = line.category === "stock";
@@ -136,6 +141,10 @@ export async function addExpenseAction(
     if (err instanceof PermissionError) return { error: err.message };
     throw err;
   }
+
+  const jobForLock = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
+  if (!jobForLock) return { error: "Job not found." };
+  if (isReconciliationLocked(jobForLock)) return { error: RECONCILIATION_LOCK_MESSAGE };
 
   const item = String(formData.get("item") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
@@ -215,6 +224,10 @@ export async function updateActualSpentAction(expenseId: string, jobId: string, 
   const user = await requireCurrentUser();
   requireAction(user, "manageExpenses", "edit");
 
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobNumber: true, status: true } });
+  if (!job) throw new Error("Job not found");
+  if (isReconciliationLocked(job)) throw new PermissionError(RECONCILIATION_LOCK_MESSAGE);
+
   const expense = await prisma.expense.findUnique({ where: { id: expenseId } });
   if (!expense) throw new Error("Expense not found");
 
@@ -223,8 +236,7 @@ export async function updateActualSpentAction(expenseId: string, jobId: string, 
 
   await prisma.expense.update({ where: { id: expenseId }, data: { actualSpent } });
 
-  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { jobNumber: true } });
-  await syncStockInventory({ ...expense, actualSpent, jobNumber: job?.jobNumber ?? "" });
+  await syncStockInventory({ ...expense, actualSpent, jobNumber: job.jobNumber });
 
   await logActivity(jobId, `${user.name} recorded Actual Spent on "${expense.item}".`);
   revalidatePath(`/jobs/${jobId}`);
@@ -234,6 +246,11 @@ export async function updateActualSpentAction(expenseId: string, jobId: string, 
 export async function deleteExpenseAction(expenseId: string, jobId: string): Promise<void> {
   const user = await requireCurrentUser();
   requireAction(user, "manageExpenses", "edit");
+
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
+  if (!job) throw new Error("Job not found");
+  if (isReconciliationLocked(job)) throw new PermissionError(RECONCILIATION_LOCK_MESSAGE);
+
   await prisma.expense.delete({ where: { id: expenseId } });
   revalidatePath(`/jobs/${jobId}`);
 }
