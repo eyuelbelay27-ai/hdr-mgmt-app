@@ -1,12 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Produce a self-contained runtime bundle (.next/standalone) with only
-  // the traced production files/deps included, so the app can be built
-  // once in a well-resourced environment (CI) and shipped to the host as
-  // an already-built, minimal artifact instead of asking the host's
-  // memory-limited container to install the full dependency tree itself.
-  output: "standalone",
-  // The production host's build container is memory-constrained (512Mi).
+  // The production host's build container is memory-constrained.
   // Next's webpack build defaults to parallelizing across (CPU count - 1)
   // worker processes, each with its own heap — on a multi-core build
   // machine that easily adds up past 512Mi even though no single worker
