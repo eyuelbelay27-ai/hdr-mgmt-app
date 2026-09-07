@@ -3,10 +3,19 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { AddExpenseForm } from "./AddExpenseForm";
+import type { StockMaterial } from "@/lib/materials";
 
 /** Mobile-only: keeps the Add Purchase/Add Receipt form off-screen until asked for,
  * instead of it permanently eating vertical space (Section 7.4/7.6). */
-export function AddExpenseToggle({ jobId, entryType }: { jobId: string; entryType: "purchase" | "receipt" }) {
+export function AddExpenseToggle({
+  jobId,
+  entryType,
+  stockMaterials,
+}: {
+  jobId: string;
+  entryType: "purchase" | "receipt";
+  stockMaterials: StockMaterial[];
+}) {
   const [open, setOpen] = useState(false);
   if (!open) {
     return (
@@ -17,7 +26,7 @@ export function AddExpenseToggle({ jobId, entryType }: { jobId: string; entryTyp
   }
   return (
     <div>
-      <AddExpenseForm jobId={jobId} entryType={entryType} />
+      <AddExpenseForm jobId={jobId} entryType={entryType} stockMaterials={stockMaterials} />
       <button type="button" className="btn btn-sm btn-ghost" style={{ marginTop: 8 }} onClick={() => setOpen(false)}>
         Cancel
       </button>

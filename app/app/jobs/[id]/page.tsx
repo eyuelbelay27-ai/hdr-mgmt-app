@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { canSeePage, canSeeTab, can, type TabKey } from "@/lib/permissions";
 import { isContentLocked } from "@/lib/job-status";
+import { getStockMaterials } from "@/lib/materials";
 import { AppNav } from "../../AppNav";
 import { ActiveTabAutoScroll } from "../../ActiveTabAutoScroll";
 import { StatusBadge, DeadlineBadge } from "../../StatusBadge";
@@ -21,6 +22,7 @@ import {
   submitForReconciliationAction,
   restoreCancelledJobAction,
 } from "./statusActions";
+import { reopenJobAction } from "../../reconciliation/actions";
 import { RequestRevisionControl } from "./RequestRevisionControl";
 import { CancelJobControl } from "./CancelJobControl";
 import { DeleteJobControl } from "./DeleteJobControl";
@@ -64,12 +66,15 @@ export default async function JobDetailPage({
   if (!job) notFound();
   if (job.status === "Draft" && !can(user, "manageDraftJobs")) redirect("/jobs");
 
+  const stockMaterials = await getStockMaterials();
+
   const visibleTabs = TAB_DEFS.filter((t) => canSeeTab(user, t.tabKey));
   const requested = TAB_DEFS.find((t) => t.key === sp.tab);
   const activeKey = (requested && canSeeTab(user, requested.tabKey) ? requested.key : visibleTabs[0]?.key) as
     | string
     | undefined;
   const locked = isContentLocked(job);
+  const unfilledPurchase = job.expenses.find((e) => e.entryType === "purchase" && e.actualSpent === null);
 
   return (
     <div className="app-shell">
@@ -101,17 +106,29 @@ export default async function JobDetailPage({
             )}
             {job.status === "ApprovedBudget" && can(user, "submitForReconciliation") && (
               <form action={submitForReconciliationAction.bind(null, job.id)}>
-                <button className="btn btn-sm btn-primary" type="submit" disabled={job.expenses.length === 0}>
+                <button
+                  className="btn btn-sm btn-primary"
+                  type="submit"
+                  disabled={job.expenses.length === 0 || !!unfilledPurchase}
+                >
                   Submit for Reconciliation
                 </button>
               </form>
             )}
-            {can(user, "editApprovedJob") && job.status !== "Draft" && (
-              <form action={toggleAdminUnlockedAction.bind(null, job.id, !job.adminUnlocked)}>
-                <button className="btn btn-sm" type="submit">
-                  {job.adminUnlocked ? "Re-lock Job" : "Unlock for Editing"}
-                </button>
-              </form>
+            {job.status === "Closed" ? (
+              can(user, "reopenJob") && (
+                <form action={reopenJobAction.bind(null, job.id)}>
+                  <button className="btn btn-sm" type="submit">Revert to Reconciliation</button>
+                </form>
+              )
+            ) : (
+              can(user, "editApprovedJob") && job.status !== "Draft" && (
+                <form action={toggleAdminUnlockedAction.bind(null, job.id, !job.adminUnlocked)}>
+                  <button className="btn btn-sm" type="submit">
+                    {job.adminUnlocked ? "Re-lock Job" : "Unlock for Editing"}
+                  </button>
+                </form>
+              )
             )}
             {can(user, "cancelJob") &&
               (job.status === "Cancelled" ? (
@@ -125,9 +142,15 @@ export default async function JobDetailPage({
           </div>
         </div>
 
-        {job.status === "ApprovedBudget" && job.expenses.length === 0 && can(user, "submitForReconciliation") && (
+        {job.status === "ApprovedBudget" && can(user, "submitForReconciliation") && job.expenses.length === 0 && (
           <p className="label" style={{ marginTop: 8 }}>
             Submit for Reconciliation is disabled until at least one expense has been logged.
+          </p>
+        )}
+        {job.status === "ApprovedBudget" && can(user, "submitForReconciliation") && job.expenses.length > 0 && unfilledPurchase && (
+          <p className="label" style={{ marginTop: 8 }}>
+            Submit for Reconciliation is disabled — &quot;{unfilledPurchase.item}&quot; is missing its Actual Spent.
+            Fill it in on the Expenses tab (or delete it, if it&apos;s not from the Budget).
           </p>
         )}
 
@@ -154,8 +177,8 @@ export default async function JobDetailPage({
           {activeKey === "design" && <DesignTab job={job} user={user} locked={locked} />}
           {activeKey === "cutlist" && <CutListTab job={job} user={user} locked={locked} />}
           {activeKey === "cost" && <CostEstimateTab job={job} user={user} locked={locked} />}
-          {activeKey === "budget" && <BudgetTab job={job} user={user} />}
-          {activeKey === "expenses" && <ExpensesTab job={job} user={user} />}
+          {activeKey === "budget" && <BudgetTab job={job} user={user} stockMaterials={stockMaterials} />}
+          {activeKey === "expenses" && <ExpensesTab job={job} user={user} stockMaterials={stockMaterials} />}
           {activeKey === "payments" && <PaymentsTab job={job} user={user} />}
           {activeKey === "activity" && <ActivityTab activity={job.activity} />}
           {!activeKey && <p className="label">You don&apos;t have access to any tabs on this job.</p>}

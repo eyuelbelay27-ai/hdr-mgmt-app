@@ -25,23 +25,21 @@ export async function recordManualInventoryAction(
     throw err;
   }
 
+  // A stock item is always chosen from the Price Database, never typed —
+  // this is what keeps the same real item from splitting into two
+  // inventory cards over a spelling variant.
   const materialId = String(formData.get("materialId") ?? "").trim() || null;
-  const typedName = String(formData.get("itemName") ?? "").trim();
   const qty = toNumber(formData.get("qty"));
   const dateRaw = String(formData.get("date") ?? "");
   const note = String(formData.get("note") ?? "").trim() || null;
 
   if (qty <= 0) return { error: "Quantity must be greater than zero." };
+  if (!materialId) return { error: "Choose a stock item." };
 
-  let itemName = typedName;
-  let unit: string | null = null;
-  if (materialId) {
-    const material = await prisma.material.findUnique({ where: { id: materialId } });
-    if (!material) return { error: "Material not found." };
-    itemName = material.name;
-    unit = material.unit;
-  }
-  if (!itemName) return { error: "Pick a material or type an item name." };
+  const material = await prisma.material.findUnique({ where: { id: materialId } });
+  if (!material || material.category !== "stock") return { error: "That stock item couldn't be found." };
+  const itemName = material.name;
+  const unit = material.unit;
 
   await prisma.inventoryEntry.create({
     data: {
@@ -69,6 +67,7 @@ export async function recordManualInventoryAction(
  * their own status/history untouched — only their linked Inventory
  * movement disappears along with everything else.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- useFormState requires this exact (prevState, formData) signature
 export async function resetInventoryAction(_prevState: ActionState, _formData: FormData): Promise<ActionState> {
   const user = await requireCurrentUser();
   try {

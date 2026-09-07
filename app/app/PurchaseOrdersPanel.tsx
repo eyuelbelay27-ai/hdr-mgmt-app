@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { can, type PermissionSubject } from "@/lib/permissions";
 import { toNumber } from "@/lib/money";
+import { getStockMaterials } from "@/lib/materials";
 import { CreatePOForm } from "./CreatePOForm";
 import { RejectPOControl } from "./RejectPOControl";
 import { UndoApprovalControl } from "./UndoApprovalControl";
@@ -12,6 +13,7 @@ import { approvePurchaseOrderAction, markPurchaseOrderAuditedAction } from "./po
 /** Embedded directly as the Dashboard's Purchase Orders tab content (Section 8.7), not a separate nav page. */
 export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject }) {
   const orders = await prisma.purchaseOrder.findMany({ orderBy: { createdAt: "desc" } });
+  const stockMaterials = await getStockMaterials();
   const canApprove = can(user, "approvePurchaseOrder");
   const canRevert = can(user, "revertPurchaseOrderApproval");
   const canUploadReceipt = can(user, "uploadPurchaseOrderReceipt");
@@ -21,7 +23,7 @@ export async function PurchaseOrdersPanel({ user }: { user: PermissionSubject })
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-      {can(user, "submitPurchaseOrder") && <CreatePOForm />}
+      {can(user, "submitPurchaseOrder") && <CreatePOForm stockMaterials={stockMaterials} />}
 
       <div className="card dtable-wrap">
       <table className="dtable">

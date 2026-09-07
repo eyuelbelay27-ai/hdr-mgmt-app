@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import { updateBudgetItemAction, deleteBudgetItemAction } from "./budgetActions";
 import { useAutosave } from "../../useAutosave";
 import { SaveStatusBadge } from "../../SaveStatusBadge";
@@ -17,7 +17,6 @@ interface BudgetItem {
 }
 
 export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; jobId: string; editable: boolean }) {
-  const [category, setCategory] = useState(item.category);
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const deleteAction = deleteBudgetItemAction.bind(null, item.id, jobId);
@@ -47,34 +46,11 @@ export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; job
         </td>
       </tr>
       <tr>
-        <td data-label="Description">
-          <input
-            className="input"
-            form={formId}
-            name="label"
-            defaultValue={item.label}
-            required
-            onChange={() => autosave.schedule(buildFormData)}
-          />
-        </td>
-        <td data-label="Category">
-          <select
-            className="input"
-            form={formId}
-            name="category"
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value);
-              autosave.saveNow(buildFormData);
-            }}
-          >
-            <option value="cash">Cash</option>
-            <option value="stock">Stock</option>
-          </select>
-        </td>
-        <td data-label="Amount / Qty+Unit" data-span={category === "stock" ? "full" : undefined}>
-          {category === "stock" ? (
-            <div style={{ display: "flex", gap: 4 }}>
+        <td data-label="Description">{item.label}</td>
+        <td data-label="Category">{item.category === "cash" ? "Cash" : "Stock"}</td>
+        <td data-label="Amount / Qty+Unit">
+          {item.category === "stock" ? (
+            <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
               <input
                 className="input"
                 form={formId}
@@ -85,14 +61,7 @@ export function BudgetItemRow({ item, jobId, editable }: { item: BudgetItem; job
                 defaultValue={item.qty === null ? "" : String(item.qty)}
                 onChange={() => autosave.schedule(buildFormData)}
               />
-              <input
-                className="input"
-                form={formId}
-                name="unit"
-                style={{ width: 70 }}
-                defaultValue={item.unit ?? ""}
-                onChange={() => autosave.schedule(buildFormData)}
-              />
+              <span className="label">{item.unit ?? ""}</span>
             </div>
           ) : (
             <input

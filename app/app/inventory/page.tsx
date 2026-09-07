@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { can, canSeePage } from "@/lib/permissions";
 import { getInventoryBalances } from "@/lib/calc/inventory";
+import { getStockMaterials } from "@/lib/materials";
 import { AppNav } from "../AppNav";
 import { ActiveTabAutoScroll } from "../ActiveTabAutoScroll";
 import { RecordForm } from "./RecordForm";
@@ -38,11 +39,7 @@ export default async function InventoryPage({
   const sp = await searchParams;
   const activeTab = (TABS.find((t) => t.key === sp.tab)?.key ?? "transactions") as (typeof TABS)[number]["key"];
   const balances = await getInventoryBalances();
-  const stockMaterials = await prisma.material.findMany({
-    where: { active: true, category: "stock" },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  const stockMaterials = await getStockMaterials();
   const canManage = can(user, "manageInventory");
   const canReset = can(user, "resetInventory");
 

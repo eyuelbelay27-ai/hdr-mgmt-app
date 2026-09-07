@@ -6,10 +6,20 @@ import { addExpenseAction } from "./expensesActions";
 import type { ActionState } from "./actions";
 import { SubmitButton } from "../../SubmitButton";
 import { FileField } from "../../FileField";
+import { StockMaterialSelect } from "../../StockMaterialSelect";
+import type { StockMaterial } from "@/lib/materials";
 
 const initialState: ActionState = { error: null };
 
-export function AddExpenseForm({ jobId, entryType }: { jobId: string; entryType: "purchase" | "receipt" }) {
+export function AddExpenseForm({
+  jobId,
+  entryType,
+  stockMaterials,
+}: {
+  jobId: string;
+  entryType: "purchase" | "receipt";
+  stockMaterials: StockMaterial[];
+}) {
   const boundAction = addExpenseAction.bind(null, jobId, entryType);
   const [state, formAction] = useFormState(boundAction, initialState);
   const [category, setCategory] = useState<"cash" | "stock">("cash");
@@ -40,10 +50,17 @@ export function AddExpenseForm({ jobId, entryType }: { jobId: string; entryType:
         <label className="label">Purchaser</label>
         <input className="input" name="purchaser" />
       </div>
-      <div style={{ flex: "1 1 140px" }}>
-        <label className="label">Item</label>
-        <input className="input" name="item" required />
-      </div>
+      {entryType === "purchase" && category === "stock" ? (
+        <div style={{ flex: "1 1 160px" }}>
+          <label className="label">Item</label>
+          <StockMaterialSelect materials={stockMaterials} />
+        </div>
+      ) : (
+        <div style={{ flex: "1 1 140px" }}>
+          <label className="label">Item</label>
+          <input className="input" name="item" required />
+        </div>
+      )}
       <div style={{ flex: "1 1 160px" }}>
         <label className="label">Description</label>
         <input className="input" name="description" />
@@ -62,10 +79,6 @@ export function AddExpenseForm({ jobId, entryType }: { jobId: string; entryType:
           <div style={{ flex: "1 1 90px" }}>
             <label className="label">Qty</label>
             <input className="input" name="qty" type="number" step="0.01" min="0" required style={{ width: "100%" }} />
-          </div>
-          <div style={{ flex: "1 1 80px" }}>
-            <label className="label">Unit</label>
-            <input className="input" name="unit" required style={{ width: "100%" }} />
           </div>
           <div style={{ flex: "1 1 110px" }}>
             <label className="label">Unit Price</label>

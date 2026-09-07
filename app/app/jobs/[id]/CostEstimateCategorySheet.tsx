@@ -225,7 +225,12 @@ export function CostEstimateCategorySheet({
             </div>
           )}
 
-          {canAddAdhoc && (
+          {/* Ad-hoc stock items are no longer offered — every registered
+              stock Material already has its own permanent row above, so a
+              new stock item must be registered in the Price Database
+              first, never typed here. Cash ad-hoc entries (labor,
+              contingency, etc.) are unaffected. */}
+          {canAddAdhoc && category === "cash" && (
             <div style={{ marginTop: 16 }}>
               <AddCostEstimateItemForm jobId={jobId} category={category} />
             </div>

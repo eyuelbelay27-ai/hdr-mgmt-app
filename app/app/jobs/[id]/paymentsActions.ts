@@ -28,6 +28,12 @@ export async function recordPaymentAction(
     throw err;
   }
 
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
+  if (!job) return { error: "Job not found." };
+  if (job.status === "Closed") {
+    return { error: "This job is Closed. Revert to Reconciliation (then Flag for Review) to record more payments." };
+  }
+
   const type = String(formData.get("type") ?? "");
   if (type !== "Final" && type !== "Other") return { error: "Invalid payment type." };
 

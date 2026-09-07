@@ -69,22 +69,20 @@ async function syncStockInventory(expense: {
 }
 
 /**
- * "Pull From Budget" (Section 8.3) — pulls both Cash and Stock lines,
- * idempotent via the unique budgetItemId link: re-running only refreshes
- * previously-generated Purchase rows, never manually-added ones. Stock
- * lines drive Inventory here (and only here, or via a Manual add) —
- * Budget approval itself no longer touches Inventory.
+ * Pulling every Budget line into Expenses is mandatory, not an optional
+ * button (Section 8.3) — it runs automatically the moment a budget is
+ * approved (called from approveBudgetAction), pulling both Cash and Stock
+ * lines. Idempotent via the unique budgetItemId link, though in practice
+ * it only ever runs once per job since Budget lines are immutable after
+ * approval. Stock lines drive Inventory here (and only here, or via a
+ * Manual add).
  */
-export async function pullExpensesFromBudgetAction(jobId: string): Promise<void> {
-  const user = await requireCurrentUser();
-  requireAction(user, "manageExpenses", "edit");
-
+export async function pullBudgetIntoExpenses(jobId: string): Promise<void> {
   const job = await prisma.job.findUnique({
     where: { id: jobId },
     include: { budgetItems: { include: { material: true } } },
   });
   if (!job) throw new Error("Job not found");
-  if (isReconciliationLocked(job)) throw new PermissionError(RECONCILIATION_LOCK_MESSAGE);
 
   for (const line of job.budgetItems) {
     const isStock = line.category === "stock";
@@ -124,7 +122,6 @@ export async function pullExpensesFromBudgetAction(jobId: string): Promise<void>
     await syncStockInventory({ ...expense, jobNumber: job.jobNumber });
   }
 
-  await logActivity(jobId, `${user.name} pulled expenses from the Budget.`);
   revalidatePath(`/jobs/${jobId}`);
 }
 
@@ -146,27 +143,38 @@ export async function addExpenseAction(
   if (!jobForLock) return { error: "Job not found." };
   if (isReconciliationLocked(jobForLock)) return { error: RECONCILIATION_LOCK_MESSAGE };
 
-  const item = String(formData.get("item") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const purchaser = String(formData.get("purchaser") ?? "").trim() || null;
   const dateRaw = String(formData.get("date") ?? "");
   const date = dateRaw ? new Date(dateRaw) : new Date();
-  if (!item) return { error: "Item is required." };
 
   const category = entryType === "purchase" ? (String(formData.get("category") ?? "cash") as "cash" | "stock") : null;
 
+  let item: string;
+  let materialId: string | null = null;
   let qty: number | null = null;
   let unit: string | null = null;
   let unitPrice: number | null = null;
   let totalPrice: number;
 
   if (category === "stock") {
+    // A stock item is always chosen from the Price Database, never typed —
+    // item name and unit come from the Material record itself, not from
+    // client-submitted text, so an existing stock item can never be
+    // re-entered under a slightly different spelling.
+    materialId = String(formData.get("materialId") ?? "").trim() || null;
+    if (!materialId) return { error: "Choose a stock item." };
+    const material = await prisma.material.findUnique({ where: { id: materialId } });
+    if (!material || material.category !== "stock") return { error: "That stock item couldn't be found." };
+    item = material.name;
+    unit = material.unit;
     qty = toNumber(formData.get("qty"));
-    unit = String(formData.get("unit") ?? "").trim();
     unitPrice = toNumber(formData.get("unitPrice"));
     if (qty <= 0) return { error: "Quantity must be greater than zero." };
     totalPrice = round2(qty * unitPrice);
   } else {
+    item = String(formData.get("item") ?? "").trim();
+    if (!item) return { error: "Item is required." };
     totalPrice = toNumber(formData.get("totalPrice"));
     if (totalPrice <= 0) return { error: "Total price must be greater than zero." };
   }
@@ -200,6 +208,7 @@ export async function addExpenseAction(
       purchaser,
       date,
       item,
+      materialId,
       description,
       qty,
       unit,
@@ -242,7 +251,13 @@ export async function updateActualSpentAction(expenseId: string, jobId: string, 
   revalidatePath(`/jobs/${jobId}`);
 }
 
-/** Deleting a Stock row cascade-deletes its linked InventoryEntry (schema-level onDelete: Cascade). */
+/**
+ * Deleting a Stock row cascade-deletes its linked InventoryEntry
+ * (schema-level onDelete: Cascade). Only ever allowed for Manual rows —
+ * a row pulled from the Budget (source: "Budget", budgetItemId set) can't
+ * be deleted, since it represents a real budget line; if it turns out
+ * unneeded, its Actual Spent can be set to 0 instead.
+ */
 export async function deleteExpenseAction(expenseId: string, jobId: string): Promise<void> {
   const user = await requireCurrentUser();
   requireAction(user, "manageExpenses", "edit");
@@ -250,6 +265,12 @@ export async function deleteExpenseAction(expenseId: string, jobId: string): Pro
   const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
   if (!job) throw new Error("Job not found");
   if (isReconciliationLocked(job)) throw new PermissionError(RECONCILIATION_LOCK_MESSAGE);
+
+  const expense = await prisma.expense.findUnique({ where: { id: expenseId }, select: { budgetItemId: true } });
+  if (!expense) throw new Error("Expense not found");
+  if (expense.budgetItemId) {
+    throw new PermissionError("This expense was pulled from the Budget and can't be deleted — set its Actual Spent to 0 instead.");
+  }
 
   await prisma.expense.delete({ where: { id: expenseId } });
   revalidatePath(`/jobs/${jobId}`);

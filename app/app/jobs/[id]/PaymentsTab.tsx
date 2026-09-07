@@ -1,3 +1,4 @@
+import type { JobStatus } from "@prisma/client";
 import { can, type PermissionSubject } from "@/lib/permissions";
 import { remainingPayment } from "@/lib/calc/payments";
 import { toNumber } from "@/lib/money";
@@ -20,14 +21,21 @@ export function PaymentsTab({
   job,
   user,
 }: {
-  job: { id: string; costEstimateSoldPrice: unknown; payments: PaymentRow[] };
+  job: { id: string; status: JobStatus; costEstimateSoldPrice: unknown; payments: PaymentRow[] };
   user: PermissionSubject;
 }) {
-  const editable = can(user, "managePayments");
+  const editable = can(user, "managePayments") && job.status !== "Closed";
   const remaining = remainingPayment(job.costEstimateSoldPrice, job.payments);
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
+      {job.status === "Closed" && (
+        <div className="card" style={{ padding: 12, borderColor: "var(--warn)" }}>
+          <div className="label" style={{ color: "var(--warn)" }}>
+            Locked — this job is Closed. Revert to Reconciliation (then Flag for Review) to record more payments.
+          </div>
+        </div>
+      )}
       <div className="form-row">
         <div className="card" style={{ padding: 12 }}>
           <div className="label">Sold Price</div>

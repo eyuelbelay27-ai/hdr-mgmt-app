@@ -132,6 +132,7 @@ model Material {
   budgetItems       BudgetItem[]
   inventoryEntries  InventoryEntry[]
   expenses          Expense[]
+  purchaseOrders    PurchaseOrder[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -433,6 +434,12 @@ model PurchaseOrder {
   item        String
   description String?
   category    ItemCategory
+  // Stock POs must reference a registered Material (chosen, never typed) —
+  // item/unit above are still populated (from the Material) for display,
+  // but materialId is the real link, matching Expense/BudgetItem/CostEstimateItem.
+  material    Material?           @relation(fields: [materialId], references: [id])
+  materialId  String?
+  unit        String?
   qty         Decimal             @db.Decimal(14, 3)
   price       Decimal             @db.Decimal(14, 2)
   total       Decimal             @db.Decimal(14, 2)
