@@ -1,5 +1,7 @@
+import type { JobStatus } from "@prisma/client";
 import { Wallet, Landmark, Receipt as ReceiptIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { can, type PermissionSubject } from "@/lib/permissions";
+import { isReconciliationLocked } from "@/lib/job-status";
 import { expensesStats, purchaseVariance } from "@/lib/calc/expenses";
 import { toNumber } from "@/lib/money";
 import { Lightbox } from "../../Lightbox";
@@ -69,8 +71,15 @@ function ActualSpentDisplay({ row, jobId, editable }: { row: ExpenseRow; jobId: 
   );
 }
 
-export function ExpensesTab({ job, user }: { job: { id: string; expenses: ExpenseRow[] }; user: PermissionSubject }) {
-  const editable = can(user, "manageExpenses");
+export function ExpensesTab({
+  job,
+  user,
+}: {
+  job: { id: string; status: JobStatus; expenses: ExpenseRow[] };
+  user: PermissionSubject;
+}) {
+  const locked = isReconciliationLocked(job);
+  const editable = can(user, "manageExpenses") && !locked;
   const purchases = job.expenses.filter((e) => e.entryType === "purchase");
   const receipts = job.expenses.filter((e) => e.entryType === "receipt");
   const stats = expensesStats(job.expenses);
@@ -84,6 +93,14 @@ export function ExpensesTab({ job, user }: { job: { id: string; expenses: Expens
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
+      {locked && (
+        <div className="card" style={{ padding: 12, borderColor: "var(--warn)" }}>
+          <div className="label" style={{ color: "var(--warn)" }}>
+            Locked — this job has been sent to reconciliation. Purchases and receipts can&apos;t be edited unless an
+            approver sends it back for revision (Flag for Review).
+          </div>
+        </div>
+      )}
       <div>
         <div className="expense-hero-card">
           <span className="expense-hero-icon"><Wallet size={18} strokeWidth={2} color="#fff" /></span>

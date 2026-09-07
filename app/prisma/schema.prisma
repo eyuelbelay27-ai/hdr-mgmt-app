@@ -213,10 +213,14 @@ model Job {
   reconciledBy         String?
   reconciledAt         DateTime?
 
-  // Final Checklist (Section 6, unlocks Close Job once both true and
+  // Final Checklist (Section 6, unlocks Close Job once the three required
+  // items are true — VAT is optional, see closeJobAction — and
   // reconciliationStatus === Reconciled)
-  checklistWithholdingCollected Boolean @default(false)
-  checklistReceiptAttached      Boolean @default(false)
+  checklistWithholdingCollected  Boolean @default(false)
+  checklistReceiptAttached       Boolean @default(false)
+  checklistVatReceiptIssued      Boolean @default(false)
+  checklistBudgetVarianceSettled Boolean @default(false)
+  checklistImages                ReconciliationChecklistImage[]
 
   // Monitoring / closing
   monitoringClosed   Boolean   @default(false)
@@ -228,6 +232,27 @@ model Job {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/**
+ * Optional proof pictures attached to a Final Checklist item (Section 6).
+ * Multiple images per item are allowed — one row per uploaded image — and
+ * every item is optional to illustrate; the checklist's boolean fields on
+ * Job are the actual gate, this is just supporting evidence.
+ */
+model ReconciliationChecklistImage {
+  id      String @id @default(cuid())
+  job     Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId   String
+  // "withholding" | "receipts" | "vat" | "variance"
+  itemKey String
+  name    String
+  url     String
+  kind    String
+
+  createdAt DateTime @default(now())
+
+  @@index([jobId])
 }
 
 model JobComponent {
