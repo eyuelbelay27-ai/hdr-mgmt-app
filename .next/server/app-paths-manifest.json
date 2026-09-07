@@ -1,0 +1,20 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/apple-icon.png/route": "app/apple-icon.png/route.js",
+  "/api/admin/seed/route": "app/api/admin/seed/route.js",
+  "/calculator/page": "app/calculator/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/icon.png/route": "app/icon.png/route.js",
+  "/jobs/[id]/page": "app/jobs/[id]/page.js",
+  "/inventory/page": "app/inventory/page.js",
+  "/jobs/[id]/print/page": "app/jobs/[id]/print/page.js",
+  "/jobs/page": "app/jobs/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/reconciliation/[id]/page": "app/reconciliation/[id]/page.js",
+  "/reconciliation/page": "app/reconciliation/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/users/[id]/page": "app/users/[id]/page.js",
+  "/users/page": "app/users/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js"
+}

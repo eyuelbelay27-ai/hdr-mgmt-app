@@ -1,0 +1,32 @@
+{
+  "version": 3,
+  "middleware": {
+    "/": {
+      "files": [
+        "server/edge-runtime-webpack.js",
+        "server/middleware.js"
+      ],
+      "name": "middleware",
+      "page": "/",
+      "matchers": [
+        {
+          "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?(?:\\/((?!api\\/|_next\\/static|_next\\/image|favicon.ico|icon.png|apple-icon.png|brand\\/).*))(.json)?[\\/#\\?]?$",
+          "originalSource": "/((?!api/|_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|brand/).*)"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "pEpt0ea7CmPDaF4QbdshC",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "XUPwFTT8dn6a9hTzNNDqxu2YKprkfGKW8Y4uwiDPAs8=",
+        "__NEXT_PREVIEW_MODE_ID": "cd27686f2a85db6b54766d7d6ffc9cdd",
+        "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "31b9afd7cdcdecdef0bdc1432a4afb5a98e58448c5255b44d7b489fff4747d65",
+        "__NEXT_PREVIEW_MODE_SIGNING_KEY": "a7a5a144419575a9c671f18325470b3790973a5688e64e22fe61e20dcb1e74f2"
+      }
+    }
+  },
+  "functions": {},
+  "sortedMiddleware": [
+    "/"
+  ]
+}
