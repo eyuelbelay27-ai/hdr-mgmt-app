@@ -7,7 +7,7 @@ import { totalAllocatedCash } from "@/lib/calc/budget";
 import { actualExpenseAmount, actualTotalExpenses, finalProfitAfterExpenses } from "@/lib/calc/reconciliation";
 import { expensesStats } from "@/lib/calc/expenses";
 import { costEstimateTotals } from "@/lib/calc/cost-estimate";
-import { toNumber } from "@/lib/money";
+import { round2, toNumber } from "@/lib/money";
 import { AppNav } from "../../AppNav";
 import { StatusBadge } from "../../StatusBadge";
 import { Lightbox } from "../../Lightbox";
@@ -24,7 +24,13 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
   const job = await prisma.job.findUnique({
     where: { id },
-    include: { budgetItems: true, expenses: true, payments: true, costEstimateItems: true, checklistImages: true },
+    include: {
+      budgetItems: { include: { expense: true } },
+      expenses: true,
+      payments: true,
+      costEstimateItems: true,
+      checklistImages: true,
+    },
   });
   if (!job) notFound();
 
@@ -34,6 +40,11 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
   const finalProfit = finalProfitAfterExpenses(job.costEstimateSoldPrice, job.expenses, totals.commission);
   const stats = expensesStats(job.expenses);
   const receiptedExpenses = job.expenses.filter((e) => e.receiptUrl);
+  // Purchases never linked to a budget line (added directly in Expenses,
+  // not pulled) — shown as their own rows in Section 1 below so real
+  // spending is never silently missing from the variance review just
+  // because it didn't come from a budget line.
+  const unbudgetedPurchases = job.expenses.filter((e) => e.entryType === "purchase" && !e.budgetItemId);
 
   const canReconcile = can(user, "reconcileBudget");
   const canClose = can(user, "closeJob");
@@ -46,6 +57,13 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
     { label: "Actual Expense", value: `${stats.totalSpent.toLocaleString()} Br`, icon: Wallet },
     { label: "Over Budget", value: `${stats.overBudget.toLocaleString()} Br`, icon: TrendingUp },
     { label: "Under Budget", value: `${stats.underBudget.toLocaleString()} Br`, icon: TrendingDown },
+    // Materials over/underuse, in Birr — kept separate from the cash
+    // Over/Under Budget cards above so a reviewer can tell whether a
+    // profit swing came from cash overspend or from using more/less
+    // material than budgeted, instead of it being invisible inside the
+    // Final Profit total.
+    { label: "Stock Over Budget", value: `${stats.stockOverBudgetBr.toLocaleString()} Br`, icon: TrendingUp },
+    { label: "Stock Under Budget", value: `${stats.stockUnderBudgetBr.toLocaleString()} Br`, icon: TrendingDown },
     { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} Br`, icon: Landmark },
     { label: "Total Receipts Collected", value: `${stats.collectedReceiptsBr.toLocaleString()} Br`, icon: ReceiptIcon },
   ];
@@ -64,6 +82,13 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
             Reconciliation: {job.reconciliationStatus}
           </span>
         </div>
+
+        {job.reconciledBy && job.reconciledAt && (
+          <p className="label" style={{ marginTop: 8 }}>
+            {job.reconciliationStatus === "Flagged" ? "Flagged" : "Reconciled"} by {job.reconciledBy} on{" "}
+            {job.reconciledAt.toISOString().slice(0, 10)}
+          </p>
+        )}
 
         {job.reconciliationNote && (
           <div className="card" style={{ padding: 12, marginTop: 12, borderColor: "var(--warn)" }}>
@@ -95,22 +120,88 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
           <div className="dtable-wrap">
           <table className="dtable">
             <thead>
-              <tr><th>Item</th><th>Category</th><th>Budgeted</th><th>Actual (Br)</th><th>Variance</th></tr>
+              <tr><th>Item</th><th>Category</th><th>Budgeted</th><th>Actual</th><th>Variance (Br)</th></tr>
             </thead>
             <tbody>
               {job.budgetItems.map((b) => {
-                const matched = job.expenses.find((e) => e.budgetRef === b.label);
-                const budgetedETB = b.category === "stock" ? 0 : toNumber(b.amount);
+                const matched = b.expense;
+
+                if (b.category === "stock") {
+                  // Both Budgeted and Actual are shown as qty × unit price =
+                  // total, using the same locked-in rate on both sides —
+                  // that's what makes a currency Variance meaningful here
+                  // instead of comparing a quantity to a hardcoded 0.
+                  const unitPrice = matched ? toNumber(matched.unitPrice) : 0;
+                  const budgetedQty = toNumber(b.qty);
+                  const actualQty = matched && matched.actualSpent !== null ? toNumber(matched.actualSpent) : budgetedQty;
+                  const budgetedCost = round2(budgetedQty * unitPrice);
+                  const actualCost = round2(actualQty * unitPrice);
+                  const variance = round2(actualCost - budgetedCost);
+                  return (
+                    <tr key={b.id}>
+                      <td data-label="Item">{b.label}</td>
+                      <td data-label="Category">Stock</td>
+                      <td className="mono" data-label="Budgeted">
+                        {budgetedQty} {b.unit ?? ""} &times; {unitPrice.toLocaleString()} Br = {budgetedCost.toLocaleString()} Br
+                      </td>
+                      <td className="mono" data-label="Actual">
+                        {actualQty} {b.unit ?? ""} &times; {unitPrice.toLocaleString()} Br = {actualCost.toLocaleString()} Br
+                      </td>
+                      <td
+                        className="mono"
+                        data-label="Variance (Br)"
+                        style={{ color: variance > 0 ? "var(--danger)" : variance < 0 ? "var(--success)" : undefined }}
+                      >
+                        {variance.toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                }
+
+                const budgetedETB = toNumber(b.amount);
                 const actualETB = matched ? actualExpenseAmount(matched) : 0;
-                const variance = Math.round((actualETB - budgetedETB) * 100) / 100;
+                const variance = round2(actualETB - budgetedETB);
                 return (
                   <tr key={b.id}>
                     <td data-label="Item">{b.label}</td>
-                    <td data-label="Category">{b.category === "cash" ? "Cash" : "Stock"}</td>
-                    <td className="mono" data-label="Budgeted">{b.category === "stock" ? `${String(b.qty)} ${b.unit ?? ""}` : budgetedETB.toLocaleString()}</td>
-                    <td className="mono" data-label="Actual (Br)">{actualETB.toLocaleString()}</td>
-                    <td className="mono" data-label="Variance" style={{ color: variance > 0 ? "var(--danger)" : "var(--success)" }}>
+                    <td data-label="Category">Cash</td>
+                    <td className="mono" data-label="Budgeted">{budgetedETB.toLocaleString()} Br</td>
+                    <td className="mono" data-label="Actual">{actualETB.toLocaleString()} Br</td>
+                    <td
+                      className="mono"
+                      data-label="Variance (Br)"
+                      style={{ color: variance > 0 ? "var(--danger)" : variance < 0 ? "var(--success)" : undefined }}
+                    >
                       {variance.toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {/* Purchases added directly in Expenses, never pulled from a
+                  budget line — given their own row (Budgeted "—") so real
+                  spending outside the plan is never silently missing from
+                  this review just because it has no budget line to join to. */}
+              {unbudgetedPurchases.map((e) => {
+                const isStock = e.category === "stock";
+                const qty = toNumber(e.qty);
+                const unitPrice = toNumber(e.unitPrice);
+                const cost = isStock ? round2(qty * unitPrice) : actualExpenseAmount(e);
+                return (
+                  <tr key={e.id}>
+                    <td data-label="Item">
+                      {e.item}
+                      <div className="label" style={{ marginTop: 2 }}>Not budgeted</div>
+                    </td>
+                    <td data-label="Category">{isStock ? "Stock" : "Cash"}</td>
+                    <td className="mono" data-label="Budgeted">&mdash;</td>
+                    <td className="mono" data-label="Actual">
+                      {isStock
+                        ? `${qty} ${e.unit ?? ""} × ${unitPrice.toLocaleString()} Br = ${cost.toLocaleString()} Br`
+                        : `${cost.toLocaleString()} Br`}
+                    </td>
+                    <td className="mono" data-label="Variance (Br)" style={{ color: "var(--danger)" }}>
+                      {cost.toLocaleString()}
                     </td>
                   </tr>
                 );
