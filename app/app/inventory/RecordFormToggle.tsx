@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { RecordForm } from "./RecordForm";
+import type { StockMaterial } from "@/lib/materials";
 
 /** Mobile-only: keeps the Record Stock In/Out form off-screen until asked
  * for, instead of it permanently eating vertical space (Section 4.4). */
@@ -11,7 +12,7 @@ export function RecordFormToggle({
   materials,
 }: {
   direction: "in" | "out";
-  materials: { id: string; name: string }[];
+  materials: StockMaterial[];
 }) {
   const [open, setOpen] = useState(false);
   if (!open) {

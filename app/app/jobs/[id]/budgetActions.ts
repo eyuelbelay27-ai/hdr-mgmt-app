@@ -6,6 +6,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, PermissionError } from "@/lib/permissions";
 import { toNumber } from "@/lib/money";
 import { logActivity } from "@/lib/activity";
+import { pullBudgetIntoExpenses } from "./expensesActions";
 import type { ActionState } from "./actions";
 
 async function assertBudgetEditable(jobId: string) {
@@ -36,20 +37,27 @@ export async function addBudgetItemAction(
     throw err;
   }
 
-  const label = String(formData.get("label") ?? "").trim();
   const category = String(formData.get("category") ?? "cash") as "cash" | "stock";
   const comment = String(formData.get("comment") ?? "").trim() || null;
 
-  if (!label) return { error: "Description is required." };
+  let label: string;
 
   if (category === "stock") {
+    // A stock budget line is always a chosen Material, never a typed
+    // description — label/unit come from the Material record itself.
+    const materialId = String(formData.get("materialId") ?? "").trim() || null;
+    if (!materialId) return { error: "Choose a stock item." };
+    const material = await prisma.material.findUnique({ where: { id: materialId } });
+    if (!material || material.category !== "stock") return { error: "That stock item couldn't be found." };
+    label = material.name;
     const qty = toNumber(formData.get("qty"));
-    const unit = String(formData.get("unit") ?? "").trim();
     if (qty <= 0) return { error: "Quantity must be greater than zero." };
     await prisma.budgetItem.create({
-      data: { jobId, label, category, qty, unit, comment, source: "Manual" },
+      data: { jobId, label, category, qty, unit: material.unit, materialId, comment, source: "Manual" },
     });
   } else {
+    label = String(formData.get("label") ?? "").trim();
+    if (!label) return { error: "Description is required." };
     const amount = toNumber(formData.get("amount"));
     if (amount <= 0) return { error: "Amount must be greater than zero." };
     await prisma.budgetItem.create({
@@ -62,30 +70,30 @@ export async function addBudgetItemAction(
   return { error: null };
 }
 
+/**
+ * Only Qty (stock) / Amount (cash) and Comment are ever editable here —
+ * an item's identity (label, unit, category, materialId) is fixed once
+ * created, never re-typeable, so this intentionally never reads
+ * label/unit/category from formData.
+ */
 export async function updateBudgetItemAction(itemId: string, jobId: string, formData: FormData): Promise<void> {
   const user = await requireCurrentUser();
   requireAction(user, "manageBudget", "edit");
   await assertBudgetEditable(jobId);
 
-  const label = String(formData.get("label") ?? "").trim();
+  const item = await prisma.budgetItem.findUnique({ where: { id: itemId }, select: { category: true } });
+  if (!item) throw new Error("Budget item not found");
   const comment = String(formData.get("comment") ?? "").trim() || null;
-  const category = String(formData.get("category") ?? "cash") as "cash" | "stock";
 
-  if (category === "stock") {
+  if (item.category === "stock") {
     await prisma.budgetItem.update({
       where: { id: itemId },
-      data: {
-        label,
-        comment,
-        qty: toNumber(formData.get("qty")),
-        unit: String(formData.get("unit") ?? "").trim(),
-        amount: null,
-      },
+      data: { comment, qty: toNumber(formData.get("qty")) },
     });
   } else {
     await prisma.budgetItem.update({
       where: { id: itemId },
-      data: { label, comment, amount: toNumber(formData.get("amount")), qty: null, unit: null },
+      data: { comment, amount: toNumber(formData.get("amount")) },
     });
   }
   revalidatePath(`/jobs/${jobId}`);
@@ -189,6 +197,12 @@ export async function approveBudgetAction(
       data: { jobId, text: `${user.name} approved the budget with a deadline of ${deadline.toISOString().slice(0, 10)}.` },
     });
   });
+
+  // Pulling every Budget line into Expenses is mandatory (Section 8.3) —
+  // it happens automatically here rather than through an optional button,
+  // so an approved budget's expenses always start in sync with it.
+  await pullBudgetIntoExpenses(jobId);
+  await logActivity(jobId, `${user.name} approved the budget — Expenses were auto-populated from it.`);
 
   revalidatePath(`/jobs/${jobId}`);
   return { error: null };

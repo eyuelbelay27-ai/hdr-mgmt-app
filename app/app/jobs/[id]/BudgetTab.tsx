@@ -4,6 +4,7 @@ import { pullFromCostEstimateAction, undoBudgetApprovalAction } from "./budgetAc
 import { BudgetItemRow } from "./BudgetItemRow";
 import { AddBudgetItemForm } from "./AddBudgetItemForm";
 import { ApproveBudgetControl } from "./ApproveBudgetControl";
+import type { StockMaterial } from "@/lib/materials";
 
 interface BudgetJob {
   id: string;
@@ -24,7 +25,15 @@ interface BudgetJob {
   }[];
 }
 
-export function BudgetTab({ job, user }: { job: BudgetJob; user: PermissionSubject }) {
+export function BudgetTab({
+  job,
+  user,
+  stockMaterials,
+}: {
+  job: BudgetJob;
+  user: PermissionSubject;
+  stockMaterials: StockMaterial[];
+}) {
   const editable = job.budgetStatus === "Draft" && job.status !== "Closed" && job.status !== "Cancelled" && can(user, "manageBudget");
   const totalCash = totalAllocatedCash(job.budgetItems);
 
@@ -81,7 +90,7 @@ export function BudgetTab({ job, user }: { job: BudgetJob; user: PermissionSubje
       </table>
       </div>
 
-      {editable && <AddBudgetItemForm jobId={job.id} />}
+      {editable && <AddBudgetItemForm jobId={job.id} stockMaterials={stockMaterials} />}
     </div>
   );
 }

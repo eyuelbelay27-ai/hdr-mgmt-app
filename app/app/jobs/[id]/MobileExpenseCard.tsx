@@ -23,6 +23,7 @@ interface Row {
   unitPrice: unknown;
   totalPrice: unknown;
   budgetRef: string | null;
+  budgetItemId: string | null;
   withholding: unknown;
   actualSpent: unknown;
   receiptName: string | null;
@@ -136,9 +137,13 @@ export function MobileExpenseCard({
             )}
           </div>
           {editable && (
-            <form action={deleteExpenseAction.bind(null, row.id, jobId)} style={{ marginTop: 10 }}>
-              <button className="btn btn-sm btn-danger" type="submit">Delete</button>
-            </form>
+            row.budgetItemId ? (
+              <p className="label" style={{ marginTop: 10 }}>From Budget — can&apos;t be deleted</p>
+            ) : (
+              <form action={deleteExpenseAction.bind(null, row.id, jobId)} style={{ marginTop: 10 }}>
+                <button className="btn btn-sm btn-danger" type="submit">Delete</button>
+              </form>
+            )
           )}
         </div>
       )}

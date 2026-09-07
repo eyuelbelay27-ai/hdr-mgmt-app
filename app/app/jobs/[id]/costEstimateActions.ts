@@ -85,6 +85,9 @@ export async function addCostEstimateItemAction(
     if (err instanceof PermissionError) return { error: err.message };
     throw err;
   }
+  if (category === "stock") {
+    return { error: "A stock item can't be added ad-hoc — every registered stock item already has its own row above." };
+  }
 
   const name = String(formData.get("name") ?? "").trim();
   const unit = String(formData.get("unit") ?? "").trim();

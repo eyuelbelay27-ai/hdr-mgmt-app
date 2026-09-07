@@ -26,16 +26,31 @@ export async function createPurchaseOrderAction(
   }
 
   const purchaser = String(formData.get("purchaser") ?? "").trim() || user.name;
-  const item = String(formData.get("item") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim() || null;
   const category = String(formData.get("category") ?? "cash") as "cash" | "stock";
   const qty = toNumber(formData.get("qty"));
   const price = toNumber(formData.get("price"));
   const dateRaw = String(formData.get("date") ?? "");
 
-  if (!item) return { error: "Item is required." };
   if (qty <= 0) return { error: "Quantity must be greater than zero." };
   if (price < 0) return { error: "Price can't be negative." };
+
+  let item: string;
+  let materialId: string | null = null;
+  let unit: string | null = null;
+
+  if (category === "stock") {
+    // A stock item is always chosen from the Price Database, never typed.
+    materialId = String(formData.get("materialId") ?? "").trim() || null;
+    if (!materialId) return { error: "Choose a stock item." };
+    const material = await prisma.material.findUnique({ where: { id: materialId } });
+    if (!material || material.category !== "stock") return { error: "That stock item couldn't be found." };
+    item = material.name;
+    unit = material.unit;
+  } else {
+    item = String(formData.get("item") ?? "").trim();
+    if (!item) return { error: "Item is required." };
+  }
 
   const poNumber = await nextPoNumber();
 
@@ -45,6 +60,8 @@ export async function createPurchaseOrderAction(
       date: dateRaw ? new Date(dateRaw) : new Date(),
       purchaser,
       item,
+      materialId,
+      unit,
       description,
       category,
       qty,
@@ -103,7 +120,9 @@ export async function approvePurchaseOrderAction(poId: string): Promise<void> {
               create: {
                 date: new Date(),
                 direction: "in",
+                materialId: po.materialId,
                 itemName: po.item,
+                unit: po.unit,
                 qty: po.qty,
                 source: `Purchase Order — ${po.poNumber}`,
               },

@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useFormState } from "react-dom";
 import { recordManualInventoryAction, type ActionState } from "./actions";
 import { SubmitButton } from "../SubmitButton";
+import { StockMaterialSelect } from "../StockMaterialSelect";
+import type { StockMaterial } from "@/lib/materials";
 
 const initialState: ActionState = { error: null };
 
@@ -12,7 +14,7 @@ export function RecordForm({
   materials,
 }: {
   direction: "in" | "out";
-  materials: { id: string; name: string }[];
+  materials: StockMaterial[];
 }) {
   const boundAction = recordManualInventoryAction.bind(null, direction);
   const [state, formAction] = useFormState(boundAction, initialState);
@@ -30,17 +32,8 @@ export function RecordForm({
       style={{ padding: 16, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap" }}
     >
       <div style={{ flex: "1 1 160px" }}>
-        <label className="label">Material</label>
-        <select className="input" name="materialId" defaultValue="">
-          <option value="">— type a name instead —</option>
-          {materials.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </select>
-      </div>
-      <div style={{ flex: "1 1 140px" }}>
-        <label className="label">Or Item Name</label>
-        <input className="input" name="itemName" />
+        <label className="label">Stock Item</label>
+        <StockMaterialSelect materials={materials} />
       </div>
       <div style={{ flex: "1 1 100px" }}>
         <label className="label">Qty</label>

@@ -2,10 +2,11 @@ import type { JobStatus } from "@prisma/client";
 import { Wallet, Landmark, Receipt as ReceiptIcon, TrendingUp, TrendingDown } from "lucide-react";
 import { can, type PermissionSubject } from "@/lib/permissions";
 import { isReconciliationLocked } from "@/lib/job-status";
+import type { StockMaterial } from "@/lib/materials";
 import { expensesStats, purchaseVariance } from "@/lib/calc/expenses";
 import { toNumber } from "@/lib/money";
 import { Lightbox } from "../../Lightbox";
-import { pullExpensesFromBudgetAction, deleteExpenseAction } from "./expensesActions";
+import { deleteExpenseAction } from "./expensesActions";
 import { AddExpenseForm } from "./AddExpenseForm";
 import { AddExpenseToggle } from "./AddExpenseToggle";
 import { ActualSpentCell } from "./ActualSpentCell";
@@ -25,6 +26,7 @@ interface ExpenseRow {
   unitPrice: unknown;
   totalPrice: unknown;
   budgetRef: string | null;
+  budgetItemId: string | null;
   withholding: unknown;
   actualSpent: unknown;
   receiptName: string | null;
@@ -74,9 +76,11 @@ function ActualSpentDisplay({ row, jobId, editable }: { row: ExpenseRow; jobId: 
 export function ExpensesTab({
   job,
   user,
+  stockMaterials,
 }: {
   job: { id: string; status: JobStatus; expenses: ExpenseRow[] };
   user: PermissionSubject;
+  stockMaterials: StockMaterial[];
 }) {
   const locked = isReconciliationLocked(job);
   const editable = can(user, "manageExpenses") && !locked;
@@ -124,14 +128,7 @@ export function ExpensesTab({
       </div>
 
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-          <h3 style={{ margin: 0 }}>Purchases</h3>
-          {editable && (
-            <form action={pullExpensesFromBudgetAction.bind(null, job.id)}>
-              <button className="btn btn-sm" type="submit">Pull From Budget</button>
-            </form>
-          )}
-        </div>
+        <h3 style={{ margin: 0 }}>Purchases</h3>
 
         <div className="expenses-desktop-table">
         <div className="dtable-wrap" style={{ marginTop: 8 }}>
@@ -168,9 +165,13 @@ export function ExpensesTab({
                 <td data-label="Variance"><VarianceCell row={p} /></td>
                 {editable && (
                   <td>
-                    <form action={deleteExpenseAction.bind(null, p.id, job.id)}>
-                      <button className="btn btn-sm btn-danger" type="submit">Delete</button>
-                    </form>
+                    {p.budgetItemId ? (
+                      <span className="label">From Budget</span>
+                    ) : (
+                      <form action={deleteExpenseAction.bind(null, p.id, job.id)}>
+                        <button className="btn btn-sm btn-danger" type="submit">Delete</button>
+                      </form>
+                    )}
                   </td>
                 )}
               </tr>
@@ -181,7 +182,7 @@ export function ExpensesTab({
           </tbody>
         </table>
         </div>
-        {editable && <AddExpenseForm jobId={job.id} entryType="purchase" />}
+        {editable && <AddExpenseForm jobId={job.id} entryType="purchase" stockMaterials={stockMaterials} />}
         </div>
 
         <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
@@ -189,7 +190,7 @@ export function ExpensesTab({
             <MobileExpenseCard key={p.id} row={p} jobId={job.id} editable={editable} entryType="purchase" />
           ))}
           {purchases.length === 0 && <p className="label">No purchases logged yet.</p>}
-          {editable && <AddExpenseToggle jobId={job.id} entryType="purchase" />}
+          {editable && <AddExpenseToggle jobId={job.id} entryType="purchase" stockMaterials={stockMaterials} />}
         </div>
       </div>
 
@@ -240,7 +241,7 @@ export function ExpensesTab({
           </tbody>
         </table>
         </div>
-        {editable && <AddExpenseForm jobId={job.id} entryType="receipt" />}
+        {editable && <AddExpenseForm jobId={job.id} entryType="receipt" stockMaterials={stockMaterials} />}
         </div>
 
         <div className="expenses-mobile-cards" style={{ marginTop: 8 }}>
@@ -248,7 +249,7 @@ export function ExpensesTab({
             <MobileExpenseCard key={r.id} row={r} jobId={job.id} editable={editable} entryType="receipt" />
           ))}
           {receipts.length === 0 && <p className="label">No receipts logged yet.</p>}
-          {editable && <AddExpenseToggle jobId={job.id} entryType="receipt" />}
+          {editable && <AddExpenseToggle jobId={job.id} entryType="receipt" stockMaterials={stockMaterials} />}
         </div>
       </div>
     </div>

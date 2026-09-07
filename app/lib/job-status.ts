@@ -25,8 +25,14 @@ export const STATUS_COLOR: Record<JobStatus, { bg: string; fg: string }> = {
  * Draft (Section 6) — Budget itself is filled in by the Admin during
  * Waiting for Approval, which is why BudgetItem editing uses its own rule
  * (see lib/permissions usage in the Budget tab) rather than this one.
+ *
+ * A Closed job is locked unconditionally — adminUnlocked has no effect —
+ * since editing a closed job is only ever meant to happen after formally
+ * reverting it (Revert to Reconciliation, then Flag for Review), never via
+ * the everyday admin-unlock toggle.
  */
 export function isContentLocked(job: { status: JobStatus; adminUnlocked: boolean }): boolean {
+  if (job.status === "Closed") return true;
   return job.status !== "Draft" && !job.adminUnlocked;
 }
 

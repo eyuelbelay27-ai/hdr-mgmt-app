@@ -62,8 +62,12 @@ export async function requestRevisionAction(
 
 /**
  * Submit for Reconciliation — blocked until at least one expense has been
- * logged (Section 6, checked here too since the UI-disabled button alone
- * isn't enforcement).
+ * logged, and every Purchase row (budget-pulled or manual) has its Actual
+ * Spent filled in (Section 6/7.5) — an unfilled Actual Spent means the
+ * purchase is still an estimate, not what was really spent, so it must be
+ * resolved (filled in, or deleted if it's a Manual row) before the job can
+ * move on. Receipts have no Actual Spent concept and are exempt. Checked
+ * here too since the UI-disabled button alone isn't enforcement.
  */
 export async function submitForReconciliationAction(jobId: string): Promise<void> {
   const user = await requireCurrentUser();
@@ -71,13 +75,19 @@ export async function submitForReconciliationAction(jobId: string): Promise<void
 
   const job = await prisma.job.findUnique({
     where: { id: jobId },
-    include: { expenses: { select: { id: true }, take: 1 } },
+    include: { expenses: { select: { id: true, entryType: true, item: true, actualSpent: true } } },
   });
   if (!job || job.status !== "ApprovedBudget") {
     throw new PermissionError("Only an Approved Budget job can be submitted for reconciliation.");
   }
   if (job.expenses.length === 0) {
     throw new PermissionError("Log at least one expense before submitting for reconciliation.");
+  }
+  const unfilled = job.expenses.find((e) => e.entryType === "purchase" && e.actualSpent === null);
+  if (unfilled) {
+    throw new PermissionError(
+      `"${unfilled.item}" is missing its Actual Spent — fill it in (or delete the purchase, if it's not from the Budget) before submitting for reconciliation.`
+    );
   }
 
   await prisma.job.update({ where: { id: jobId }, data: { status: "WaitingForReconciliation" } });
