@@ -53,7 +53,6 @@ export function MaterialCard({
     fd.set("unit", overrides?.unit ?? material.unit);
     fd.set("rate", overrides?.rate ?? (material.rate === null ? "" : String(material.rate)));
     fd.set("defaultQty", overrides?.defaultQty ?? (material.defaultQty === null ? "" : String(material.defaultQty)));
-    fd.set("active", (overrides?.active ?? String(material.active)) === "true" ? "on" : "");
     return fd;
   };
 
@@ -62,12 +61,6 @@ export function MaterialCard({
     const fd = buildFormData({ [field]: value });
     if (immediate) autosave.saveNow(() => fd);
     else autosave.schedule(() => fd);
-  };
-
-  const handleActiveToggle = (checked: boolean) => {
-    onUpdate(material.id, { active: checked });
-    const fd = buildFormData({ active: String(checked) });
-    autosave.saveNow(() => fd);
   };
 
   const handleDelete = async () => {
@@ -147,15 +140,6 @@ export function MaterialCard({
                   onChange={(e) => handleChange("defaultQty", e.target.value)}
                 />
               </div>
-              <div className="pricedb-field-full" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="checkbox"
-                  defaultChecked={material.active}
-                  onChange={(e) => handleActiveToggle(e.target.checked)}
-                />
-                <span className="label" style={{ marginBottom: 0 }}>Active</span>
-                <SaveStatusBadge status={autosave.status} error={autosave.error} />
-              </div>
             </div>
           ) : (
             <div className="pricedb-field-grid">
@@ -171,20 +155,17 @@ export function MaterialCard({
                 <div className="label" style={{ marginBottom: 2 }}>Default Qty</div>
                 <div style={{ fontSize: 13.5 }}>{material.defaultQty === null ? "—" : String(material.defaultQty)}</div>
               </div>
-              <div>
-                <div className="label" style={{ marginBottom: 2 }}>Active</div>
-                <div style={{ fontSize: 13.5 }}>{material.active ? "Active" : "Inactive"}</div>
-              </div>
             </div>
           )}
 
           <button
             type="button"
             className="btn btn-sm btn-ghost"
-            style={{ marginTop: 10 }}
+            style={{ marginTop: 10, display: "inline-flex", alignItems: "center", gap: 8 }}
             onClick={() => setHistoryOpen((v) => !v)}
           >
             History ({material.priceHistory.length})
+            {editable && <SaveStatusBadge status={autosave.status} error={autosave.error} />}
           </button>
           {historyOpen && (
             <div style={{ marginTop: 8 }}>

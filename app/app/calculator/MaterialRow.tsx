@@ -112,18 +112,6 @@ export function MaterialRow({
                 }}
               />
             </td>
-            <td data-label="Active">
-              <input
-                type="checkbox"
-                form={formId}
-                name="active"
-                defaultChecked={material.active}
-                onChange={(e) => {
-                  onUpdate(material.id, { active: e.target.checked });
-                  autosave.saveNow(buildFormData);
-                }}
-              />
-            </td>
             <td data-label="Actions" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               <SaveStatusBadge status={autosave.status} error={autosave.error} />
               <button type="button" className="btn btn-sm btn-ghost" onClick={() => setHistoryOpen((v) => !v)}>
@@ -141,7 +129,6 @@ export function MaterialRow({
             <td data-label="Unit">{material.unit}</td>
             <td className="mono" data-label="Rate">{material.rate === null ? "—" : String(material.rate)}</td>
             <td className="mono" data-label="Default Qty">{material.defaultQty === null ? "—" : String(material.defaultQty)}</td>
-            <td data-label="Active">{material.active ? "Active" : "Inactive"}</td>
             <td>
               <button type="button" className="btn btn-sm btn-ghost" onClick={() => setHistoryOpen((v) => !v)}>
                 History ({material.priceHistory.length})
@@ -152,7 +139,7 @@ export function MaterialRow({
       </tr>
       {historyOpen && (
         <tr>
-          <td colSpan={7}>
+          <td colSpan={6}>
             {material.priceHistory.length === 0 ? (
               <span className="label">No price changes recorded.</span>
             ) : (
