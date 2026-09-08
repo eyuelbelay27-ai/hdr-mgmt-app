@@ -9,6 +9,15 @@ import { toNumber } from "@/lib/money";
 
 export interface ActionState {
   error: string | null;
+  material?: {
+    id: string;
+    name: string;
+    category: string;
+    unit: string;
+    rate: number | null;
+    defaultQty: number | null;
+    active: boolean;
+  };
 }
 
 /**
@@ -103,10 +112,43 @@ export async function createMaterialAction(
 
   const rate = rateRaw === "" ? null : toNumber(rateRaw);
 
-  await prisma.material.create({
+  const material = await prisma.material.create({
     data: { name, category, unit, rate, active: true },
   });
 
   revalidatePath("/calculator");
-  return { error: null };
+  return {
+    error: null,
+    material: {
+      id: material.id,
+      name: material.name,
+      category: material.category,
+      unit: material.unit,
+      rate: material.rate === null ? null : toNumber(material.rate),
+      defaultQty: material.defaultQty === null ? null : toNumber(material.defaultQty),
+      active: material.active,
+    },
+  };
+}
+
+/**
+ * Delete — always allowed, regardless of whether the material has ever
+ * been used (Expenses/Budget/Cost Estimate/Inventory/Purchase Orders all
+ * store their own snapshot at the time and only hold an optional link back
+ * here, which the database clears to null on delete — see the materialId
+ * foreign keys' ON DELETE SET NULL). Past records keep their own correct
+ * numbers either way. Re-registering the same real-world item later gets a
+ * new id with no history — that's an accepted tradeoff of allowing delete
+ * unconditionally, not a bug.
+ */
+export async function deleteMaterialAction(materialId: string): Promise<void> {
+  const user = await requireCurrentUser();
+  requirePage(user, "calculator");
+  requireAction(user, "manageSignagePrices", "edit");
+
+  const existing = await prisma.material.findUnique({ where: { id: materialId } });
+  if (!existing) return;
+
+  await prisma.material.delete({ where: { id: materialId } });
+  revalidatePath("/calculator");
 }

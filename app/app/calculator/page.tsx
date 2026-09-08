@@ -3,8 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { can, canSeePage } from "@/lib/permissions";
 import { AppNav } from "../AppNav";
-import { MaterialRow } from "./MaterialRow";
-import { AddMaterialForm } from "./AddMaterialForm";
+import { PriceDatabaseBoard } from "./PriceDatabaseBoard";
 
 export default async function PriceDatabasePage() {
   const user = await getCurrentUser();
@@ -36,26 +35,7 @@ export default async function PriceDatabasePage() {
           Editing a rate here updates every job&apos;s Cost Estimate live.
         </p>
 
-        <div className="card dtable-wrap">
-        <table className="dtable">
-          <thead>
-            <tr>
-              {["Name", "Category", "Unit", "Rate", "Default Qty", "Active", ""].map((h) => (
-                <th key={h}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {materials.map((m) => (
-              <MaterialRow key={m.id} material={m} editable={editable} />
-            ))}
-          </tbody>
-        </table>
-        </div>
-
-        {editable && <AddMaterialForm />}
+        <PriceDatabaseBoard initialMaterials={materials} editable={editable} />
       </main>
     </div>
   );

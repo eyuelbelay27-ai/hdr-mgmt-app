@@ -1037,3 +1037,48 @@ input[type="radio"] {
     display: block;
   }
 }
+
+/* Price Database redesign — same desktop-table/mobile-card split as
+   Expenses/Inventory. Editing here no longer re-sorts the list mid-typing
+   (the client component owns its own array after the first load instead
+   of re-deriving it from a freshly-sorted server fetch on every autosave),
+   and each row/card reuses .expense-row's layout language with its own
+   editable fields inside instead of read-only detail text. */
+.pricedb-desktop-table {
+  display: block;
+}
+.pricedb-mobile-cards {
+  display: none;
+}
+@media (max-width: 640px) {
+  .pricedb-desktop-table {
+    display: none;
+  }
+  .pricedb-mobile-cards {
+    display: block;
+  }
+}
+.pricedb-row-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+.pricedb-row-icon.stock {
+  background: var(--info);
+}
+.pricedb-row-icon.cash {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+}
+.pricedb-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.pricedb-field-grid .pricedb-field-full {
+  grid-column: 1 / -1;
+}
