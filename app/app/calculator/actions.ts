@@ -44,7 +44,6 @@ export async function updateMaterialAction(
   const unit = String(formData.get("unit") ?? "").trim();
   const rateRaw = String(formData.get("rate") ?? "").trim();
   const defaultQtyRaw = String(formData.get("defaultQty") ?? "").trim();
-  const active = formData.get("active") === "on";
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   if (!name) return { error: "Name is required." };
@@ -69,7 +68,6 @@ export async function updateMaterialAction(
       unit,
       rate: newRate,
       defaultQty,
-      active,
       notes,
       ...(priceChanged
         ? {

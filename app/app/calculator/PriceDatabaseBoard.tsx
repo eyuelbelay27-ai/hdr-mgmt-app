@@ -47,7 +47,7 @@ export function PriceDatabaseBoard({
         <table className="dtable">
           <thead>
             <tr>
-              {["Name", "Category", "Unit", "Rate", "Default Qty", "Active", ""].map((h) => (
+              {["Name", "Category", "Unit", "Rate", "Default Qty", ""].map((h) => (
                 <th key={h}>{h}</th>
               ))}
             </tr>
@@ -58,7 +58,7 @@ export function PriceDatabaseBoard({
             ))}
             {materials.length === 0 && (
               <tr>
-                <td className="label" colSpan={7}>No materials registered yet.</td>
+                <td className="label" colSpan={6}>No materials registered yet.</td>
               </tr>
             )}
           </tbody>
