@@ -1,36 +1,34 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { updateMaterialAction } from "./actions";
+import { updateMaterialAction, deleteMaterialAction } from "./actions";
 import { useAutosave } from "../useAutosave";
 import { SaveStatusBadge } from "../SaveStatusBadge";
+import type { MaterialData } from "./MaterialCard";
 
-interface HistoryEntry {
-  id: string;
-  oldPrice: unknown;
-  newPrice: unknown;
-  effectiveDate: Date;
-  changedBy: { name: string } | null;
-}
-
-interface Material {
-  id: string;
-  name: string;
-  category: string;
-  unit: string;
-  rate: unknown;
-  defaultQty: unknown;
-  active: boolean;
-  notes: string | null;
-  priceHistory: HistoryEntry[];
-}
-
-export function MaterialRow({ material, editable }: { material: Material; editable: boolean }) {
+export function MaterialRow({
+  material,
+  editable,
+  onUpdate,
+  onDelete,
+}: {
+  material: MaterialData;
+  editable: boolean;
+  onUpdate: (id: string, patch: Partial<MaterialData>) => void;
+  onDelete: (id: string) => void;
+}) {
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const autosave = useAutosave((formData) => updateMaterialAction(material.id, { error: null }, formData));
   const buildFormData = () => new FormData(formRef.current as HTMLFormElement);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    await deleteMaterialAction(material.id);
+    onDelete(material.id);
+  };
 
   return (
     <>
@@ -51,7 +49,10 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 name="name"
                 defaultValue={material.name}
                 required
-                onChange={() => autosave.schedule(buildFormData)}
+                onChange={(e) => {
+                  onUpdate(material.id, { name: e.target.value });
+                  autosave.schedule(buildFormData);
+                }}
               />
             </td>
             <td data-label="Category">
@@ -60,7 +61,10 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 form={formId}
                 name="category"
                 defaultValue={material.category}
-                onChange={() => autosave.saveNow(buildFormData)}
+                onChange={(e) => {
+                  onUpdate(material.id, { category: e.target.value });
+                  autosave.saveNow(buildFormData);
+                }}
               >
                 <option value="cash">Cash</option>
                 <option value="stock">Stock</option>
@@ -72,7 +76,10 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 form={formId}
                 name="unit"
                 defaultValue={material.unit}
-                onChange={() => autosave.schedule(buildFormData)}
+                onChange={(e) => {
+                  onUpdate(material.id, { unit: e.target.value });
+                  autosave.schedule(buildFormData);
+                }}
               />
             </td>
             <td data-label="Rate">
@@ -84,7 +91,10 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 step="0.01"
                 min="0"
                 defaultValue={material.rate === null ? "" : String(material.rate)}
-                onChange={() => autosave.schedule(buildFormData)}
+                onChange={(e) => {
+                  onUpdate(material.id, { rate: e.target.value === "" ? null : e.target.value });
+                  autosave.schedule(buildFormData);
+                }}
               />
             </td>
             <td data-label="Default Qty">
@@ -96,7 +106,10 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 step="0.01"
                 min="0"
                 defaultValue={material.defaultQty === null ? "" : String(material.defaultQty)}
-                onChange={() => autosave.schedule(buildFormData)}
+                onChange={(e) => {
+                  onUpdate(material.id, { defaultQty: e.target.value === "" ? null : e.target.value });
+                  autosave.schedule(buildFormData);
+                }}
               />
             </td>
             <td data-label="Active">
@@ -105,17 +118,19 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 form={formId}
                 name="active"
                 defaultChecked={material.active}
-                onChange={() => autosave.saveNow(buildFormData)}
+                onChange={(e) => {
+                  onUpdate(material.id, { active: e.target.checked });
+                  autosave.saveNow(buildFormData);
+                }}
               />
             </td>
             <td data-label="Actions" style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
               <SaveStatusBadge status={autosave.status} error={autosave.error} />
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
-                onClick={() => setHistoryOpen((v) => !v)}
-              >
+              <button type="button" className="btn btn-sm btn-ghost" onClick={() => setHistoryOpen((v) => !v)}>
                 History ({material.priceHistory.length})
+              </button>
+              <button type="button" className="btn btn-sm btn-danger" disabled={deleting} onClick={handleDelete}>
+                {deleting ? "Deleting…" : "Delete"}
               </button>
             </td>
           </>
@@ -154,7 +169,7 @@ export function MaterialRow({ material, editable }: { material: Material; editab
                 <tbody>
                   {material.priceHistory.map((h) => (
                     <tr key={h.id}>
-                      <td data-label="Date">{h.effectiveDate.toISOString().slice(0, 10)}</td>
+                      <td data-label="Date">{(typeof h.effectiveDate === "string" ? h.effectiveDate : h.effectiveDate.toISOString()).slice(0, 10)}</td>
                       <td className="mono" data-label="Old Price">{h.oldPrice === null ? "—" : String(h.oldPrice)}</td>
                       <td className="mono" data-label="New Price">{h.newPrice === null ? "—" : String(h.newPrice)}</td>
                       <td data-label="Changed By">{h.changedBy?.name ?? "—"}</td>

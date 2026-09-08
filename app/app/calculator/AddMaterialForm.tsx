@@ -4,15 +4,20 @@ import { useEffect, useRef } from "react";
 import { useFormState } from "react-dom";
 import { createMaterialAction, type ActionState } from "./actions";
 import { SubmitButton } from "../SubmitButton";
+import type { MaterialData } from "./MaterialCard";
 
 const initialState: ActionState = { error: null };
 
-export function AddMaterialForm() {
+export function AddMaterialForm({ onCreated }: { onCreated: (material: MaterialData) => void }) {
   const [state, formAction] = useFormState(createMaterialAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
-    if (state !== initialState && state.error === null) formRef.current?.reset();
+    if (state !== initialState && state.error === null && state.material) {
+      onCreated({ ...state.material, priceHistory: [] });
+      formRef.current?.reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   return (
@@ -20,7 +25,7 @@ export function AddMaterialForm() {
       ref={formRef}
       action={formAction}
       className="card"
-      style={{ padding: 16, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap", marginTop: 16 }}
+      style={{ padding: 16, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap", marginTop: 12 }}
     >
       <div>
         <label className="label">Name</label>
