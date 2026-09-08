@@ -11,6 +11,7 @@ import { RecordForm } from "./RecordForm";
 import { RecordFormToggle } from "./RecordFormToggle";
 import { InventoryRow } from "./InventoryRow";
 import { ResetInventoryControl } from "./ResetInventoryControl";
+import { deleteInventoryEntryAction } from "./actions";
 
 const TABS = [
   { key: "in", label: "Stock In" },
@@ -106,30 +107,43 @@ export default async function InventoryPage({
                 <th>Source</th>
                 <th>Project</th>
                 <th>Note</th>
+                {canManage && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
-              {entries.map((e) => (
-                <tr key={e.id}>
-                  <td data-label="Date">{e.date.toISOString().slice(0, 10)}</td>
-                  <td data-label="Direction">{e.direction === "in" ? "In" : "Out"}</td>
-                  <td data-label="Item">{e.itemName}</td>
-                  <td className="mono" data-label="Qty">{String(e.qty)}</td>
-                  <td data-label="Unit">{e.unit ?? "—"}</td>
-                  <td className="label" data-label="Source">{e.source}</td>
-                  <td data-label="Project">
-                    {e.job ? (
-                      <a href={`/jobs/${e.job.id}`}>{e.job.jobNumber} — {e.job.clientName}</a>
-                    ) : (
-                      "—"
+              {entries.map((e) => {
+                const deletable = canManage && !e.expenseId && !e.fromPurchaseOrderId;
+                return (
+                  <tr key={e.id}>
+                    <td data-label="Date">{e.date.toISOString().slice(0, 10)}</td>
+                    <td data-label="Direction">{e.direction === "in" ? "In" : "Out"}</td>
+                    <td data-label="Item">{e.itemName}</td>
+                    <td className="mono" data-label="Qty">{String(e.qty)}</td>
+                    <td data-label="Unit">{e.unit ?? "—"}</td>
+                    <td className="label" data-label="Source">{e.source}</td>
+                    <td data-label="Project">
+                      {e.job ? (
+                        <a href={`/jobs/${e.job.id}`}>{e.job.jobNumber} — {e.job.clientName}</a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td data-label="Note">{e.note ?? "—"}</td>
+                    {canManage && (
+                      <td data-label="Actions">
+                        {deletable && (
+                          <form action={deleteInventoryEntryAction.bind(null, e.id)}>
+                            <button className="btn btn-sm btn-danger" type="submit">Delete</button>
+                          </form>
+                        )}
+                      </td>
                     )}
-                  </td>
-                  <td data-label="Note">{e.note ?? "—"}</td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
               {entries.length === 0 && (
                 <tr>
-                  <td className="label" colSpan={8}>No entries.</td>
+                  <td className="label" colSpan={canManage ? 9 : 8}>No entries.</td>
                 </tr>
               )}
             </tbody>
@@ -139,7 +153,11 @@ export default async function InventoryPage({
 
           <div className="inv-mobile-cards">
             {entries.map((e) => (
-              <InventoryRow key={e.id} row={e} />
+              <InventoryRow
+                key={e.id}
+                row={e}
+                deletable={canManage && !e.expenseId && !e.fromPurchaseOrderId}
+              />
             ))}
             {entries.length === 0 && <p className="label">No entries.</p>}
           </div>

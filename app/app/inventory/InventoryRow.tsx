@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronRight } from "lucide-react";
+import { deleteInventoryEntryAction } from "./actions";
 
 const MONTH_ABBR = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
@@ -18,9 +19,10 @@ interface Row {
 }
 
 /** Compact single-row card for the Inventory Transactions list, mobile only.
- * Tap to expand in place for Source, Project, and Note — the ledger itself is
- * read-only (never edited or deleted here), so there's nothing to act on. */
-export function InventoryRow({ row }: { row: Row }) {
+ * Tap to expand in place for Source, Project, and Note. Deletable only when
+ * `deletable` is true — a standalone manual entry, never one driven by an
+ * Expense or Purchase Order (those get corrected at their own source). */
+export function InventoryRow({ row, deletable }: { row: Row; deletable: boolean }) {
   const [open, setOpen] = useState(false);
   const isIn = row.direction === "in";
 
@@ -73,6 +75,11 @@ export function InventoryRow({ row }: { row: Row }) {
               </div>
             )}
           </div>
+          {deletable && (
+            <form action={deleteInventoryEntryAction.bind(null, row.id)} style={{ marginTop: 10 }}>
+              <button className="btn btn-sm btn-danger" type="submit">Delete</button>
+            </form>
+          )}
         </div>
       )}
     </div>

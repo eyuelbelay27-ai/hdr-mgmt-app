@@ -60,6 +60,29 @@ export async function recordManualInventoryAction(
 }
 
 /**
+ * Delete a single manually-registered entry (Section 8.5 addendum). Only
+ * ever allowed for an entry with no Expense or Purchase Order link — one
+ * driven by an Expense row or an approved PO reflects a real transaction
+ * recorded elsewhere, and must be corrected there instead (its own delete/
+ * undo already keeps Inventory in sync); a standalone manual entry has no
+ * such source to correct, so it can just be removed directly.
+ */
+export async function deleteInventoryEntryAction(entryId: string): Promise<void> {
+  const user = await requireCurrentUser();
+  requirePage(user, "inventory");
+  requireAction(user, "manageInventory", "edit");
+
+  const entry = await prisma.inventoryEntry.findUnique({ where: { id: entryId } });
+  if (!entry) return;
+  if (entry.expenseId || entry.fromPurchaseOrderId) {
+    throw new PermissionError("This entry came from an Expense or Purchase Order — correct it there instead.");
+  }
+
+  await prisma.inventoryEntry.delete({ where: { id: entryId } });
+  revalidatePath("/inventory");
+}
+
+/**
  * Reset Inventory — permanently deletes every entry in the Inventory
  * ledger, system-wide (not scoped to one job). Irreversible by design: a
  * true fresh start, not an offsetting reversal like the rest of the app's

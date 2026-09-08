@@ -29,27 +29,31 @@ export async function createPurchaseOrderAction(
   const description = String(formData.get("description") ?? "").trim() || null;
   const category = String(formData.get("category") ?? "cash") as "cash" | "stock";
   const qty = toNumber(formData.get("qty"));
-  const price = toNumber(formData.get("price"));
   const dateRaw = String(formData.get("date") ?? "");
 
   if (qty <= 0) return { error: "Quantity must be greater than zero." };
-  if (price < 0) return { error: "Price can't be negative." };
 
   let item: string;
   let materialId: string | null = null;
   let unit: string | null = null;
+  let price: number;
 
   if (category === "stock") {
-    // A stock item is always chosen from the Price Database, never typed.
+    // A stock item is always chosen from the Price Database, never typed —
+    // and so is its price, exactly like the Expenses tab: never a
+    // client-submitted figure, always the Material's own rate.
     materialId = String(formData.get("materialId") ?? "").trim() || null;
     if (!materialId) return { error: "Choose a stock item." };
     const material = await prisma.material.findUnique({ where: { id: materialId } });
     if (!material || material.category !== "stock") return { error: "That stock item couldn't be found." };
     item = material.name;
     unit = material.unit;
+    price = toNumber(material.rate);
   } else {
     item = String(formData.get("item") ?? "").trim();
     if (!item) return { error: "Item is required." };
+    price = toNumber(formData.get("price"));
+    if (price < 0) return { error: "Price can't be negative." };
   }
 
   const poNumber = await nextPoNumber();
