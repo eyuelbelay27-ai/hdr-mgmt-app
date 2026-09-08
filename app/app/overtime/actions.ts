@@ -164,6 +164,36 @@ export async function approveOvertimeRequestAction(requestId: string): Promise<v
   revalidatePath("/overtime");
 }
 
+/** Revert an Approved ("registered") request back to Pending — approver-only.
+ * Reversible by design: it re-enters the normal approve/reject workflow. */
+export async function unapproveOvertimeRequestAction(requestId: string): Promise<void> {
+  const user = await requireCurrentUser();
+  requirePage(user, "overtime");
+  requireAction(user, "approveOvertimeRequest", "edit");
+
+  const existing = await prisma.overtimeRequest.findUnique({ where: { id: requestId } });
+  if (!existing) return;
+  if (existing.status !== "Approved") throw new PermissionError("Only an Approved request can be unapproved.");
+
+  await prisma.overtimeRequest.update({
+    where: { id: requestId },
+    data: { status: "Pending", decidedBy: null, decidedAt: null, rejectionNote: null },
+  });
+  revalidatePath("/overtime");
+}
+
+/** Approver can delete a request in any status — the only way a Pending
+ * request they don't own, or an already-decided one, can be removed
+ * outright (an owner can still only Withdraw their own Pending request). */
+export async function deleteOvertimeRequestAction(requestId: string): Promise<void> {
+  const user = await requireCurrentUser();
+  requirePage(user, "overtime");
+  requireAction(user, "approveOvertimeRequest", "edit");
+
+  await prisma.overtimeRequest.deleteMany({ where: { id: requestId } });
+  revalidatePath("/overtime");
+}
+
 /** Rejecting requires a typed reason (matches rejecting a Purchase Order). */
 export async function rejectOvertimeRequestAction(
   requestId: string,
