@@ -2,10 +2,10 @@ import type { JobStatus } from "@prisma/client";
 import { can, type PermissionSubject } from "@/lib/permissions";
 import { remainingPayment } from "@/lib/calc/payments";
 import { toNumber } from "@/lib/money";
-import { Lightbox } from "../../Lightbox";
 import { RecordPaymentForm } from "./RecordPaymentForm";
+import { PaymentRow } from "./PaymentRow";
 
-interface PaymentRow {
+interface PaymentRowData {
   id: string;
   amount: unknown;
   type: string;
@@ -21,10 +21,11 @@ export function PaymentsTab({
   job,
   user,
 }: {
-  job: { id: string; status: JobStatus; costEstimateSoldPrice: unknown; payments: PaymentRow[] };
+  job: { id: string; status: JobStatus; costEstimateSoldPrice: unknown; payments: PaymentRowData[] };
   user: PermissionSubject;
 }) {
   const editable = can(user, "managePayments") && job.status !== "Closed";
+  const canEditDelete = can(user, "editDeletePayments") && job.status !== "Closed";
   const remaining = remainingPayment(job.costEstimateSoldPrice, job.payments);
 
   return (
@@ -57,25 +58,15 @@ export function PaymentsTab({
             <th>Method</th>
             <th>Notes</th>
             <th>Receipt</th>
+            {canEditDelete && <th>Actions</th>}
           </tr>
         </thead>
         <tbody>
           {job.payments.map((p) => (
-            <tr key={p.id}>
-              <td data-label="Date">{p.date.toISOString().slice(0, 10)}</td>
-              <td data-label="Type">{p.type}</td>
-              <td className="mono" data-label="Amount">{toNumber(p.amount).toLocaleString()}</td>
-              <td data-label="Method">{p.method ?? "—"}</td>
-              <td data-label="Notes">{p.notes ?? "—"}</td>
-              <td data-label="Receipt">
-                {p.receiptUrl && (
-                  <Lightbox file={{ name: p.receiptName ?? "receipt", url: p.receiptUrl, kind: p.receiptKind ?? "" }} size={36} />
-                )}
-              </td>
-            </tr>
+            <PaymentRow key={p.id} payment={p} jobId={job.id} canEditDelete={canEditDelete} />
           ))}
           {job.payments.length === 0 && (
-            <tr><td className="label" colSpan={6}>No payments recorded yet.</td></tr>
+            <tr><td className="label" colSpan={canEditDelete ? 7 : 6}>No payments recorded yet.</td></tr>
           )}
         </tbody>
       </table>

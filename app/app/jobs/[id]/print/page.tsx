@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { canSeePage, canSeeTab } from "@/lib/permissions";
+import { STATUS_LABEL } from "@/lib/job-status";
 import { costEstimateTotals } from "@/lib/calc/cost-estimate";
 import { totalAllocatedCash } from "@/lib/calc/budget";
 import { actualTotalExpenses, actualExpenseAmount, finalProfitAfterExpenses } from "@/lib/calc/reconciliation";
@@ -11,10 +12,11 @@ import { PrintButton } from "./PrintButton";
 import { HadarMark } from "../../../Logo";
 
 /**
- * Full job record (Section 6: "Closed: fully locked, printable full job
- * record available"; Section 8.2's Print button only appears on Closed
- * jobs). Uses window.print() per Section 9/10 — real PDF export is an
- * open decision the brief defers to the business owner.
+ * Full job record. Originally Closed-only (Section 6/8.2), now available
+ * from the moment a job is submitted for approval onward — i.e. any status
+ * except Draft — so it can be downloaded/printed at any later stage, not
+ * only once fully closed out. Uses window.print() per Section 9/10 — real
+ * PDF export is an open decision the brief defers to the business owner.
  */
 export default async function JobPrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +37,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
     },
   });
   if (!job) notFound();
-  if (job.status !== "Closed") redirect(`/jobs/${id}`);
+  if (job.status === "Draft") redirect(`/jobs/${id}`);
 
   const canSeeFinancials = canSeeTab(user, "tab_payments");
   const totals = costEstimateTotals(job.costEstimateItems, job.costEstimateSoldPrice, job.costEstimateCommissionActive);
@@ -57,7 +59,12 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
           <span style={{ fontWeight: 700, fontSize: 15, color: "#221c1f" }}>Hadar Advertising</span>
         </div>
         <h1>{job.jobNumber} — {job.clientName}</h1>
-        <p className="label">{job.title} · Closed {job.monitoringClosedAt?.toISOString().slice(0, 10)} by {job.monitoringClosedBy}</p>
+        <p className="label">
+          {job.title} ·{" "}
+          {job.status === "Closed"
+            ? `Closed ${job.monitoringClosedAt?.toISOString().slice(0, 10)} by ${job.monitoringClosedBy}`
+            : STATUS_LABEL[job.status]}
+        </p>
 
         <h2>Client</h2>
         <table className="dtable">

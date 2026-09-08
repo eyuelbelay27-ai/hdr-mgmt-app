@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { Wallet, Landmark, Receipt as ReceiptIcon, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, Landmark, Receipt as ReceiptIcon, TrendingUp, TrendingDown, Package } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { canSeePage, can } from "@/lib/permissions";
@@ -64,6 +64,10 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
     // Final Profit total.
     { label: "Stock Over Budget", value: `${stats.stockOverBudgetBr.toLocaleString()} Br`, icon: TrendingUp },
     { label: "Stock Under Budget", value: `${stats.stockUnderBudgetBr.toLocaleString()} Br`, icon: TrendingDown },
+    // Total real currency value of stock consumed — "Actual Expense" above
+    // never includes stock (it's an inventory quantity event, not cash
+    // spent), so this is the only place that number is visible on its own.
+    { label: "Stock Actual Expense", value: `${stats.stockActualExpenseBr.toLocaleString()} Br`, icon: Package },
     { label: "Total Withholding", value: `${stats.totalWithholding.toLocaleString()} Br`, icon: Landmark },
     { label: "Total Receipts Collected", value: `${stats.collectedReceiptsBr.toLocaleString()} Br`, icon: ReceiptIcon },
   ];
@@ -313,6 +317,16 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
                 editable={canReconcile}
               />
               <ChecklistImageUpload jobId={job.id} itemKey="variance" images={imagesFor("variance")} editable={canReconcile} />
+            </div>
+            <div>
+              <ChecklistToggle
+                jobId={job.id}
+                field="checklistRemainingPaymentReceived"
+                checked={job.checklistRemainingPaymentReceived}
+                label="Remaining Payment Received"
+                editable={canReconcile}
+              />
+              <ChecklistImageUpload jobId={job.id} itemKey="remainingPayment" images={imagesFor("remainingPayment")} editable={canReconcile} />
             </div>
           </div>
 

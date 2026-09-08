@@ -33,6 +33,7 @@ export const ACTION_KEYS = [
   { key: "submitForReconciliation", label: "Submit an approved-budget job for reconciliation" },
   { key: "manageExpenses", label: "Log purchases/receipts in Expenses" },
   { key: "managePayments", label: "Record payments" },
+  { key: "editDeletePayments", label: "Edit & delete recorded payments" },
   { key: "reconcileBudget", label: "Mark a job Reconciled / Flagged / Pending" },
   { key: "closeJob", label: "Close a job" },
   { key: "reopenJob", label: "Reopen a closed job" },

@@ -67,3 +67,51 @@ export async function recordPaymentAction(
   revalidatePath(`/jobs/${jobId}`);
   return { error: null };
 }
+
+/**
+ * Edit/delete a recorded payment — gated by its own permission
+ * ("editDeletePayments"), separate from managePayments (recording new
+ * payments), so an Admin can grant one without the other. Still respects
+ * the Closed-job lock: a Closed job's payments can't change until it's
+ * reverted to Reconciliation.
+ */
+export async function updatePaymentAction(paymentId: string, jobId: string, formData: FormData): Promise<void> {
+  const user = await requireCurrentUser();
+  requireAction(user, "editDeletePayments", "edit");
+
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
+  if (!job) throw new Error("Job not found");
+  if (job.status === "Closed") {
+    throw new PermissionError("This job is Closed. Revert to Reconciliation to edit its payments.");
+  }
+
+  const amount = toNumber(formData.get("amount"));
+  if (amount <= 0) throw new PermissionError("Amount must be greater than zero.");
+
+  const method = String(formData.get("method") ?? "").trim() || null;
+  const dateRaw = String(formData.get("date") ?? "");
+  const date = dateRaw ? new Date(dateRaw) : new Date();
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+
+  await prisma.payment.update({ where: { id: paymentId }, data: { amount, method, date, notes } });
+  await logActivity(jobId, `${user.name} edited a payment record.`);
+  revalidatePath(`/jobs/${jobId}`);
+}
+
+export async function deletePaymentAction(paymentId: string, jobId: string): Promise<void> {
+  const user = await requireCurrentUser();
+  requireAction(user, "editDeletePayments", "edit");
+
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
+  if (!job) throw new Error("Job not found");
+  if (job.status === "Closed") {
+    throw new PermissionError("This job is Closed. Revert to Reconciliation to delete its payments.");
+  }
+
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment) return;
+
+  await prisma.payment.delete({ where: { id: paymentId } });
+  await logActivity(jobId, `${user.name} deleted a ${payment.type} payment of ${toNumber(payment.amount)} Br.`);
+  revalidatePath(`/jobs/${jobId}`);
+}

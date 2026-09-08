@@ -161,15 +161,17 @@ export async function addExpenseAction(
     // A stock item is always chosen from the Price Database, never typed —
     // item name and unit come from the Material record itself, not from
     // client-submitted text, so an existing stock item can never be
-    // re-entered under a slightly different spelling.
+    // re-entered under a slightly different spelling. Unit price is the
+    // same: always the Material's own rate, never a client-submitted
+    // figure — a stock item's price lives in exactly one place.
     materialId = String(formData.get("materialId") ?? "").trim() || null;
     if (!materialId) return { error: "Choose a stock item." };
     const material = await prisma.material.findUnique({ where: { id: materialId } });
     if (!material || material.category !== "stock") return { error: "That stock item couldn't be found." };
     item = material.name;
     unit = material.unit;
+    unitPrice = toNumber(material.rate);
     qty = toNumber(formData.get("qty"));
-    unitPrice = toNumber(formData.get("unitPrice"));
     if (qty <= 0) return { error: "Quantity must be greater than zero." };
     totalPrice = round2(qty * unitPrice);
   } else {
@@ -179,8 +181,13 @@ export async function addExpenseAction(
     if (totalPrice <= 0) return { error: "Total price must be greater than zero." };
   }
 
-  const settings = await getSettings();
-  const withholding = computeWithholding(totalPrice, settings.withholdingRatePercent, settings.withholdingThreshold);
+  // Withholding only ever applies to Receipts — a Purchase is an internal
+  // budget/inventory record, not a withholdable transaction.
+  let withholding = 0;
+  if (entryType === "receipt") {
+    const settings = await getSettings();
+    withholding = computeWithholding(totalPrice, settings.withholdingRatePercent, settings.withholdingThreshold);
+  }
 
   // A Purchase never carries its own receipt — receipts are only ever
   // registered in the Receipts tab (Section 7.6).

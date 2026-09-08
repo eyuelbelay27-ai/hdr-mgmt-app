@@ -215,13 +215,14 @@ model Job {
   reconciledAt         DateTime?
 
   // Final Checklist (Section 6, unlocks Close Job once the three required
-  // items are true — VAT is optional, see closeJobAction — and
-  // reconciliationStatus === Reconciled)
-  checklistWithholdingCollected  Boolean @default(false)
-  checklistReceiptAttached       Boolean @default(false)
-  checklistVatReceiptIssued      Boolean @default(false)
-  checklistBudgetVarianceSettled Boolean @default(false)
-  checklistImages                ReconciliationChecklistImage[]
+  // items are true — VAT and Remaining Payment Received are optional, see
+  // closeJobAction — and reconciliationStatus === Reconciled)
+  checklistWithholdingCollected     Boolean @default(false)
+  checklistReceiptAttached          Boolean @default(false)
+  checklistVatReceiptIssued         Boolean @default(false)
+  checklistBudgetVarianceSettled    Boolean @default(false)
+  checklistRemainingPaymentReceived Boolean @default(false)
+  checklistImages                   ReconciliationChecklistImage[]
 
   // Monitoring / closing
   monitoringClosed   Boolean   @default(false)
