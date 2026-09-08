@@ -6,6 +6,8 @@ import {
   updateOvertimeRequestAction,
   withdrawOvertimeRequestAction,
   approveOvertimeRequestAction,
+  unapproveOvertimeRequestAction,
+  deleteOvertimeRequestAction,
   type OvertimeRequestData,
 } from "./actions";
 import { RejectOvertimeControl } from "./RejectOvertimeControl";
@@ -17,11 +19,28 @@ const STATUS_TONE: Record<string, { bg: string; fg: string }> = {
   Rejected: { bg: "var(--danger-soft)", fg: "var(--danger)" },
 };
 
+// ISO-shaped helpers — exact formats native <input type="date"/"time">
+// require for their defaultValue, so these stay 24hr/yyyy-mm-dd.
 function fmtDate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 function fmtTime(d: Date) {
   return d.toISOString().slice(11, 16);
+}
+
+// Display-only helpers: weekday + date, and 12hr time with AM/PM.
+function fmtDateLabel(d: Date) {
+  const dateOnly = new Date(`${fmtDate(d)}T00:00:00Z`);
+  const weekday = dateOnly.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+  const monthDay = dateOnly.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  return `${weekday}, ${monthDay}`;
+}
+function fmtTimeLabel(d: Date) {
+  const hh = Number(d.toISOString().slice(11, 13));
+  const mm = d.toISOString().slice(14, 16);
+  const period = hh >= 12 ? "PM" : "AM";
+  const hour12 = hh % 12 === 0 ? 12 : hh % 12;
+  return `${hour12}:${mm} ${period}`;
 }
 
 export function OvertimeCard({
@@ -45,9 +64,11 @@ export function OvertimeCard({
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
 
   const isOwner = request.submittedById === currentUserId;
   const isPending = request.status === "Pending";
+  const isApproved = request.status === "Approved";
   const tone = STATUS_TONE[request.status];
 
   const handleApprove = async () => {
@@ -60,6 +81,19 @@ export function OvertimeCard({
   const handleWithdraw = async () => {
     setBusy(true);
     await withdrawOvertimeRequestAction(request.id);
+    onRemove(request.id);
+  };
+
+  const handleUnapprove = async () => {
+    setBusy(true);
+    await unapproveOvertimeRequestAction(request.id);
+    onUpdate(request.id, { status: "Pending", decidedBy: null, decidedAt: null, rejectionNote: null });
+    setBusy(false);
+  };
+
+  const handleDelete = async () => {
+    setBusy(true);
+    await deleteOvertimeRequestAction(request.id);
     onRemove(request.id);
   };
 
@@ -98,8 +132,8 @@ export function OvertimeCard({
           </span>
         </div>
         <div className="expense-row-amounts">
-          <div className="expense-row-total">{fmtDate(request.startAt)}</div>
-          <div>{fmtTime(request.startAt)} · {request.employeeNames.length} people</div>
+          <div className="expense-row-total">{fmtDateLabel(request.startAt)}</div>
+          <div>{fmtTimeLabel(request.startAt)} · {request.employeeNames.length} people</div>
         </div>
         <ChevronRight size={16} strokeWidth={2} className="expense-row-chevron" style={{ transform: open ? "rotate(90deg)" : undefined }} />
       </button>
@@ -169,7 +203,7 @@ export function OvertimeCard({
                 <div>
                   <div className="label" style={{ marginBottom: 2 }}>{request.status} By</div>
                   <div style={{ fontSize: 13.5 }}>
-                    {request.decidedBy}{request.decidedAt ? ` · ${fmtDate(request.decidedAt)}` : ""}
+                    {request.decidedBy}{request.decidedAt ? ` · ${fmtDateLabel(request.decidedAt)}` : ""}
                   </div>
                 </div>
               )}
@@ -182,9 +216,9 @@ export function OvertimeCard({
             </div>
           )}
 
-          {!editing && isPending && (isOwner && canSubmit || canApprove) && (
+          {!editing && (canApprove || (isPending && isOwner && canSubmit)) && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
-              {isOwner && canSubmit && (
+              {isPending && isOwner && canSubmit && (
                 <>
                   <button className="btn btn-sm" type="button" onClick={() => setEditing(true)}>
                     Edit
@@ -194,7 +228,7 @@ export function OvertimeCard({
                   </button>
                 </>
               )}
-              {canApprove && (
+              {isPending && canApprove && (
                 <>
                   <button className="btn btn-sm btn-primary" type="button" disabled={busy} onClick={handleApprove}>
                     {busy ? "Approving…" : "Approve"}
@@ -206,6 +240,27 @@ export function OvertimeCard({
                     }
                   />
                 </>
+              )}
+              {isApproved && canApprove && (
+                <button className="btn btn-sm" type="button" disabled={busy} onClick={handleUnapprove}>
+                  {busy ? "Unapproving…" : "Unapprove"}
+                </button>
+              )}
+              {canApprove && (
+                deleteConfirming ? (
+                  <>
+                    <button className="btn btn-sm btn-danger" type="button" disabled={busy} onClick={handleDelete}>
+                      {busy ? "Deleting…" : "Confirm Delete"}
+                    </button>
+                    <button className="btn btn-sm btn-ghost" type="button" onClick={() => setDeleteConfirming(false)}>
+                      Never Mind
+                    </button>
+                  </>
+                ) : (
+                  <button className="btn btn-sm btn-danger" type="button" onClick={() => setDeleteConfirming(true)}>
+                    Delete
+                  </button>
+                )
               )}
             </div>
           )}
