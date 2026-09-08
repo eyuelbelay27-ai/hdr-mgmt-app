@@ -7,6 +7,7 @@ import {
   Tag,
   Package,
   ClipboardCheck,
+  Clock,
   Users,
   Settings as SettingsIcon,
   Menu,
@@ -24,6 +25,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   calculator: Tag,
   inventory: Package,
   reconciliation: ClipboardCheck,
+  overtime: Clock,
   users: Users,
   settings: SettingsIcon,
 };

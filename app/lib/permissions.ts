@@ -49,6 +49,8 @@ export const ACTION_KEYS = [
   { key: "auditPurchaseOrder", label: "Mark a Purchase Order Audited" },
   { key: "deletePurchaseOrder", label: "Delete a Pending/Rejected Purchase Order" },
   { key: "manageUsers", label: "Manage users & permissions" },
+  { key: "submitOvertimeRequest", label: "Submit overtime requests" },
+  { key: "approveOvertimeRequest", label: "Approve/reject overtime requests" },
 ] as const;
 
 export type ActionKey = (typeof ACTION_KEYS)[number]["key"];
@@ -59,6 +61,7 @@ export const PAGE_KEYS = [
   { key: "calculator", label: "Price Database" },
   { key: "inventory", label: "Inventory" },
   { key: "reconciliation", label: "Reconciliation" },
+  { key: "overtime", label: "Overtime Control" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
 ] as const;
@@ -121,7 +124,7 @@ export const DEFAULT_PAGES_BY_ROLE: Record<Role, PageKey[]> = {
   Supervisor: ["dashboard", "jobs"],
   Manager: ["dashboard", "jobs", "calculator"],
   OwnerFinance: ["dashboard", "jobs", "calculator", "inventory", "reconciliation"],
-  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "users", "settings"],
+  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "users", "settings"],
 };
 
 export const DEFAULT_TABS_BY_ROLE: Record<Role, TabKey[]> = {
