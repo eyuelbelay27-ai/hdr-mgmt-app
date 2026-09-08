@@ -1,0 +1,64 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import { rejectOvertimeRequestAction, type ActionState } from "./actions";
+
+const initialState: ActionState = { error: null };
+
+function ConfirmButton({ enabled }: { enabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button className="btn btn-sm btn-danger" type="submit" disabled={pending || !enabled}>
+      {pending ? "Rejecting…" : "Confirm Reject"}
+    </button>
+  );
+}
+
+export function RejectOvertimeControl({
+  requestId,
+  onRejected,
+}: {
+  requestId: string;
+  onRejected: (note: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const boundAction = rejectOvertimeRequestAction.bind(null, requestId);
+  const [state, formAction] = useFormState(boundAction, initialState);
+
+  useEffect(() => {
+    if (state !== initialState && state.error === null) {
+      onRejected(note);
+      setOpen(false);
+      setNote("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  if (!open) {
+    return (
+      <button className="btn btn-sm btn-danger" type="button" onClick={() => setOpen(true)}>
+        Reject
+      </button>
+    );
+  }
+
+  return (
+    <form action={formAction} style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+      <input
+        className="input"
+        style={{ width: 160, flex: "1 1 160px" }}
+        name="note"
+        placeholder="Reason"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      <ConfirmButton enabled={note.trim().length > 0} />
+      <button className="btn btn-sm" type="button" onClick={() => setOpen(false)}>
+        Cancel
+      </button>
+      {state.error && <span className="login-error">{state.error}</span>}
+    </form>
+  );
+}

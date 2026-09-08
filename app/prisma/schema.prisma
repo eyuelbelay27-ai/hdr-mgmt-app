@@ -112,6 +112,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   priceHistoryChanges MaterialPriceHistory[]
+  overtimeRequests    OvertimeRequest[]      @relation("OvertimeSubmittedBy")
 }
 
 // -----------------------------------------------------------------------
@@ -543,4 +544,44 @@ model Settings {
   withholdingRatePercent Decimal  @default(3) @db.Decimal(5, 2)
   withholdingThreshold   Decimal  @default(20000) @db.Decimal(14, 2)
   updatedAt              DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------
+// Overtime Control — a standalone module. Staff submit a request before
+// working overtime; someone holding approveOvertimeRequest approves or
+// rejects it. Deliberately has no relation to Job/Budget/Expense/
+// Inventory/PurchaseOrder/Material — nothing elsewhere in the app reads
+// or reacts to this table in any way.
+// -----------------------------------------------------------------------
+enum OvertimeStatus {
+  Pending
+  Approved
+  Rejected
+}
+
+model OvertimeRequest {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  // Combined date + start time of the overtime shift.
+  startAt     DateTime
+  // Typed employee names, not a link to the Users table — this module
+  // tracks who's physically going out, which isn't the same set of people
+  // as who has a login.
+  employeeNames String[]
+  status        OvertimeStatus @default(Pending)
+
+  submittedBy   User   @relation("OvertimeSubmittedBy", fields: [submittedById], references: [id])
+  submittedById String
+
+  // Snapshot name, not a relation — matches every other "who approved
+  // this" field in the app (e.g. PurchaseOrder.approvedBy).
+  decidedBy     String?
+  decidedAt     DateTime?
+  rejectionNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([submittedById])
 }
