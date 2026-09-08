@@ -65,11 +65,16 @@ export default async function DashboardPage({
     value: countFor(c.status),
   }));
 
-  const openJobs = await prisma.job.findMany({
-    where: { status: { notIn: ["Closed", "Cancelled"] } },
+  // Closed jobs are included here too — a job can legitimately close with
+  // a balance still owed (Remaining Payment Received is an optional
+  // checklist item, not a Close Job requirement), and it must keep showing
+  // here until it's actually paid. Cancelled is still excluded — a
+  // cancelled job's balance isn't an ongoing amount to collect.
+  const jobsWithPayments = await prisma.job.findMany({
+    where: { status: { not: "Cancelled" } },
     include: { payments: true },
   });
-  const remainingRows = openJobs
+  const remainingRows = jobsWithPayments
     .map((j) => ({ job: j, remaining: remainingPayment(j.costEstimateSoldPrice, j.payments) }))
     .filter((r) => r.remaining > 0)
     .sort((a, b) => b.remaining - a.remaining);

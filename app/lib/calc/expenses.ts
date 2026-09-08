@@ -1,8 +1,16 @@
 import { round2, toNumber } from "@/lib/money";
+import { actualExpenseAmount } from "@/lib/calc/reconciliation";
 
-/** withholding(amount) — Section 7.1. A hard threshold, not a flat percentage. */
+/**
+ * withholding(amount) — Section 7.1. Receipts only (Purchases never carry
+ * withholding — see addExpenseAction). The receipt amount is VAT-inclusive
+ * (15% VAT), so the rate applies to the VAT-exclusive amount, not the
+ * amount as registered: divide by 1.15 first, then take the rate. E.g. a
+ * 11,500 Br receipt at 3% → 11,500 / 1.15 = 10,000 → 300 Br. Still a hard
+ * threshold, not a flat percentage — below it, withholding is 0.
+ */
 export function computeWithholding(amount: number, ratePercent: number, threshold: number): number {
-  return amount > threshold ? round2(amount * (ratePercent / 100)) : 0;
+  return amount > threshold ? round2((amount / 1.15) * (ratePercent / 100)) : 0;
 }
 
 export type VarianceStatus = "over" | "under" | "on" | null;
@@ -150,6 +158,18 @@ export function expensesStats(expenses: ExpenseRow[]) {
     if (v.status === "under") stockUnderBudgetBr += Math.abs(br);
   }
 
+  // Actual money value of stock consumed, in Birr (Section 6 reconciliation)
+  // — actualExpenseAmount already prices a stock row at actualQty (falling
+  // back to the committed qty) × its locked-in unitPrice; this just sums
+  // that across every stock purchase, regardless of over/under status.
+  // Deliberately separate from totalSpent above, which excludes stock
+  // entirely (that stat tracks cash spent, not inventory consumed).
+  const stockActualExpenseBr = round2(
+    expenses
+      .filter((e) => e.entryType === "purchase" && e.category === "stock")
+      .reduce((sum, e) => sum + actualExpenseAmount(e), 0)
+  );
+
   return {
     totalSpent,
     totalWithholding,
@@ -158,5 +178,6 @@ export function expensesStats(expenses: ExpenseRow[]) {
     underBudget: round2(underBudget),
     stockOverBudgetBr: round2(stockOverBudgetBr),
     stockUnderBudgetBr: round2(stockUnderBudgetBr),
+    stockActualExpenseBr,
   };
 }

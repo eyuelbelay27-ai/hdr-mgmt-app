@@ -159,7 +159,7 @@ export default async function JobsPage({
                   )}
                   <td data-label="Updated">{j.updatedAt.toISOString().slice(0, 10)}</td>
                   <td data-label="Record">
-                    {j.status === "Closed" && (
+                    {j.status !== "Draft" && (
                       <a className="btn btn-sm" href={`/jobs/${j.id}/print`}>Print</a>
                     )}
                   </td>
@@ -250,7 +250,7 @@ export default async function JobsPage({
                   <a className="job-card-open-link" href={`/jobs/${j.id}`}>
                     Open details <ChevronRight size={14} strokeWidth={2} />
                   </a>
-                  {j.status === "Closed" && (
+                  {j.status !== "Draft" && (
                     <a className="btn btn-sm" href={`/jobs/${j.id}/print`}>Print</a>
                   )}
                 </div>

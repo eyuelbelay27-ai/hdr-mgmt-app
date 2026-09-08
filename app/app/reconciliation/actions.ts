@@ -81,7 +81,8 @@ export type ChecklistField =
   | "checklistWithholdingCollected"
   | "checklistReceiptAttached"
   | "checklistVatReceiptIssued"
-  | "checklistBudgetVarianceSettled";
+  | "checklistBudgetVarianceSettled"
+  | "checklistRemainingPaymentReceived";
 
 export async function toggleChecklistAction(jobId: string, field: ChecklistField, value: boolean): Promise<void> {
   const user = await requireCurrentUser();
@@ -91,7 +92,7 @@ export async function toggleChecklistAction(jobId: string, field: ChecklistField
 }
 
 /** Which checklist item an uploaded image is attached to. */
-export type ChecklistItemKey = "withholding" | "receipts" | "vat" | "variance";
+export type ChecklistItemKey = "withholding" | "receipts" | "vat" | "variance" | "remainingPayment";
 
 /**
  * Optional proof pictures per checklist item (Section 6) — never required,
@@ -141,9 +142,11 @@ export async function deleteChecklistImageAction(imageId: string, jobId: string)
 
 /**
  * Close Job — only once Reconciled, and only after the three required
- * checklist items are checked (Section 6). "Issue VAT Receipt" is
- * deliberately excluded — it doesn't apply to every job, so it's optional
- * and never blocks closing.
+ * checklist items are checked (Section 6). "Issue VAT Receipt" and
+ * "Remaining Payment Received" are deliberately excluded — VAT doesn't
+ * apply to every job, and a job can legitimately close with a balance
+ * still owed (it keeps showing on the Dashboard's Remaining Payments card
+ * until it's actually paid) — so neither ever blocks closing.
  */
 export async function closeJobAction(jobId: string): Promise<void> {
   const user = await requireCurrentUser();

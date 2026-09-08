@@ -8,6 +8,7 @@ import { SubmitButton } from "../../SubmitButton";
 import { FileField } from "../../FileField";
 import { StockMaterialSelect } from "../../StockMaterialSelect";
 import type { StockMaterial } from "@/lib/materials";
+import { round2, toNumber } from "@/lib/money";
 
 const initialState: ActionState = { error: null };
 
@@ -23,6 +24,8 @@ export function AddExpenseForm({
   const boundAction = addExpenseAction.bind(null, jobId, entryType);
   const [state, formAction] = useFormState(boundAction, initialState);
   const [category, setCategory] = useState<"cash" | "stock">("cash");
+  const [materialId, setMaterialId] = useState("");
+  const [qty, setQty] = useState("");
   const [key, setKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -30,8 +33,14 @@ export function AddExpenseForm({
     if (state !== initialState && state.error === null) {
       formRef.current?.reset();
       setKey((k) => k + 1);
+      setMaterialId("");
+      setQty("");
     }
   }, [state]);
+
+  const selectedMaterial = stockMaterials.find((m) => m.id === materialId);
+  const rate = selectedMaterial ? toNumber(selectedMaterial.rate) : 0;
+  const computedTotal = round2(toNumber(qty) * rate);
 
   return (
     <form
@@ -53,7 +62,7 @@ export function AddExpenseForm({
       {entryType === "purchase" && category === "stock" ? (
         <div style={{ flex: "1 1 160px" }}>
           <label className="label">Item</label>
-          <StockMaterialSelect materials={stockMaterials} />
+          <StockMaterialSelect materials={stockMaterials} onChange={setMaterialId} />
         </div>
       ) : (
         <div style={{ flex: "1 1 140px" }}>
@@ -78,11 +87,25 @@ export function AddExpenseForm({
         <>
           <div style={{ flex: "1 1 90px" }}>
             <label className="label">Qty</label>
-            <input className="input" name="qty" type="number" step="0.01" min="0" required style={{ width: "100%" }} />
+            <input
+              className="input"
+              name="qty"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              style={{ width: "100%" }}
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+            />
           </div>
-          <div style={{ flex: "1 1 110px" }}>
-            <label className="label">Unit Price</label>
-            <input className="input" name="unitPrice" type="number" step="0.01" min="0" required style={{ width: "100%" }} />
+          {/* Unit price always comes from the Price Database, never typed —
+              this is a read-only preview, not an input. */}
+          <div style={{ flex: "1 1 150px" }}>
+            <label className="label">Unit Price (from Price Database)</label>
+            <div className="mono" style={{ padding: "8px 0", fontSize: 13.5 }}>
+              {selectedMaterial ? `${rate.toLocaleString()} Br × ${qty || 0} = ${computedTotal.toLocaleString()} Br` : "Choose an item first"}
+            </div>
           </div>
         </>
       ) : (
