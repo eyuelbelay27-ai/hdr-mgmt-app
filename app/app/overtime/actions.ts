@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, requirePage, PermissionError } from "@/lib/permissions";
+import { OVERTIME_PAGE_SIZE, toRequestData } from "./listData";
 
 export interface OvertimeRequestData {
   id: string;
@@ -30,6 +31,25 @@ export interface ActionState {
  * PurchaseOrder/Material; the only shared piece is the existing User/auth
  * system, used purely to know who's submitting or deciding.
  */
+
+/** Fetches one page of requests, `skip` rows in, most-recently-submitted
+ * first. Returns one extra row beyond OVERTIME_PAGE_SIZE (trimmed off) so
+ * the caller knows whether a further page exists. */
+export async function loadMoreOvertimeRequestsAction(
+  skip: number
+): Promise<{ requests: OvertimeRequestData[]; hasMore: boolean }> {
+  const user = await requireCurrentUser();
+  requirePage(user, "overtime");
+
+  const rows = await prisma.overtimeRequest.findMany({
+    orderBy: { createdAt: "desc" },
+    include: { submittedBy: { select: { name: true } } },
+    skip,
+    take: OVERTIME_PAGE_SIZE + 1,
+  });
+  const hasMore = rows.length > OVERTIME_PAGE_SIZE;
+  return { requests: rows.slice(0, OVERTIME_PAGE_SIZE).map(toRequestData), hasMore };
+}
 
 function parseEmployeeNames(formData: FormData): string[] {
   return formData

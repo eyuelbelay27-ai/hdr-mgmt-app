@@ -7,9 +7,28 @@ import { requireAction, PermissionError } from "@/lib/permissions";
 import { toNumber, round2 } from "@/lib/money";
 import { nextPoNumber } from "@/lib/po-number";
 import { saveUpload, getUploadedFile } from "@/lib/storage";
+import { PO_PAGE_SIZE, toListItem, type POListItem } from "./poListData";
 
 export interface ActionState {
   error: string | null;
+  order?: POListItem;
+  receipt?: { receiptName: string; receiptUrl: string; receiptKind: string };
+}
+
+/** Fetches one page of purchase orders, `skip` rows in, newest first.
+ * Returns one extra row beyond PO_PAGE_SIZE (trimmed off) so the caller
+ * knows whether a further page exists. */
+export async function loadMorePurchaseOrdersAction(
+  skip: number
+): Promise<{ orders: POListItem[]; hasMore: boolean }> {
+  await requireCurrentUser();
+  const rows = await prisma.purchaseOrder.findMany({
+    orderBy: { createdAt: "desc" },
+    skip,
+    take: PO_PAGE_SIZE + 1,
+  });
+  const hasMore = rows.length > PO_PAGE_SIZE;
+  return { orders: rows.slice(0, PO_PAGE_SIZE).map(toListItem), hasMore };
 }
 
 /** Purchase Order create (Section 8.7) — standalone, job-independent. */
@@ -58,7 +77,7 @@ export async function createPurchaseOrderAction(
 
   const poNumber = await nextPoNumber();
 
-  await prisma.purchaseOrder.create({
+  const created = await prisma.purchaseOrder.create({
     data: {
       poNumber,
       date: dateRaw ? new Date(dateRaw) : new Date(),
@@ -76,7 +95,7 @@ export async function createPurchaseOrderAction(
   });
 
   revalidatePath("/");
-  return { error: null };
+  return { error: null, order: toListItem(created) };
 }
 
 /**
@@ -200,7 +219,7 @@ export async function uploadPurchaseOrderReceiptAction(
     },
   });
   revalidatePath("/");
-  return { error: null };
+  return { error: null, receipt: { receiptName: receipt.name, receiptUrl: receipt.url, receiptKind: receipt.kind } };
 }
 
 /** Audited requires a receipt on file to review first (Section 8.7 addendum). */
