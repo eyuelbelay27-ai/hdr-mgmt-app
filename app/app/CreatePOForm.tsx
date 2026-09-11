@@ -6,11 +6,18 @@ import { createPurchaseOrderAction, type ActionState } from "./poActions";
 import { SubmitButton } from "./SubmitButton";
 import { StockMaterialSelect } from "./StockMaterialSelect";
 import type { StockMaterial } from "@/lib/materials";
+import type { POListItem } from "./poListData";
 import { round2, toNumber } from "@/lib/money";
 
 const initialState: ActionState = { error: null };
 
-export function CreatePOForm({ stockMaterials }: { stockMaterials: StockMaterial[] }) {
+export function CreatePOForm({
+  stockMaterials,
+  onCreated,
+}: {
+  stockMaterials: StockMaterial[];
+  onCreated: (order: POListItem) => void;
+}) {
   const [state, formAction] = useFormState(createPurchaseOrderAction, initialState);
   const [category, setCategory] = useState<"cash" | "stock">("cash");
   const [materialId, setMaterialId] = useState("");
@@ -24,7 +31,9 @@ export function CreatePOForm({ stockMaterials }: { stockMaterials: StockMaterial
       setKey((k) => k + 1);
       setMaterialId("");
       setQty("");
+      if (state.order) onCreated(state.order);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   const selectedMaterial = stockMaterials.find((m) => m.id === materialId);

@@ -7,8 +7,18 @@ import { SaveStatusBadge } from "./SaveStatusBadge";
 /** Immediate upload on file selection, matching the house pattern for
  * single-file attachments (no separate Save button — picking a file is
  * the action). */
-export function POReceiptUpload({ poId }: { poId: string }) {
-  const autosave = useAutosave((formData) => uploadPurchaseOrderReceiptAction(poId, { error: null }, formData));
+export function POReceiptUpload({
+  poId,
+  onUploaded,
+}: {
+  poId: string;
+  onUploaded: (receipt: { receiptName: string; receiptUrl: string; receiptKind: string }) => void;
+}) {
+  const autosave = useAutosave(async (formData) => {
+    const result = await uploadPurchaseOrderReceiptAction(poId, { error: null }, formData);
+    if (!result.error && result.receipt) onUploaded(result.receipt);
+    return result;
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 140 }}>

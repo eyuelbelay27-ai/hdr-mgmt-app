@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { can, canSeePage } from "@/lib/permissions";
 import { AppNav } from "../AppNav";
 import { OvertimeBoard } from "./OvertimeBoard";
+import { OVERTIME_PAGE_SIZE } from "./listData";
 
 export default async function OvertimePage() {
   const user = await getCurrentUser();
@@ -22,13 +23,16 @@ export default async function OvertimePage() {
   // Sorted by when it was submitted, never by an editable field — a
   // Pending request's date/time can be edited by its owner, and sorting
   // by that would reshuffle the list mid-edit (see the Price Database fix
-  // for the same class of bug).
-  const requests = await prisma.overtimeRequest.findMany({
+  // for the same class of bug). Only the first page loads here; older
+  // requests come in via the board's Load More button.
+  const rows = await prisma.overtimeRequest.findMany({
     orderBy: { createdAt: "desc" },
     include: { submittedBy: { select: { name: true } } },
+    take: OVERTIME_PAGE_SIZE + 1,
   });
+  const hasMore = rows.length > OVERTIME_PAGE_SIZE;
 
-  const initialRequests = requests.map((r) => ({
+  const initialRequests = rows.slice(0, OVERTIME_PAGE_SIZE).map((r) => ({
     id: r.id,
     title: r.title,
     description: r.description,
@@ -53,6 +57,7 @@ export default async function OvertimePage() {
 
         <OvertimeBoard
           initialRequests={initialRequests}
+          initialHasMore={hasMore}
           currentUserId={user.id}
           currentUserName={user.name}
           canSubmit={can(user, "submitOvertimeRequest")}

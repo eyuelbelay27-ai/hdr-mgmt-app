@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { rejectPurchaseOrderAction, type ActionState } from "./poActions";
 
@@ -15,11 +15,20 @@ function ConfirmButton({ enabled }: { enabled: boolean }) {
   );
 }
 
-export function RejectPOControl({ poId }: { poId: string }) {
+export function RejectPOControl({ poId, onRejected }: { poId: string; onRejected: (note: string) => void }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState("");
   const boundAction = rejectPurchaseOrderAction.bind(null, poId);
   const [state, formAction] = useFormState(boundAction, initialState);
+
+  useEffect(() => {
+    if (state !== initialState && state.error === null) {
+      onRejected(note);
+      setOpen(false);
+      setNote("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   if (!open) {
     return (

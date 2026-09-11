@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { OvertimeCard } from "./OvertimeCard";
 import { AddOvertimeForm } from "./AddOvertimeForm";
-import type { OvertimeRequestData } from "./actions";
+import { loadMoreOvertimeRequestsAction, type OvertimeRequestData } from "./actions";
 
 const FILTERS = ["All", "Pending", "Approved", "Rejected"] as const;
 
@@ -16,18 +16,22 @@ const FILTERS = ["All", "Pending", "Approved", "Rejected"] as const;
  */
 export function OvertimeBoard({
   initialRequests,
+  initialHasMore,
   currentUserId,
   currentUserName,
   canSubmit,
   canApprove,
 }: {
   initialRequests: OvertimeRequestData[];
+  initialHasMore: boolean;
   currentUserId: string;
   currentUserName: string;
   canSubmit: boolean;
   canApprove: boolean;
 }) {
   const [requests, setRequests] = useState(initialRequests);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [addOpen, setAddOpen] = useState(false);
 
@@ -40,6 +44,13 @@ export function OvertimeBoard({
   const handleCreated = (request: OvertimeRequestData) => {
     setRequests((prev) => [request, ...prev]);
     setAddOpen(false);
+  };
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    const result = await loadMoreOvertimeRequestsAction(requests.length);
+    setRequests((prev) => [...prev, ...result.requests]);
+    setHasMore(result.hasMore);
+    setLoadingMore(false);
   };
 
   const visible = filter === "All" ? requests : requests.filter((r) => r.status === filter);
@@ -92,6 +103,14 @@ export function OvertimeBoard({
         ))}
         {visible.length === 0 && <p className="label">No {filter === "All" ? "" : filter.toLowerCase() + " "}overtime requests.</p>}
       </div>
+
+      {hasMore && filter === "All" && (
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <button className="btn btn-sm" type="button" disabled={loadingMore} onClick={handleLoadMore}>
+            {loadingMore ? "Loading…" : "Load More"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

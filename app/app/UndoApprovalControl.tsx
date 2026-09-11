@@ -4,8 +4,9 @@ import { useState } from "react";
 import { revertPurchaseOrderApprovalAction } from "./poActions";
 
 /** Two-step destructive confirm (Section 9) — no native confirm() dialog. */
-export function UndoApprovalControl({ poId }: { poId: string }) {
+export function UndoApprovalControl({ poId, onReverted }: { poId: string; onReverted: () => void }) {
   const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   if (!confirming) {
     return (
@@ -15,11 +16,17 @@ export function UndoApprovalControl({ poId }: { poId: string }) {
     );
   }
 
+  const handleUndo = async () => {
+    setBusy(true);
+    await revertPurchaseOrderApprovalAction(poId);
+    onReverted();
+  };
+
   return (
     <div style={{ display: "flex", gap: 6 }}>
-      <form action={revertPurchaseOrderApprovalAction.bind(null, poId)}>
-        <button className="btn btn-sm btn-danger" type="submit">Confirm Undo</button>
-      </form>
+      <button className="btn btn-sm btn-danger" type="button" disabled={busy} onClick={handleUndo}>
+        {busy ? "Undoing…" : "Confirm Undo"}
+      </button>
       <button className="btn btn-sm" type="button" onClick={() => setConfirming(false)}>Never Mind</button>
     </div>
   );
