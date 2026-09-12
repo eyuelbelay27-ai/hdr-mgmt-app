@@ -518,6 +518,37 @@ input[type="radio"] {
 .print-sheet table.dtable {
   page-break-inside: avoid;
 }
+
+/* Pictures printed big at the end of the record: design artwork at half a
+   sheet, cut list pictures at a full sheet each. PrintPlate measures each
+   picture and sets its exact printed size, so the rules here are only the
+   frame and a fallback for the moment before that measurement lands. */
+.print-plate {
+  margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.print-plate-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.print-plate img {
+  max-width: 100%;
+  object-fit: contain;
+  border: 1px solid #ddd;
+}
+.print-plate-half img {
+  max-height: 110mm;
+}
+.print-plate-full img {
+  max-height: 230mm;
+}
 @media print {
   .no-print {
     display: none !important;
@@ -584,6 +615,29 @@ input[type="radio"] {
   .print-sheet p {
     margin: 4px 0;
     font-size: 12px;
+  }
+
+  /* Attachments start on their own sheet, and each cut list picture gets a
+     full one, so pages 1-2 stay the job record on its own. */
+  .print-attachments {
+    page-break-before: always;
+    break-before: page;
+  }
+  /* :not(:first-child) so a job with no artwork doesn't break twice in a
+     row — once for the section, once for the picture — and leave a blank
+     sheet between them. */
+  .print-plate-full:not(:first-child) {
+    page-break-before: always;
+    break-before: page;
+  }
+  /* No fixed height: break-before already guarantees one picture per
+     sheet, and a fixed height would push the caption past the box. */
+  .print-plate-full {
+    margin: 0;
+  }
+  .print-plate-half {
+    height: 128mm;
+    margin: 0;
   }
 }
 

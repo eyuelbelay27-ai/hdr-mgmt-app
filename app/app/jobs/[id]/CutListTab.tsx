@@ -24,9 +24,31 @@ export function CutListTab({
 }) {
   const editable = can(user, "editCutList") && !locked;
 
+  // Only pictures can be printed onto the job record — a PDF prints as
+  // its filename and nothing else — so flag the case where someone
+  // uploaded the PDF and stopped.
+  const isImage = (kind: string | null) => (kind ?? "").startsWith("image/");
+  const needsPicture = job.cutFiles.some((f) => !isImage(f.kind)) && !job.cutFiles.some((f) => isImage(f.kind));
+
   return (
     <div style={{ display: "grid", gap: 16 }}>
       {locked && <p className="label">This job&apos;s cut list is locked (status is past Draft).</p>}
+
+      {needsPicture && (
+        <p
+          className="card"
+          style={{
+            padding: 12,
+            margin: 0,
+            fontSize: 13,
+            background: "var(--warn-soft)",
+            color: "var(--warn)",
+            borderColor: "var(--warn)",
+          }}
+        >
+          Add a picture of the cut list too. Only pictures print onto the job record — a PDF shows as a filename and nothing more.
+        </p>
+      )}
 
       <div style={{ display: "grid", gap: 10 }}>
         {job.cutFiles.map((f) => (

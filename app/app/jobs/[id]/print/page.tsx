@@ -9,10 +9,13 @@ import { actualTotalExpenses, actualExpenseAmount, finalProfitAfterExpenses } fr
 import { remainingPayment } from "@/lib/calc/payments";
 import { toNumber } from "@/lib/money";
 import { PrintButton } from "./PrintButton";
+import { PrintPlate } from "./PrintPlate";
 import { HadarMark } from "../../../Logo";
 import { Lightbox } from "../../../Lightbox";
 
 const ACTIVITY_PRINT_LIMIT = 15;
+
+const isImage = (kind: string | null | undefined) => (kind ?? "").startsWith("image/");
 
 /**
  * Full job record. Originally Closed-only (Section 6/8.2), now available
@@ -42,6 +45,11 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
   });
   if (!job) notFound();
   if (job.status === "Draft") redirect(`/jobs/${id}`);
+
+  // Printed large at the end rather than inline, so the job's numbers stay
+  // on the first pages and whoever only needs those can stop printing there.
+  const artworkPlates = job.components.filter((c) => c.artUrl && isImage(c.artKind));
+  const cutListPlates = job.cutFiles.filter((f) => isImage(f.kind));
 
   const canSeeFinancials = canSeeTab(user, "tab_payments");
   const totals = costEstimateTotals(job.costEstimateItems, job.costEstimateSoldPrice, job.costEstimateCommissionActive);
@@ -238,6 +246,33 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
           <p className="label">
             + {job.activity.length - ACTIVITY_PRINT_LIMIT} earlier entries not shown — see the Activity tab in the app for the full history.
           </p>
+        )}
+
+        {(artworkPlates.length > 0 || cutListPlates.length > 0) && (
+          <div className="print-attachments">
+            {artworkPlates.length > 0 && (
+              <>
+                <h2>Design Artwork</h2>
+                {artworkPlates.map((c) => (
+                  <PrintPlate
+                    key={c.id}
+                    size="half"
+                    caption={`${c.name} — ${String(c.width)}m × ${String(c.height)}m${c.ledColor ? ` · ${c.ledColor}` : ""}`}
+                    file={{ name: c.artName ?? "artwork", url: c.artUrl as string }}
+                  />
+                ))}
+              </>
+            )}
+
+            {cutListPlates.map((f) => (
+              <PrintPlate
+                key={f.id}
+                size="full"
+                caption={`Cut List — ${f.name}`}
+                file={{ name: f.name, url: f.url }}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>
