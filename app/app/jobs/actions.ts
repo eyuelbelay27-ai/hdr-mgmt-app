@@ -52,7 +52,17 @@ export async function createJobAction(
     return { error: "A picture of the advance payment (receipt or transfer screenshot) is required." };
   }
 
-  const proof = await saveUpload(proofFile);
+  // Storing the proof goes over the network to object storage, so it can
+  // genuinely fail on a weak connection or a large phone photo. Returned
+  // as a form error rather than thrown, so the user gets a message they
+  // can act on instead of losing everything they just typed.
+  let proof;
+  try {
+    proof = await saveUpload(proofFile);
+  } catch {
+    return { error: "Couldn't upload the payment picture. Check your connection and try again — a smaller photo also helps." };
+  }
+
   const jobNumber = await nextJobNumber();
 
   await prisma.job.create({
