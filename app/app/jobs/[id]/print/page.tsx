@@ -10,6 +10,9 @@ import { remainingPayment } from "@/lib/calc/payments";
 import { toNumber } from "@/lib/money";
 import { PrintButton } from "./PrintButton";
 import { HadarMark } from "../../../Logo";
+import { Lightbox } from "../../../Lightbox";
+
+const ACTIVITY_PRINT_LIMIT = 15;
 
 /**
  * Full job record. Originally Closed-only (Section 6/8.2), now available
@@ -33,6 +36,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
       budgetItems: true,
       expenses: { orderBy: { date: "asc" } },
       payments: { orderBy: { date: "asc" } },
+      checklistImages: true,
       activity: { orderBy: { ts: "asc" } },
     },
   });
@@ -78,7 +82,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
 
         <h2>Design</h2>
         <table className="dtable">
-          <thead><tr><th>Component</th><th>Size</th><th>Qty</th><th>LED</th></tr></thead>
+          <thead><tr><th>Component</th><th>Size</th><th>Qty</th><th>LED</th><th>Art</th></tr></thead>
           <tbody>
             {job.components.map((c) => (
               <tr key={c.id}>
@@ -86,11 +90,37 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
                 <td>{String(c.width)}m × {String(c.height)}m</td>
                 <td>{c.qty}</td>
                 <td>{c.ledColor || "—"}</td>
+                <td>
+                  {c.artUrl ? (
+                    <Lightbox file={{ name: c.artName ?? "art", url: c.artUrl, kind: c.artKind ?? "" }} size={40} />
+                  ) : (
+                    "—"
+                  )}
+                </td>
               </tr>
             ))}
-            {job.components.length === 0 && <tr><td colSpan={4} className="label">None.</td></tr>}
+            {job.components.length === 0 && <tr><td colSpan={5} className="label">None.</td></tr>}
           </tbody>
         </table>
+
+        {job.cutFiles.length > 0 && (
+          <>
+            <h2>Cut List</h2>
+            <table className="dtable">
+              <thead><tr><th>File</th><th>Preview</th></tr></thead>
+              <tbody>
+                {job.cutFiles.map((f) => (
+                  <tr key={f.id}>
+                    <td>{f.name}</td>
+                    <td>
+                      <Lightbox file={{ name: f.name, url: f.url, kind: f.kind ?? "" }} size={40} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
 
         <h2>Cost Estimate</h2>
         <table className="dtable">
@@ -133,7 +163,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
 
         <h2>Expenses</h2>
         <table className="dtable">
-          <thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Total</th><th>Withholding</th></tr></thead>
+          <thead><tr><th>Date</th><th>Item</th><th>Type</th><th>Total</th><th>Withholding</th><th>Receipt</th></tr></thead>
           <tbody>
             {job.expenses.map((e) => (
               <tr key={e.id}>
@@ -142,6 +172,13 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
                 <td>{e.entryType === "purchase" ? "Purchase" : "Receipt"}</td>
                 <td className="mono">{actualExpenseAmount(e).toLocaleString()}</td>
                 <td className="mono">{toNumber(e.withholding).toLocaleString()}</td>
+                <td>
+                  {e.receiptUrl ? (
+                    <Lightbox file={{ name: e.receiptName ?? "receipt", url: e.receiptUrl, kind: e.receiptKind ?? "" }} size={40} />
+                  ) : (
+                    "—"
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -152,13 +189,20 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
           <>
             <h2>Payments</h2>
             <table className="dtable">
-              <thead><tr><th>Date</th><th>Type</th><th>Amount</th></tr></thead>
+              <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Receipt</th></tr></thead>
               <tbody>
                 {job.payments.map((p) => (
                   <tr key={p.id}>
                     <td>{p.date.toISOString().slice(0, 10)}</td>
                     <td>{p.type}</td>
                     <td className="mono">{toNumber(p.amount).toLocaleString()}</td>
+                    <td>
+                      {p.receiptUrl ? (
+                        <Lightbox file={{ name: p.receiptName ?? "receipt", url: p.receiptUrl, kind: p.receiptKind ?? "" }} size={40} />
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -168,10 +212,21 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
           </>
         )}
 
+        {job.checklistImages.length > 0 && (
+          <>
+            <h2>Reconciliation Checklist</h2>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {job.checklistImages.map((img) => (
+                <Lightbox key={img.id} file={{ name: img.name, url: img.url, kind: img.kind }} size={48} />
+              ))}
+            </div>
+          </>
+        )}
+
         <h2>Activity</h2>
         <table className="dtable">
           <tbody>
-            {job.activity.map((a) => (
+            {job.activity.slice(-ACTIVITY_PRINT_LIMIT).map((a) => (
               <tr key={a.id}>
                 <td className="mono" style={{ whiteSpace: "nowrap" }}>{a.ts.toISOString().slice(0, 16).replace("T", " ")}</td>
                 <td>{a.text}</td>
@@ -179,6 +234,11 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
             ))}
           </tbody>
         </table>
+        {job.activity.length > ACTIVITY_PRINT_LIMIT && (
+          <p className="label">
+            + {job.activity.length - ACTIVITY_PRINT_LIMIT} earlier entries not shown — see the Activity tab in the app for the full history.
+          </p>
+        )}
       </div>
     </div>
   );

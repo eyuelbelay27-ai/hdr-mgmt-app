@@ -510,6 +510,14 @@ input[type="radio"] {
 .print-sheet .label {
   color: #555;
 }
+.print-sheet h2 {
+  margin: 14px 0 6px;
+  font-size: 15px;
+  page-break-after: avoid;
+}
+.print-sheet table.dtable {
+  page-break-inside: avoid;
+}
 @media print {
   .no-print {
     display: none !important;
@@ -520,6 +528,62 @@ input[type="radio"] {
   }
   body {
     background: #fff;
+  }
+  /* The app's normal .dtable rules turn into stacked "cards" below
+     640px (Section: mobile table treatment) — but a printed page's
+     content width often measures under that breakpoint too, which was
+     silently turning every row of every table on this page into its own
+     bordered card and blowing the job record out to dozens of pages.
+     Force the print sheet's tables back to a real, compact table
+     regardless of print width. */
+  .print-sheet .dtable-wrap {
+    overflow-x: visible;
+  }
+  .print-sheet .dtable {
+    display: table;
+    width: 100%;
+  }
+  .print-sheet .dtable thead {
+    display: table-header-group;
+  }
+  .print-sheet .dtable tbody {
+    display: table-row-group;
+  }
+  .print-sheet .dtable tr {
+    display: table-row;
+    margin-bottom: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    page-break-inside: avoid;
+  }
+  .print-sheet .dtable td {
+    display: table-cell;
+    flex-direction: unset;
+    align-items: unset;
+    padding: 4px 6px;
+    text-align: left;
+    font-size: 11px;
+  }
+  .print-sheet .dtable th {
+    padding: 4px 6px;
+    font-size: 9px;
+  }
+  .print-sheet .dtable td[data-label]::before {
+    content: none;
+  }
+  .print-sheet .dtable td:not([data-label]),
+  .print-sheet .dtable td[data-span="full"] {
+    grid-column: unset;
+    flex-direction: unset;
+    justify-content: unset;
+  }
+  .print-sheet h1 {
+    font-size: 18px;
+  }
+  .print-sheet p {
+    margin: 4px 0;
+    font-size: 12px;
   }
 }
 
