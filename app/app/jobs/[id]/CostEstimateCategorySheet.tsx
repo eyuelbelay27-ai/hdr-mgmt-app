@@ -18,6 +18,8 @@ interface CostItem {
   total: number;
   source: string;
   comment: string | null;
+  /** Its material was deleted from the Price Database. */
+  orphaned?: boolean;
 }
 
 const ROW_GRID = "1fr 56px 84px";
@@ -60,8 +62,11 @@ export function CostEstimateCategorySheet({
     () => new Map(items.filter((i) => i.materialId).map((i) => [i.materialId as string, i])),
     [items]
   );
-  const manualItems = items.filter((i) => !i.materialId && i.category === category);
-  const manualTotal = manualItems.reduce((sum, i) => sum + toNumber(i.total), 0);
+  // Lines the material list above can't price: ad-hoc rows, and rows whose
+  // material has been deleted. Both carry their own figure and must still
+  // be counted, or this heading disagrees with the job's Sub Total.
+  const looseItems = items.filter((i) => i.category === category && (!i.materialId || i.orphaned));
+  const looseTotal = looseItems.reduce((sum, i) => sum + toNumber(i.total), 0);
 
   const [qtys, setQtys] = useState<Record<string, string>>(() => {
     const init: Record<string, string> = {};
@@ -78,7 +83,7 @@ export function CostEstimateCategorySheet({
     return round2(qty * toNumber(rate));
   };
 
-  const categoryTotal = manualTotal + materials.reduce((sum, m) => sum + rowTotal(m.id, m.rate), 0);
+  const categoryTotal = round2(looseTotal + materials.reduce((sum, m) => sum + rowTotal(m.id, m.rate), 0));
 
   const autosave = useAutosave((formData) => saveCostEstimateQuantitiesAction(jobId, category, formData));
   const buildQtyFormData = (values: Record<string, string>) => {
@@ -197,10 +202,10 @@ export function CostEstimateCategorySheet({
             })}
           </div>
 
-          {manualItems.length > 0 && (
+          {looseItems.length > 0 && (
             <div style={{ marginTop: 16 }}>
               <div className="label" style={{ marginBottom: 4 }}>Ad-hoc Items</div>
-              {manualItems.map((i) => (
+              {looseItems.map((i) => (
                 <div
                   key={i.id}
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 4px", borderTop: "1px solid var(--border-soft)" }}
@@ -211,6 +216,11 @@ export function CostEstimateCategorySheet({
                       {toNumber(i.qty)} {i.unit} &times; {toNumber(i.unitPrice).toLocaleString()}
                       {i.comment ? ` · ${i.comment}` : ""}
                     </div>
+                    {i.orphaned && (
+                      <div style={{ fontSize: 11, color: "var(--warn)", fontWeight: 600 }}>
+                        Removed from the Price Database — still costed at its last price
+                      </div>
+                    )}
                   </div>
                   <div className="mono" style={{ fontSize: 13.5, fontWeight: 600, flexShrink: 0 }}>
                     {toNumber(i.total).toLocaleString()}

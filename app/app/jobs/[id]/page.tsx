@@ -56,7 +56,9 @@ export default async function JobDetailPage({
     include: {
       components: { orderBy: { id: "asc" } },
       cutFiles: { orderBy: { uploadedAt: "asc" } },
-      costEstimateItems: { orderBy: { id: "asc" } },
+      // The material relation is what lets the estimate be priced at
+      // today's rates rather than the figures saved with it.
+      costEstimateItems: { orderBy: { id: "asc" }, include: { material: { select: { rate: true } } } },
       budgetItems: { orderBy: { id: "asc" } },
       expenses: { orderBy: { date: "desc" } },
       payments: { orderBy: { date: "asc" } },

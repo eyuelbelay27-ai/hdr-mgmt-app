@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { canSeePage, canSeeTab } from "@/lib/permissions";
 import { STATUS_LABEL } from "@/lib/job-status";
-import { costEstimateTotals } from "@/lib/calc/cost-estimate";
+import { costEstimateTotals, costEstimateLineTotal, isOrphanedLine } from "@/lib/calc/cost-estimate";
 import { totalAllocatedCash } from "@/lib/calc/budget";
 import { actualTotalExpenses, actualExpenseAmount, finalProfitAfterExpenses } from "@/lib/calc/reconciliation";
 import { remainingPayment } from "@/lib/calc/payments";
@@ -35,7 +35,7 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
     include: {
       components: true,
       cutFiles: true,
-      costEstimateItems: true,
+      costEstimateItems: { include: { material: { select: { rate: true } } } },
       budgetItems: true,
       expenses: { orderBy: { date: "asc" } },
       payments: { orderBy: { date: "asc" } },
@@ -136,11 +136,16 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
           <tbody>
             {job.costEstimateItems.map((i) => (
               <tr key={i.id}>
-                <td>{i.name}</td>
+                <td>
+                  {i.name}
+                  {isOrphanedLine(i) && <span className="label"> · item no longer in Price Database</span>}
+                </td>
                 <td>{i.category === "cash" ? "Cash" : "Stock"}</td>
                 <td className="mono">{String(i.qty)}</td>
-                <td className="mono">{toNumber(i.unitPrice).toLocaleString()}</td>
-                <td className="mono">{toNumber(i.total).toLocaleString()}</td>
+                <td className="mono">
+                  {(i.material ? toNumber(i.material.rate) : toNumber(i.unitPrice)).toLocaleString()}
+                </td>
+                <td className="mono">{costEstimateLineTotal(i).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>

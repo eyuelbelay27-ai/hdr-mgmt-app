@@ -28,7 +28,7 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
       budgetItems: { include: { expense: true } },
       expenses: true,
       payments: true,
-      costEstimateItems: true,
+      costEstimateItems: { include: { material: { select: { rate: true } } } },
       checklistImages: true,
     },
   });

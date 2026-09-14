@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, PermissionError } from "@/lib/permissions";
 import { toNumber } from "@/lib/money";
+import { costEstimateLineTotal } from "@/lib/calc/cost-estimate";
 import { logActivity } from "@/lib/activity";
 import { pullBudgetIntoExpenses } from "./expensesActions";
 import type { ActionState } from "./actions";
@@ -117,11 +118,17 @@ export async function pullFromCostEstimateAction(jobId: string): Promise<void> {
   requireAction(user, "manageBudget", "edit");
   await assertBudgetEditable(jobId);
 
-  const items = await prisma.costEstimateItem.findMany({ where: { jobId } });
+  const items = await prisma.costEstimateItem.findMany({
+    where: { jobId },
+    include: { material: { select: { rate: true } } },
+  });
 
   for (const item of items) {
     const qty = toNumber(item.qty);
-    const total = toNumber(item.total);
+    // Priced the same way the Cost Estimate displays it, so the budget
+    // that gets pulled matches what was on screen. From here the budget
+    // is its own record and no longer follows the Price Database.
+    const total = costEstimateLineTotal(item);
     await prisma.budgetItem.upsert({
       where: { costEstimateItemId: item.id },
       create: {
