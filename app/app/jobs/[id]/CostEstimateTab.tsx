@@ -1,6 +1,6 @@
 import { can, canViewAction, type PermissionSubject } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { costEstimateTotals } from "@/lib/calc/cost-estimate";
+import { costEstimateTotals, costEstimateLineTotal, isOrphanedLine } from "@/lib/calc/cost-estimate";
 import { toNumber } from "@/lib/money";
 import { CostEstimateCategorySheet } from "./CostEstimateCategorySheet";
 import { SoldPriceForm } from "./SoldPriceForm";
@@ -18,6 +18,7 @@ interface CostItem {
   total: unknown;
   source: string;
   comment: string | null;
+  material?: { rate: unknown } | null;
 }
 
 interface CostJob {
@@ -52,11 +53,21 @@ export async function CostEstimateTab({
     category: m.category,
     rate: m.rate === null ? null : toNumber(m.rate),
   }));
+  // Built field by field rather than spread, so the material relation's
+  // Decimal rate never crosses into the client component. `total` is the
+  // line priced at today's rate — the same figure the totals below add up.
   const plainItems = job.costEstimateItems.map((i) => ({
-    ...i,
+    id: i.id,
+    materialId: i.materialId,
+    name: i.name,
+    category: i.category,
+    unit: i.unit,
     qty: toNumber(i.qty),
-    unitPrice: toNumber(i.unitPrice),
-    total: toNumber(i.total),
+    unitPrice: i.material ? toNumber(i.material.rate) : toNumber(i.unitPrice),
+    total: costEstimateLineTotal(i),
+    source: i.source,
+    comment: i.comment,
+    orphaned: isOrphanedLine(i),
   }));
   const cashMaterials = plainMaterials.filter((m) => m.category === "cash");
   const stockMaterials = plainMaterials.filter((m) => m.category === "stock");
