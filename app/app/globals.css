@@ -285,6 +285,13 @@ input[type="radio"] {
   white-space: nowrap;
   flex-shrink: 0;
 }
+button.tab {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
 .tab:hover {
   color: var(--text);
 }
@@ -1199,4 +1206,257 @@ input[type="radio"] {
 }
 .pricedb-field-grid .pricedb-field-full {
   grid-column: 1 / -1;
+}
+
+/* -----------------------------------------------------------------------
+   CRM — kanban board, lead cards and the weekly-report banner.
+   The board scrolls horizontally rather than squeezing five columns into a
+   phone screen; the List toggle is the one-handed way through, and every
+   card carries its own move buttons so nothing depends on dragging.
+   ----------------------------------------------------------------------- */
+/* Every wrapper between the page and the board needs min-width:0, or the
+   board's five-column min-content width propagates up the grid and widens
+   the page instead of scrolling inside the board. */
+.crm-root,
+.crm-section,
+.crm-board-wrap {
+  min-width: 0;
+}
+.crm-root,
+.crm-section {
+  display: grid;
+}
+.crm-root {
+  gap: 16px;
+}
+.crm-section {
+  gap: 14px;
+}
+.crm-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.crm-view-toggle {
+  display: flex;
+  gap: 6px;
+}
+.crm-board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(230px, 1fr);
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  align-items: start;
+  /* Without this the board's min-content width (five columns) stretches its
+     own grid parent, widening the whole page instead of scrolling. */
+  min-width: 0;
+}
+.crm-column {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-card);
+  padding: 10px;
+  min-height: 120px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.crm-column-over {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.crm-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.crm-column-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.crm-column-body {
+  display: grid;
+  gap: 8px;
+}
+.crm-column-empty {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  text-align: center;
+}
+.crm-dragging {
+  opacity: 0.45;
+}
+
+.crm-card {
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+.crm-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.crm-card-date {
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.crm-card-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.3;
+}
+.crm-card-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.crm-card-phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-text);
+  text-decoration: none;
+  width: fit-content;
+}
+.crm-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+.crm-card-outcome {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  padding: 6px 8px;
+}
+.crm-card-actions,
+.crm-card-admin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+}
+.crm-card-admin {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 8px;
+}
+.crm-move-btn {
+  font-weight: 600;
+}
+.crm-inline-form {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 8px;
+  margin-top: 3px;
+}
+
+.crm-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+.crm-confirm input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.crm-generate-card {
+  border-color: var(--accent);
+}
+
+.crm-report-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.crm-report-title {
+  flex: 1;
+  min-width: 0;
+}
+.crm-report-summary {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.crm-report-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* The outstanding-report strip, rendered above the app shell on every page. */
+.crm-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 16px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--accent);
+  font-size: 13px;
+  color: var(--text);
+}
+.crm-banner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.crm-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+.crm-banner-link {
+  font-weight: 700;
+  color: var(--accent-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.crm-banner-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  /* Columns keep a readable width and the board scrolls sideways — five
+     squeezed columns would be unusable, and the List toggle exists for
+     anyone who'd rather not scroll at all. */
+  .crm-board {
+    grid-auto-columns: minmax(230px, 260px);
+  }
+  .crm-report-summary {
+    display: none;
+  }
 }
