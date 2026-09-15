@@ -113,6 +113,8 @@ model User {
 
   priceHistoryChanges MaterialPriceHistory[]
   overtimeRequests    OvertimeRequest[]      @relation("OvertimeSubmittedBy")
+  crmLeads            CrmLead[]              @relation("CrmLeadAssignedTo")
+  crmWeeklyReports    CrmWeeklyReport[]      @relation("CrmReportRep")
 }
 
 // -----------------------------------------------------------------------
@@ -218,11 +220,11 @@ model Job {
   // Final Checklist (Section 6, unlocks Close Job once the three required
   // items are true — VAT and Remaining Payment Received are optional, see
   // closeJobAction — and reconciliationStatus === Reconciled)
-  checklistWithholdingCollected     Boolean @default(false)
-  checklistReceiptAttached          Boolean @default(false)
-  checklistVatReceiptIssued         Boolean @default(false)
-  checklistBudgetVarianceSettled    Boolean @default(false)
-  checklistRemainingPaymentReceived Boolean @default(false)
+  checklistWithholdingCollected     Boolean                        @default(false)
+  checklistReceiptAttached          Boolean                        @default(false)
+  checklistVatReceiptIssued         Boolean                        @default(false)
+  checklistBudgetVarianceSettled    Boolean                        @default(false)
+  checklistRemainingPaymentReceived Boolean                        @default(false)
   checklistImages                   ReconciliationChecklistImage[]
 
   // Monitoring / closing
@@ -342,34 +344,34 @@ model BudgetItem {
 }
 
 model Expense {
-  id          String           @id @default(cuid())
-  job         Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId       String
-  entryType   ExpenseEntryType
+  id           String           @id @default(cuid())
+  job          Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId        String
+  entryType    ExpenseEntryType
   // Category only applies to Purchase rows (Section 7.4); null for Receipts.
-  category    ItemCategory?
-  source      ExpenseSource
-  purchaser   String?
-  date        DateTime
-  item        String
-  description String?
-  qty         Decimal?         @db.Decimal(14, 3)
-  unit        String?
-  unitPrice   Decimal?         @db.Decimal(14, 2)
-  totalPrice  Decimal          @db.Decimal(14, 2)
+  category     ItemCategory?
+  source       ExpenseSource
+  purchaser    String?
+  date         DateTime
+  item         String
+  description  String?
+  qty          Decimal?         @db.Decimal(14, 3)
+  unit         String?
+  unitPrice    Decimal?         @db.Decimal(14, 2)
+  totalPrice   Decimal          @db.Decimal(14, 2)
   // Carried over from the matched BudgetItem for Budget-pulled Stock rows,
   // so the Section 7.5 Actual-Spent adjustment entry can link back to the
   // same material as the original deduction instead of only matching by
   // itemName (which would fragment the derived balance into two rows).
-  material    Material?        @relation(fields: [materialId], references: [id])
-  materialId  String?
+  material     Material?        @relation(fields: [materialId], references: [id])
+  materialId   String?
   // Label of the matched budget line, for display (Section 4.1).
-  budgetRef   String?
+  budgetRef    String?
   // Links a Budget-pulled Purchase row back to the BudgetItem it came
   // from, so re-running "Pull From Budget" (Section 8.3) refreshes only
   // the rows it previously generated. Null for Manual rows.
-  budgetItem   BudgetItem? @relation(fields: [budgetItemId], references: [id])
-  budgetItemId String?     @unique
+  budgetItem   BudgetItem?      @relation(fields: [budgetItemId], references: [id])
+  budgetItemId String?          @unique
 
   // Auto: 3% of totalPrice, only when totalPrice > 20,000 ETB (Section 7.1)
   withholding Decimal @default(0) @db.Decimal(14, 2)
@@ -458,8 +460,8 @@ model PurchaseOrder {
   auditedBy   String?
   auditedAt   DateTime?
 
-  history         PurchaseOrderHistoryEntry[]
-  inventoryEntry  InventoryEntry?
+  history        PurchaseOrderHistoryEntry[]
+  inventoryEntry InventoryEntry?
 
   createdAt DateTime @default(now())
 }
@@ -530,7 +532,9 @@ model JobSequence {
   lastNumber Int @default(0)
 }
 
-/** Same atomic-counter pattern as JobSequence, for PO-2026-0001 style numbers. */
+/**
+ * Same atomic-counter pattern as JobSequence, for PO-2026-0001 style numbers.
+ */
 model PoSequence {
   year       Int @id
   lastNumber Int @default(0)
@@ -560,11 +564,11 @@ enum OvertimeStatus {
 }
 
 model OvertimeRequest {
-  id          String         @id @default(cuid())
-  title       String
-  description String?
+  id            String         @id @default(cuid())
+  title         String
+  description   String?
   // Combined date + start time of the overtime shift.
-  startAt     DateTime
+  startAt       DateTime
   // Typed employee names, not a link to the Users table — this module
   // tracks who's physically going out, which isn't the same set of people
   // as who has a login.
@@ -584,4 +588,105 @@ model OvertimeRequest {
   updatedAt DateTime @updatedAt
 
   @@index([submittedById])
+}
+
+// -----------------------------------------------------------------------
+// CRM — a standalone module, like Overtime Control. An Admin registers
+// every incoming lead and assigns it to a sales rep; the rep works it
+// through to an outcome and confirms a weekly report. Deliberately has no
+// relation to Job/Budget/Expense/Inventory/PurchaseOrder/Material —
+// nothing in Job Management reads or reacts to these tables. The only
+// shared piece is the User table, used purely for identity.
+// -----------------------------------------------------------------------
+
+/**
+ * A lead's outcome. Unseen → Seen is the rep acknowledging it; from Seen
+ * it ends at Unreachable, Closed or Failed. `seenAt` is stored separately
+ * from the status so the time the rep first picked the lead up survives
+ * every later move.
+ */
+enum CrmLeadStatus {
+  Unseen
+  Seen
+  Unreachable
+  Closed
+  Failed
+}
+
+model CrmLead {
+  id           String        @id @default(cuid())
+  phone        String
+  location     String
+  businessType String
+  // Where the lead came from — a campaign name, a referral, a walk-in.
+  source       String?
+  // When the business received the lead, typed by whoever registers it.
+  // Reports are cut by this date, not by createdAt.
+  receivedAt   DateTime
+  status       CrmLeadStatus @default(Unseen)
+  seenAt       DateTime?
+
+  // Only filled in on Closed.
+  saleAmount  Decimal? @db.Decimal(14, 2)
+  profit      Decimal? @db.Decimal(14, 2)
+  // Only filled in on Failed — a typed reason, deliberately free text
+  // rather than a fixed list.
+  failureNote String?
+
+  assignedTo   User   @relation("CrmLeadAssignedTo", fields: [assignedToId], references: [id])
+  assignedToId String
+
+  // Snapshot name of the Admin who registered it, matching every other
+  // "who did this" field in the app.
+  createdBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assignedToId])
+  @@index([receivedAt])
+  @@index([status])
+}
+
+/**
+ * Single row. `reportDay` is the one company-wide day of the week that
+ * closes the reporting week (0 = Sunday … 6 = Saturday).
+ */
+model CrmSettings {
+  id        String   @id @default("singleton")
+  reportDay Int      @default(5)
+  updatedAt DateTime @updatedAt
+}
+
+/**
+ * A rep's report for one week, frozen at the moment it's generated. The
+ * totals and `rows` are a snapshot, never recomputed — a lead edited
+ * afterwards must not silently rewrite a report the rep already stood
+ * behind.
+ */
+model CrmWeeklyReport {
+  id    String @id @default(cuid())
+  rep   User   @relation("CrmReportRep", fields: [repId], references: [id])
+  repId String
+
+  // Inclusive day boundaries of the week this covers (both at midnight
+  // local time), derived from CrmSettings.reportDay when generated.
+  weekStart   DateTime
+  weekEnd     DateTime
+  generatedAt DateTime @default(now())
+
+  leadsWorked      Int
+  closedCount      Int
+  failedCount      Int
+  unreachableCount Int
+  totalSale        Decimal @db.Decimal(14, 2)
+  totalProfit      Decimal @db.Decimal(14, 2)
+
+  // One frozen entry per lead — see lib/crm/report.ts for the shape.
+  rows Json
+
+  // One report per rep per week; re-generating is blocked rather than
+  // overwriting what was already submitted.
+  @@unique([repId, weekEnd])
+  @@index([repId])
 }

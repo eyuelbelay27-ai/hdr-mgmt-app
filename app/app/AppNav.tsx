@@ -8,6 +8,7 @@ import {
   Package,
   ClipboardCheck,
   Clock,
+  Contact,
   Users,
   Settings as SettingsIcon,
   Menu,
@@ -26,6 +27,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   inventory: Package,
   reconciliation: ClipboardCheck,
   overtime: Clock,
+  crm: Contact,
   users: Users,
   settings: SettingsIcon,
 };
