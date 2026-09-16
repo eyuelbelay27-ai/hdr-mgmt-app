@@ -1,17 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, LayoutGrid, List } from "lucide-react";
-import { LeadBoard } from "./LeadBoard";
-import { LeadCard } from "./LeadCard";
+import { Plus } from "lucide-react";
+import { LeadCard, type LeadCardHandlers } from "./LeadCard";
 import { AddLeadForm } from "./AddLeadForm";
 import { LeadFilters } from "./LeadFilters";
-import { ReportPanel } from "./ReportPanel";
-import { CrmSettingsPanel } from "./CrmSettingsPanel";
-import { loadMoreCrmLeadsAction } from "./actions";
-import type { CrmLeadData, CrmLeadFilters, CrmReportData } from "./listData";
+import { PeriodSummaryBar } from "./PeriodSummaryBar";
+import { getCrmPeriodSummaryAction, loadMoreCrmLeadsAction } from "./actions";
+import type { CrmLeadData, CrmLeadFilters, CrmPeriodSummary } from "./listData";
 
 export type PendingMove = { leadId: string; status: "Closed" | "Failed" } | null;
+
+const NO_FILTER: CrmLeadFilters = { period: { mode: "all" } };
 
 /**
  * Owns the lead list as local state, seeded once from the server — the same
@@ -22,35 +22,22 @@ export type PendingMove = { leadId: string; status: "Closed" | "Failed" } | null
 export function CrmWorkspace({
   currentUserId,
   isAdmin,
-  isRep,
   reps,
   initialLeads,
   initialHasMore,
-  reports,
-  reportDay,
-  dueWeek,
-  pendingReps,
-  selfOwes,
 }: {
   currentUserId: string;
   isAdmin: boolean;
-  isRep: boolean;
   reps: { id: string; name: string }[];
   initialLeads: CrmLeadData[];
   initialHasMore: boolean;
-  reports: CrmReportData[];
-  reportDay: number;
-  dueWeek: { start: string; end: string } | null;
-  pendingReps: { id: string; name: string }[];
-  selfOwes: boolean;
 }) {
-  const [section, setSection] = useState<"leads" | "reports" | "settings">("leads");
-  const [view, setView] = useState<"board" | "list">("board");
   const [leads, setLeads] = useState(initialLeads);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [filters, setFilters] = useState<CrmLeadFilters>({});
+  const [filters, setFilters] = useState<CrmLeadFilters>(NO_FILTER);
   const [filtering, setFiltering] = useState(false);
+  const [summary, setSummary] = useState<CrmPeriodSummary | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [pendingMove, setPendingMove] = useState<PendingMove>(null);
 
@@ -75,13 +62,17 @@ export function CrmWorkspace({
   const handleApplyFilters = async (next: CrmLeadFilters) => {
     setFiltering(true);
     setFilters(next);
-    const result = await loadMoreCrmLeadsAction(0, next);
-    setLeads(result.leads);
-    setHasMore(result.hasMore);
+    const [listResult, summaryResult] = await Promise.all([
+      loadMoreCrmLeadsAction(0, next),
+      getCrmPeriodSummaryAction(next),
+    ]);
+    setLeads(listResult.leads);
+    setHasMore(listResult.hasMore);
+    setSummary(next.period && next.period.mode !== "all" ? summaryResult : null);
     setFiltering(false);
   };
 
-  const cardProps = {
+  const cardProps: LeadCardHandlers = {
     currentUserId,
     isAdmin,
     reps,
@@ -98,101 +89,50 @@ export function CrmWorkspace({
         <h1 style={{ marginTop: 0, marginBottom: 4 }}>CRM</h1>
         <p className="label" style={{ marginBottom: 0 }}>
           {isAdmin
-            ? "Register every incoming lead, assign it to a sales rep, and follow the week's results."
-            : "Your assigned leads. Move each one to its outcome, then file the weekly report."}
+            ? "Register every incoming lead and assign it to a sales rep. Filter by week or month to see how things are going."
+            : "Your assigned leads. Move each one to its outcome as soon as you know it."}
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border)", overflowX: "auto" }}>
-        <button type="button" className={`tab${section === "leads" ? " active" : ""}`} onClick={() => setSection("leads")}>
-          Leads
-        </button>
-        <button type="button" className={`tab${section === "reports" ? " active" : ""}`} onClick={() => setSection("reports")}>
-          Weekly Reports
-          {pendingReps.length > 0 ? ` (${pendingReps.length})` : ""}
-        </button>
-        {isAdmin && (
-          <button type="button" className={`tab${section === "settings" ? " active" : ""}`} onClick={() => setSection("settings")}>
-            Settings
-          </button>
+      <div className="crm-section">
+        {isAdmin &&
+          (addOpen ? (
+            <div>
+              <AddLeadForm reps={reps} onCreated={handleCreated} />
+              <button type="button" className="btn btn-sm btn-ghost" style={{ marginTop: 8 }} onClick={() => setAddOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="btn btn-sm expense-add-toggle" onClick={() => setAddOpen(true)}>
+              <Plus size={14} strokeWidth={2} /> New Lead
+            </button>
+          ))}
+
+        <LeadFilters reps={reps} isAdmin={isAdmin} busy={filtering} onApply={handleApplyFilters} />
+
+        {summary && <PeriodSummaryBar summary={summary} />}
+
+        <span className="label" style={{ margin: 0 }}>
+          {leads.length} lead{leads.length === 1 ? "" : "s"}
+          {hasMore ? "+" : ""} shown
+        </span>
+
+        <div style={{ display: "grid", gap: 8 }}>
+          {leads.map((lead) => (
+            <LeadCard key={lead.id} lead={lead} {...cardProps} />
+          ))}
+          {leads.length === 0 && <p className="label">No leads for this filter.</p>}
+        </div>
+
+        {hasMore && (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <button className="btn btn-sm" type="button" disabled={loadingMore} onClick={handleLoadMore}>
+              {loadingMore ? "Loading…" : "Load More"}
+            </button>
+          </div>
         )}
       </div>
-
-      {section === "leads" && (
-        <div className="crm-section">
-          {isAdmin &&
-            (addOpen ? (
-              <div>
-                <AddLeadForm reps={reps} onCreated={handleCreated} />
-                <button type="button" className="btn btn-sm btn-ghost" style={{ marginTop: 8 }} onClick={() => setAddOpen(false)}>
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button type="button" className="btn btn-sm expense-add-toggle" onClick={() => setAddOpen(true)}>
-                <Plus size={14} strokeWidth={2} /> New Lead
-              </button>
-            ))}
-
-          {isAdmin && <LeadFilters reps={reps} busy={filtering} onApply={handleApplyFilters} />}
-
-          <div className="crm-toolbar">
-            <span className="label" style={{ margin: 0 }}>
-              {leads.length} lead{leads.length === 1 ? "" : "s"}
-              {hasMore ? "+" : ""} shown
-            </span>
-            <div className="crm-view-toggle">
-              <button
-                type="button"
-                className={`btn btn-sm${view === "board" ? " btn-primary" : ""}`}
-                onClick={() => setView("board")}
-              >
-                <LayoutGrid size={14} strokeWidth={1.75} /> Board
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm${view === "list" ? " btn-primary" : ""}`}
-                onClick={() => setView("list")}
-              >
-                <List size={14} strokeWidth={1.75} /> List
-              </button>
-            </div>
-          </div>
-
-          {view === "board" ? (
-            <LeadBoard leads={leads} {...cardProps} />
-          ) : (
-            <div style={{ display: "grid", gap: 8 }}>
-              {leads.map((lead) => (
-                <LeadCard key={lead.id} lead={lead} {...cardProps} />
-              ))}
-              {leads.length === 0 && <p className="label">No leads yet.</p>}
-            </div>
-          )}
-
-          {hasMore && (
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <button className="btn btn-sm" type="button" disabled={loadingMore} onClick={handleLoadMore}>
-                {loadingMore ? "Loading…" : "Load More"}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {section === "reports" && (
-        <ReportPanel
-          isAdmin={isAdmin}
-          isRep={isRep}
-          reports={reports}
-          reportDay={reportDay}
-          dueWeek={dueWeek}
-          pendingReps={pendingReps}
-          selfOwes={selfOwes}
-        />
-      )}
-
-      {section === "settings" && isAdmin && <CrmSettingsPanel reportDay={reportDay} />}
     </div>
   );
 }

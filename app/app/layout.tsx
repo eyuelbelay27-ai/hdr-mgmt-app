@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { CrmReportBanner } from "./CrmReportBanner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const spaceGrotesk = Space_Grotesk({
@@ -34,12 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body>
-        {/* Sits above the whole shell so a rep or Admin sees an outstanding
-            weekly report on whatever page they land on, not only in CRM. */}
-        <CrmReportBanner />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
