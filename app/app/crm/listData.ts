@@ -1,20 +1,19 @@
 import type { CrmLeadStatus, Prisma } from "@prisma/client";
-import { toNumber } from "@/lib/money";
-import { parseDateOnly, addDays } from "@/lib/crm/week";
-import { parseReportRows, type CrmReportRow } from "@/lib/crm/report";
+import { toNumber, round2 } from "@/lib/money";
+import { parseWeekRange, parseMonthRange, rangeFilter } from "@/lib/crm/week";
 
 /**
  * Shared, non-action CRM helpers. This file deliberately has no
  * "use server" directive: such a file may only export async functions,
  * and the constants, types and synchronous mappers below are needed by
- * both the server actions and the client board.
+ * both the server actions and the client list.
  */
 
 export const CRM_PAGE_SIZE = 50;
 
-/** A lead as the client board sees it — every Prisma Decimal already
- * converted to a plain number, since Decimals can't cross the
- * server→client boundary (React silently drops them). */
+/** A lead as the client sees it — every Prisma Decimal already converted
+ * to a plain number, since Decimals can't cross the server→client
+ * boundary (React silently drops them). */
 export interface CrmLeadData {
   id: string;
   phone: string;
@@ -68,13 +67,29 @@ export function toLeadData(l: CrmLeadRow): CrmLeadData {
   };
 }
 
-/** Admin-side filters. A rep never gets to set `repId` — the server pins it
- * to their own id regardless of what the client sends. */
+/**
+ * Lead filters. A rep never gets to set `repId` — the server pins it to
+ * their own id regardless of what the client sends.
+ *
+ * `period` picks exactly one of a week or a month, both read against
+ * `receivedAt` (when the lead came in), never `createdAt` — a lead typed
+ * in late still lands in the week/month it was actually received. "all"
+ * means no date restriction at all.
+ */
+export type CrmPeriod =
+  | { mode: "all" }
+  | { mode: "week"; value: string } // "yyyy-Www"
+  | { mode: "month"; value: string }; // "yyyy-mm"
+
 export interface CrmLeadFilters {
   repId?: string | null;
-  /** "yyyy-mm-dd", both inclusive. */
-  from?: string | null;
-  to?: string | null;
+  period?: CrmPeriod;
+}
+
+function periodRange(period: CrmPeriod | undefined) {
+  if (!period || period.mode === "all") return null;
+  const range = period.mode === "week" ? parseWeekRange(period.value) : parseMonthRange(period.value);
+  return range ? rangeFilter(range) : null;
 }
 
 export function buildLeadWhere(
@@ -86,15 +101,8 @@ export function buildLeadWhere(
   const repId = forcedRepId ?? (filters.repId || null);
   if (repId) where.assignedToId = repId;
 
-  const from = filters.from ? parseDateOnly(filters.from) : null;
-  const to = filters.to ? parseDateOnly(filters.to) : null;
-  if (from || to) {
-    where.receivedAt = {
-      ...(from ? { gte: from } : {}),
-      // `to` is an inclusive day, so the upper bound is the next midnight.
-      ...(to ? { lt: addDays(to, 1) } : {}),
-    };
-  }
+  const range = periodRange(filters.period);
+  if (range) where.receivedAt = range;
 
   return where;
 }
@@ -106,51 +114,34 @@ export const CRM_LEAD_ORDER: Prisma.CrmLeadOrderByWithRelationInput[] = [
   { createdAt: "desc" },
 ];
 
-/** A generated weekly report, flattened for the client. */
-export interface CrmReportData {
-  id: string;
-  repId: string;
-  repName: string;
-  weekStart: Date;
-  weekEnd: Date;
-  generatedAt: Date;
+/**
+ * Live totals for whatever filter is currently applied — computed across
+ * every matching lead, not just the page that happens to be loaded, so the
+ * numbers are right even when a period has more than one page of leads.
+ * This is the same shape the old frozen weekly report showed; here it's
+ * always current instead of a signed-off snapshot.
+ */
+export interface CrmPeriodSummary {
   leadsWorked: number;
+  seenCount: number;
+  unreachableCount: number;
   closedCount: number;
   failedCount: number;
-  unreachableCount: number;
   totalSale: number;
   totalProfit: number;
-  rows: CrmReportRow[];
 }
 
-export function toReportData(r: {
-  id: string;
-  repId: string;
-  rep: { name: string };
-  weekStart: Date;
-  weekEnd: Date;
-  generatedAt: Date;
-  leadsWorked: number;
-  closedCount: number;
-  failedCount: number;
-  unreachableCount: number;
-  totalSale: unknown;
-  totalProfit: unknown;
-  rows: unknown;
-}): CrmReportData {
+export function summarizeLeads(
+  leads: { status: CrmLeadStatus; saleAmount: unknown; profit: unknown }[]
+): CrmPeriodSummary {
+  const closed = leads.filter((l) => l.status === "Closed");
   return {
-    id: r.id,
-    repId: r.repId,
-    repName: r.rep.name,
-    weekStart: r.weekStart,
-    weekEnd: r.weekEnd,
-    generatedAt: r.generatedAt,
-    leadsWorked: r.leadsWorked,
-    closedCount: r.closedCount,
-    failedCount: r.failedCount,
-    unreachableCount: r.unreachableCount,
-    totalSale: toNumber(r.totalSale),
-    totalProfit: toNumber(r.totalProfit),
-    rows: parseReportRows(r.rows),
+    leadsWorked: leads.length,
+    seenCount: leads.filter((l) => l.status === "Seen").length,
+    unreachableCount: leads.filter((l) => l.status === "Unreachable").length,
+    closedCount: closed.length,
+    failedCount: leads.filter((l) => l.status === "Failed").length,
+    totalSale: round2(closed.reduce((sum, l) => sum + toNumber(l.saleAmount), 0)),
+    totalProfit: round2(closed.reduce((sum, l) => sum + toNumber(l.profit), 0)),
   };
 }

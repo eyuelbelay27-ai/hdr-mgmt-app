@@ -1,27 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { CrmLeadStatus, Prisma } from "@prisma/client";
+import type { CrmLeadStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { can, requirePage, PermissionError, type PermissionSubject } from "@/lib/permissions";
 import { isCrmLeadStatus } from "@/lib/crm/status";
-import { getCrmSettings } from "@/lib/crm/settings";
-import { buildReportSnapshot } from "@/lib/crm/report";
-import {
-  dueReportWeek,
-  normalizeReportDay,
-  parseDateOnly,
-  toDateInputValue,
-  weekRangeFilter,
-} from "@/lib/crm/week";
+import { parseDateOnly } from "@/lib/crm/week";
 import {
   CRM_LEAD_ORDER,
   CRM_PAGE_SIZE,
   buildLeadWhere,
+  summarizeLeads,
   toLeadData,
   type CrmLeadData,
   type CrmLeadFilters,
+  type CrmPeriodSummary,
 } from "./listData";
 
 /**
@@ -32,19 +26,14 @@ import {
  *
  * Two permissions split the module in half:
  *   manageCrmLeads — the Admin side: register and assign every lead, see
- *     every rep's leads and reports, set the report day.
+ *     every rep's leads, filter by rep/week/month.
  *   workCrmLeads   — the sales rep side: see only leads assigned to you,
- *     move them through the pipeline, generate your own weekly report.
+ *     move them through the pipeline.
  */
 
 export interface CrmActionState {
   error: string | null;
   lead?: CrmLeadData;
-}
-
-export interface CrmReportActionState {
-  error: string | null;
-  generated?: boolean;
 }
 
 const LEAD_INCLUDE = { assignedTo: { select: { name: true } } } as const;
@@ -105,6 +94,21 @@ export async function loadMoreCrmLeadsAction(
   });
   const hasMore = rows.length > CRM_PAGE_SIZE;
   return { leads: rows.slice(0, CRM_PAGE_SIZE).map(toLeadData), hasMore };
+}
+
+/** Totals for the current filter, across every matching lead — not just
+ * whatever page happens to be loaded on screen. This is what stands in for
+ * the old weekly report: always current, computed from whatever the reps
+ * have actually set rather than a signed-off snapshot. */
+export async function getCrmPeriodSummaryAction(filters: CrmLeadFilters): Promise<CrmPeriodSummary> {
+  const user = await requireCurrentUser();
+  requireCrm(user);
+
+  const leads = await prisma.crmLead.findMany({
+    where: buildLeadWhere(filters ?? {}, forcedRepIdFor(user)),
+    select: { status: true, saleAmount: true, profit: true },
+  });
+  return summarizeLeads(leads);
 }
 
 // -----------------------------------------------------------------------
@@ -235,7 +239,7 @@ export interface CrmStatusPayload {
  *
  * Unseen is a system state, not a destination: a lead that has been
  * acknowledged can be moved back to Seen but never back to Unseen, so the
- * "waiting for the rep" column always means exactly that.
+ * "waiting for the rep" state always means exactly that.
  */
 export async function setCrmLeadStatusAction(
   leadId: string,
@@ -297,124 +301,6 @@ export async function setCrmLeadStatusAction(
 
   revalidatePath("/crm");
   return { error: null, lead: toLeadData(updated) };
-}
-
-// -----------------------------------------------------------------------
-// Settings
-// -----------------------------------------------------------------------
-
-/** The one company-wide day that closes a reporting week (0 = Sunday). */
-export async function setCrmReportDayAction(day: number): Promise<void> {
-  const user = await requireCurrentUser();
-  requireCrm(user);
-  if (!canManage(user)) throw new PermissionError("Only a CRM admin can change the report day.");
-
-  const reportDay = normalizeReportDay(day);
-  await prisma.crmSettings.upsert({
-    where: { id: "singleton" },
-    create: { id: "singleton", reportDay },
-    update: { reportDay },
-  });
-  revalidatePath("/crm");
-}
-
-// -----------------------------------------------------------------------
-// Weekly report
-// -----------------------------------------------------------------------
-
-/**
- * Generates the calling rep's report for the week currently owed. A report
- * is a frozen snapshot: it's written once and never recomputed, so it keeps
- * saying what the rep confirmed on the day they signed it off.
- *
- * Only leads *received* in that week are covered — a lead that arrives one
- * week and closes the next belongs to neither week's closed total. That's a
- * deliberate choice: the report answers "what came in this week and what
- * happened to it", not "what closed this week".
- */
-export async function generateCrmWeeklyReportAction(
-  _prevState: CrmReportActionState,
-  formData: FormData
-): Promise<CrmReportActionState> {
-  const user = await requireCurrentUser();
-  try {
-    requireCrm(user);
-    if (!canWork(user)) throw new PermissionError("Only a CRM sales rep generates a report.");
-  } catch (err) {
-    if (err instanceof PermissionError) return { error: err.message };
-    throw err;
-  }
-
-  if (!formData.get("confirm")) {
-    return { error: "Tick the confirmation first — the report is frozen once generated." };
-  }
-
-  const { reportDay } = await getCrmSettings();
-  const week = dueReportWeek(reportDay);
-
-  // The client tells us which week it thinks it's reporting on; if the
-  // report day rolled over between page load and submit, say so rather
-  // than silently filing the wrong week.
-  const claimed = trimmed(formData, "weekEnd");
-  if (claimed && claimed !== toDateInputValue(week.end)) {
-    return { error: "The reporting week has moved on. Reload the page and try again." };
-  }
-
-  const existing = await prisma.crmWeeklyReport.findUnique({
-    where: { repId_weekEnd: { repId: user.id, weekEnd: week.end } },
-  });
-  if (existing) return { error: "This week's report has already been generated." };
-
-  const leads = await prisma.crmLead.findMany({
-    where: { assignedToId: user.id, receivedAt: weekRangeFilter(week) },
-    orderBy: { receivedAt: "asc" },
-  });
-
-  if (leads.length === 0) {
-    return { error: "No leads were received this week, so there's nothing to report." };
-  }
-
-  const unseen = leads.filter((l) => l.status === "Unseen").length;
-  if (unseen > 0) {
-    return {
-      error: `${unseen} lead${unseen === 1 ? " is" : "s are"} still Unseen. Set every lead's status before generating.`,
-    };
-  }
-
-  const { rows, totals } = buildReportSnapshot(leads);
-
-  await prisma.crmWeeklyReport.create({
-    data: {
-      repId: user.id,
-      weekStart: week.start,
-      weekEnd: week.end,
-      leadsWorked: totals.leadsWorked,
-      closedCount: totals.closedCount,
-      failedCount: totals.failedCount,
-      unreachableCount: totals.unreachableCount,
-      totalSale: totals.totalSale,
-      totalProfit: totals.totalProfit,
-      // Prisma types a Json column as an index-signature object; the
-      // frozen rows are a plain array of plain values, which satisfies
-      // that at runtime but not structurally.
-      rows: rows as unknown as Prisma.InputJsonValue,
-    },
-  });
-
-  // The banner lives outside /crm too, so the whole shell has to re-render.
-  revalidatePath("/", "layout");
-  return { error: null, generated: true };
-}
-
-/** Deleting a generated report — Admin-only, and the only way a rep gets to
- * re-file a week they signed off by mistake. */
-export async function deleteCrmWeeklyReportAction(reportId: string): Promise<void> {
-  const user = await requireCurrentUser();
-  requireCrm(user);
-  if (!canManage(user)) throw new PermissionError("Only a CRM admin can delete a report.");
-
-  await prisma.crmWeeklyReport.deleteMany({ where: { id: reportId } });
-  revalidatePath("/", "layout");
 }
 
 /** Used by the Admin lead form to populate the "assign to" list. */
