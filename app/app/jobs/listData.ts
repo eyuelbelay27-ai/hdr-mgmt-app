@@ -1,4 +1,4 @@
-import { Prisma, JobStatus } from "@prisma/client";
+import { Prisma, JobStatus, BudgetStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { can, type PermissionSubject } from "@/lib/permissions";
 import { remainingPayment } from "@/lib/calc/payments";
@@ -26,11 +26,16 @@ export interface JobListItem {
   finalPrice: number;
   advance: number;
   remaining: number;
+  budgetStatus: BudgetStatus;
+  budgetPaid: boolean;
 }
 
 export interface JobListFilter {
   q: string;
   status: string;
+  /** "unpaid" narrows to approved-budget jobs not yet marked paid — the
+   * Budget Paid indicator's own filter, independent of `status`. */
+  paid: string;
 }
 
 function buildWhere(user: PermissionSubject, filter: JobListFilter): Prisma.JobWhereInput | undefined {
@@ -40,6 +45,7 @@ function buildWhere(user: PermissionSubject, filter: JobListFilter): Prisma.JobW
   if (!can(user, "manageDraftJobs")) conditions.push({ status: { not: "Draft" } });
   const statusFilter = filter.status && STATUS_OPTIONS.includes(filter.status as JobStatus) ? (filter.status as JobStatus) : "";
   if (statusFilter) conditions.push({ status: statusFilter });
+  if (filter.paid === "unpaid") conditions.push({ budgetStatus: "Approved", budgetPaid: false });
   const q = filter.q.trim();
   if (q) {
     conditions.push({
@@ -63,6 +69,8 @@ function toListItem(j: {
   updatedAt: Date;
   costEstimateSoldPrice: unknown;
   payments: { type: string; amount: unknown }[];
+  budgetStatus: BudgetStatus;
+  budgetPaid: boolean;
 }): JobListItem {
   const advance = j.payments.filter((p) => p.type === "Advance").reduce((s, p) => s + toNumber(p.amount), 0);
   return {
@@ -76,6 +84,8 @@ function toListItem(j: {
     finalPrice: toNumber(j.costEstimateSoldPrice),
     advance,
     remaining: remainingPayment(j.costEstimateSoldPrice, j.payments),
+    budgetStatus: j.budgetStatus,
+    budgetPaid: j.budgetPaid,
   };
 }
 

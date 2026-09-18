@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { JobStatus } from "@prisma/client";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { can, canSeePage, canSeeTab } from "@/lib/permissions";
 import { STATUS_LABEL } from "@/lib/job-status";
@@ -13,7 +13,7 @@ import { fetchJobsPage, STATUS_OPTIONS } from "./listData";
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; paid?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -31,13 +31,28 @@ export default async function JobsPage({
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const statusFilter = sp.status && STATUS_OPTIONS.includes(sp.status as JobStatus) ? (sp.status as JobStatus) : "";
-  const filter = { q, status: statusFilter };
+  const paidFilter = sp.paid === "unpaid" ? "unpaid" : "";
+  const filter = { q, status: statusFilter, paid: paidFilter };
 
   const canSeeFinancials = canSeeTab(user, "tab_payments");
   const { jobs, hasMore } = await fetchJobsPage(user, filter, 0);
 
-  const qParam = q ? `&q=${encodeURIComponent(q)}` : "";
-  const chipHref = (status: JobStatus) => `/jobs?status=${status}${qParam}`;
+  // Builds a Jobs URL from the given overrides, keeping whatever else in
+  // {q, statusFilter, paidFilter} isn't overridden — so any one chip
+  // (status or Unpaid) toggles independently without dropping the others.
+  function jobsHref(overrides: { status?: string; paid?: string }): string {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    const status = overrides.status ?? statusFilter;
+    if (status) params.set("status", status);
+    const paid = overrides.paid ?? paidFilter;
+    if (paid) params.set("paid", paid);
+    const qs = params.toString();
+    return qs ? `/jobs?${qs}` : "/jobs";
+  }
+  const allHref = jobsHref({ status: "" });
+  const unpaidHref = jobsHref({ paid: paidFilter ? "" : "unpaid" });
+  const chipHref = (status: JobStatus) => jobsHref({ status });
 
   return (
     <div className="app-shell">
@@ -50,6 +65,7 @@ export default async function JobsPage({
 
         <form method="get" style={{ display: "flex", gap: 8, marginTop: 12 }}>
           {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
+          {paidFilter && <input type="hidden" name="paid" value={paidFilter} />}
           <div style={{ position: "relative", flex: 1 }}>
             <Search size={16} strokeWidth={2} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-faint)" }} />
             <input
@@ -62,11 +78,11 @@ export default async function JobsPage({
             />
           </div>
           <button className="btn btn-sm btn-primary" type="submit">Search</button>
-          {(q || statusFilter) && <a className="btn btn-sm btn-ghost" href="/jobs">Clear</a>}
+          {(q || statusFilter || paidFilter) && <a className="btn btn-sm btn-ghost" href="/jobs">Clear</a>}
         </form>
 
         <div className="jobs-chip-row">
-          <a href={`/jobs${q ? `?q=${encodeURIComponent(q)}` : ""}`} className={`jobs-chip${!statusFilter ? " active" : ""}`}>
+          <a href={allHref} className={`jobs-chip${!statusFilter ? " active" : ""}`}>
             All
           </a>
           {STATUS_OPTIONS.map((s) => {
@@ -78,10 +94,17 @@ export default async function JobsPage({
               </a>
             );
           })}
+          {/* Independent of the status chips above — a job can be, say,
+              Approved Budget *and* Unpaid at once, so this toggles on its
+              own rather than joining the mutually-exclusive status set. */}
+          <a href={unpaidHref} className={`jobs-chip${paidFilter ? " active" : ""}`}>
+            <AlertTriangle size={13} strokeWidth={2} />
+            Unpaid
+          </a>
         </div>
 
         <JobsList
-          key={`${q}|${statusFilter}`}
+          key={`${q}|${statusFilter}|${paidFilter}`}
           initialJobs={jobs}
           initialHasMore={hasMore}
           canSeeFinancials={canSeeFinancials}

@@ -17,6 +17,7 @@ import { ExpensesTab } from "./ExpensesTab";
 import { PaymentsTab } from "./PaymentsTab";
 import { toggleAdminUnlockedAction } from "./actions";
 import { ApproveBudgetControl } from "./ApproveBudgetControl";
+import { BudgetPaidSection } from "./BudgetPaidSection";
 import {
   submitForApprovalAction,
   submitForReconciliationAction,
@@ -143,6 +144,22 @@ export default async function JobDetailPage({
             {can(user, "deleteJob") && <DeleteJobControl jobId={job.id} jobNumber={job.jobNumber} />}
           </div>
         </div>
+
+        {job.budgetStatus === "Approved" && (
+          <div style={{ marginTop: 12 }}>
+            <BudgetPaidSection
+              jobId={job.id}
+              paid={job.budgetPaid}
+              canManage={can(user, "approveBudget")}
+              cheque={{
+                name: job.chequeImageName,
+                url: job.chequeImageUrl,
+                kind: job.chequeImageKind,
+                description: job.chequeDescription,
+              }}
+            />
+          </div>
+        )}
 
         {job.status === "ApprovedBudget" && can(user, "submitForReconciliation") && job.expenses.length === 0 && (
           <p className="label" style={{ marginTop: 8 }}>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DollarSign, Wallet, Clock, CalendarDays, ChevronRight } from "lucide-react";
 import { StatusBadge, DeadlineBadge } from "../StatusBadge";
+import { BudgetPaidBadge } from "../BudgetPaidBadge";
 import { loadMoreJobsAction } from "./listActions";
 import type { JobListItem, JobListFilter } from "./listData";
 
@@ -69,7 +70,10 @@ export function JobsList({
                 </td>
                 <td data-label="Designer">{j.designer || "—"}</td>
                 <td data-label="Status">
-                  <StatusBadge status={j.status} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                    <StatusBadge status={j.status} />
+                    {j.budgetStatus === "Approved" && <BudgetPaidBadge paid={j.budgetPaid} />}
+                  </div>
                 </td>
                 {canSeeFinancials && (
                   <>
@@ -124,7 +128,10 @@ export function JobsList({
               </div>
               <div>
                 <div className="label" style={{ marginBottom: 2 }}>Status</div>
-                <StatusBadge status={j.status} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+                  <StatusBadge status={j.status} />
+                  {j.budgetStatus === "Approved" && <BudgetPaidBadge paid={j.budgetPaid} />}
+                </div>
               </div>
             </div>
 

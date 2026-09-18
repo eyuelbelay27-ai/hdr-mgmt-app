@@ -205,6 +205,24 @@ model Job {
   budgetApprovedAt DateTime?
   budgetItems      BudgetItem[]
 
+  // Budget Paid indicator (user request, not in the original brief) — a
+  // manager's own record of whether cheques have actually gone out for
+  // this job's approved budget. Deliberately standalone: nothing here is
+  // read by, or feeds into, any cost/budget/profit calculation elsewhere
+  // in the app — it's purely a fact the team can see and toggle. Shown
+  // once budgetStatus is Approved; not reset if approval is later undone,
+  // so undoing and re-approving doesn't silently erase it.
+  budgetPaid        Boolean   @default(false)
+  budgetPaidAt      DateTime?
+  budgetPaidBy      String?
+  // The cheque photo/description are independent of the paid/unpaid flag
+  // itself — unmarking Paid hides them from the summary but never deletes
+  // them, and either can be attached, replaced, or cleared any time.
+  chequeImageName   String?
+  chequeImageUrl    String?
+  chequeImageKind   String?
+  chequeDescription String?
+
   // Expenses (Section 7.4-7.6)
   expenses Expense[]
 
