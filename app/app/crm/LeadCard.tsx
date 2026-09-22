@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
-import { Eye, Pencil, Phone, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Pencil, Phone, RefreshCw, Trash2 } from "lucide-react";
 import type { CrmLeadStatus } from "@prisma/client";
-import { CRM_STATUS_TONE } from "@/lib/crm/status";
+import { CRM_DESTINATIONS, CRM_STATUS_TONE } from "@/lib/crm/status";
 import { formatDateLabel, formatSeenAt } from "@/lib/crm/week";
 import {
   deleteCrmLeadAction,
+  revealCrmLeadPhoneAction,
   setCrmLeadStatusAction,
   updateCrmLeadAction,
   type CrmActionState,
@@ -18,10 +19,6 @@ import type { CrmLeadData } from "./listData";
 import type { PendingMove } from "./CrmWorkspace";
 
 const initialState: CrmActionState = { error: null };
-
-/** Where a lead can go from here. Unseen is never a destination — it means
- * "the rep hasn't picked this up yet", which can't become true again. */
-const DESTINATIONS: CrmLeadStatus[] = ["Seen", "Unreachable", "Closed", "Failed"];
 
 export interface LeadCardHandlers {
   currentUserId: string;
@@ -50,9 +47,20 @@ export function LeadCard({
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const canWorkThis = isAdmin || lead.assignedToId === currentUserId;
+  // The pipeline is the assigned rep's call alone — an Admin can see it,
+  // never touch it (Section: user request).
+  const isOwnLead = lead.assignedToId === currentUserId;
   const tone = CRM_STATUS_TONE[lead.status];
   const awaitingDetail = pendingMove?.leadId === lead.id ? pendingMove.status : null;
+
+  async function reveal() {
+    setBusy(true);
+    setError(null);
+    const result = await revealCrmLeadPhoneAction(lead.id);
+    setBusy(false);
+    if (result.error) setError(result.error);
+    else if (result.lead) onUpdate(result.lead);
+  }
 
   async function commit(status: CrmLeadStatus, payload: Record<string, string> = {}) {
     setBusy(true);
@@ -100,12 +108,23 @@ export function LeadCard({
     );
   }
 
+  // A destination is shown normally once — except when the lead is
+  // flagged for re-confirmation, where the CURRENT status also reappears
+  // as an explicit "still X" choice, since re-picking it IS the
+  // confirmation the scheduled check is waiting for.
+  const destinations = CRM_DESTINATIONS.filter((s) => lead.dueForReview || s !== lead.status);
+
   return (
-    <div className="card crm-card">
+    <div className={`card crm-card${lead.dueForReview ? " crm-card-due" : ""}`}>
       <div className="crm-card-top">
         <span className="badge" style={{ background: tone.bg, color: tone.fg }}>
           {lead.status}
         </span>
+        {lead.dueForReview && (
+          <span className="badge" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
+            <RefreshCw size={11} strokeWidth={2} /> Needs Update
+          </span>
+        )}
         <span className="crm-card-date">{formatDateLabel(lead.receivedAt)}</span>
       </div>
 
@@ -115,15 +134,25 @@ export function LeadCard({
         {lead.source ? ` · ${lead.source}` : ""}
       </div>
 
-      <a className="crm-card-phone" href={`tel:${lead.phone.replace(/\s+/g, "")}`}>
-        <Phone size={13} strokeWidth={1.75} />
-        {lead.phone}
-      </a>
+      {lead.phone !== null ? (
+        <a className="crm-card-phone" href={`tel:${lead.phone.replace(/\s+/g, "")}`}>
+          <Phone size={13} strokeWidth={1.75} />
+          {lead.phone}
+        </a>
+      ) : isOwnLead ? (
+        <button type="button" className="btn btn-sm crm-reveal-btn" disabled={busy} onClick={reveal}>
+          <EyeOff size={13} strokeWidth={1.75} /> Show Phone Number
+        </button>
+      ) : (
+        <span className="crm-card-phone-hidden">
+          <EyeOff size={13} strokeWidth={1.75} /> Hidden until the rep views it
+        </span>
+      )}
 
       {isAdmin && <div className="crm-card-meta">Rep: {lead.assignedToName}</div>}
       {lead.seenAt && (
         <div className="crm-card-meta">
-          <Eye size={12} strokeWidth={1.75} /> Seen {formatSeenAt(lead.seenAt)}
+          <Eye size={12} strokeWidth={1.75} /> Number shown {formatSeenAt(lead.seenAt)}
         </div>
       )}
 
@@ -144,16 +173,11 @@ export function LeadCard({
         <FailForm busy={busy} onCancel={onCancelMove} onSave={(note) => commit("Failed", { failureNote: note })} />
       )}
 
-      {canWorkThis && !awaitingDetail && (
+      {isOwnLead && !awaitingDetail && (
         <div className="crm-card-actions">
-          {lead.status === "Unseen" ? (
-            <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => move("Seen")}>
-              <Eye size={13} strokeWidth={1.75} /> Mark Seen
-            </button>
-          ) : null}
-          {DESTINATIONS.filter((s) => s !== lead.status && !(lead.status === "Unseen" && s === "Seen")).map((s) => (
+          {destinations.map((s) => (
             <button key={s} type="button" className="btn btn-sm crm-move-btn" disabled={busy} onClick={() => move(s)}>
-              {s}
+              {s === lead.status ? `Still ${s}? Confirm` : s}
             </button>
           ))}
         </div>

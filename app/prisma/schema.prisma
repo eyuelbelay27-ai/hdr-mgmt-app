@@ -618,14 +618,17 @@ model OvertimeRequest {
 // -----------------------------------------------------------------------
 
 /**
- * A lead's outcome. Unseen → Seen is the rep acknowledging it; from Seen
- * it ends at Unreachable, Closed or Failed. `seenAt` is stored separately
- * from the status so the time the rep first picked the lead up survives
- * every later move.
+ * A lead's outcome, set only by the assigned rep — never the Admin, who
+ * can see it but has no say in what actually happened with the customer.
+ * Unseen is the only non-actionable state (a lead nobody has worked yet);
+ * from there a lead lands on Ongoing (actively being worked), Unreachable,
+ * or one of the two outcomes, Closed or Failed. Seeing a lead's phone
+ * number is a separate one-time reveal (`seenAt`), not a pipeline state —
+ * a lead can sit at Unseen with its phone already revealed.
  */
 enum CrmLeadStatus {
   Unseen
-  Seen
+  Ongoing
   Unreachable
   Closed
   Failed
@@ -639,10 +642,20 @@ model CrmLead {
   // Where the lead came from — a campaign name, a referral, a walk-in.
   source       String?
   // When the business received the lead, typed by whoever registers it.
-  // Reports are cut by this date, not by createdAt.
   receivedAt   DateTime
   status       CrmLeadStatus @default(Unseen)
+  // Stamped once, the first time the rep reveals the phone number — a
+  // one-time unlock, never a pipeline state. Survives every later status
+  // change; nothing ever clears it.
   seenAt       DateTime?
+
+  // Set true whenever the twice-weekly scheduled check finds this lead
+  // still open (not Closed/Failed) and flags it for re-confirmation.
+  // Cleared the moment the assigned rep sets any status on it — even
+  // re-picking the same status counts, since that IS the confirmation.
+  // Never touches `status` itself, so a lead's last real status (and its
+  // phone-revealed state) survive being flagged untouched.
+  dueForReview Boolean @default(false)
 
   // Only filled in on Closed.
   saleAmount  Decimal? @db.Decimal(14, 2)
@@ -667,12 +680,20 @@ model CrmLead {
 }
 
 /**
- * Single row. `reportDay` is the one company-wide day of the week that
- * closes the reporting week (0 = Sunday … 6 = Saturday).
+ * Single row. Drives the twice-a-week forced pipeline check (user
+ * request): at `day1`/`hour1` and again at `day2`/`hour2` (0 = Sunday,
+ * hour in Addis local time), every rep's open leads (not Closed/Failed)
+ * are flagged `dueForReview`, and the CRM tab refuses to let that rep
+ * proceed until every flagged lead has a status re-confirmed. `enabled`
+ * is a full off switch, independent of the two time slots.
  */
 model CrmSettings {
   id        String   @id @default("singleton")
-  reportDay Int      @default(5)
+  enabled   Boolean  @default(true)
+  day1      Int      @default(3) // Wednesday
+  hour1     Int      @default(17)
+  day2      Int      @default(5) // Friday
+  hour2     Int      @default(17)
   updatedAt DateTime @updatedAt
 }
 
