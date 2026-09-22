@@ -45,6 +45,15 @@ export function isCrmLeadStatus(value: unknown): value is CrmLeadStatus {
   return typeof value === "string" && (CRM_STATUSES as readonly string[]).includes(value);
 }
 
+/** The badge reads "Seen" once the rep has revealed the phone number, even
+ * though the underlying pipeline value stays "Unseen" until they actually
+ * pick a destination — Seen is a one-time reveal, not a stored status
+ * (Section: user request). */
+export function crmStatusLabel(status: CrmLeadStatus, seenAt: Date | null): string {
+  if (status === "Unseen" && seenAt) return "Seen";
+  return CRM_STATUS_LABEL[status];
+}
+
 /** Once a lead is Closed or Failed there's nothing left to confirm — the
  * twice-weekly check only ever flags leads still open. */
 export function isOpenStatus(status: CrmLeadStatus): boolean {

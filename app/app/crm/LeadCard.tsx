@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useFormState } from "react-dom";
 import { Eye, EyeOff, Pencil, Phone, RefreshCw, Trash2 } from "lucide-react";
 import type { CrmLeadStatus } from "@prisma/client";
-import { CRM_DESTINATIONS, CRM_STATUS_TONE } from "@/lib/crm/status";
+import { CRM_DESTINATIONS, CRM_STATUS_TONE, crmStatusLabel } from "@/lib/crm/status";
 import { formatDateLabel, formatSeenAt } from "@/lib/crm/week";
 import {
   deleteCrmLeadAction,
@@ -118,7 +118,7 @@ export function LeadCard({
     <div className={`card crm-card${lead.dueForReview ? " crm-card-due" : ""}`}>
       <div className="crm-card-top">
         <span className="badge" style={{ background: tone.bg, color: tone.fg }}>
-          {lead.status}
+          {crmStatusLabel(lead.status, lead.seenAt)}
         </span>
         {lead.dueForReview && (
           <span className="badge" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
