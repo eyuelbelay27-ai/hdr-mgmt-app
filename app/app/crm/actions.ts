@@ -7,10 +7,13 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { can, requirePage, PermissionError, type PermissionSubject } from "@/lib/permissions";
 import { isCrmLeadStatus } from "@/lib/crm/status";
 import { parseDateOnly } from "@/lib/crm/week";
+import { dueSinceInstant, normalizeSchedule, type CrmSchedule } from "@/lib/crm/schedule";
+import { getCrmSchedule } from "@/lib/crm/settings";
 import {
   CRM_LEAD_ORDER,
   CRM_PAGE_SIZE,
   buildLeadWhere,
+  canRevealPhone,
   summarizeLeads,
   toLeadData,
   type CrmLeadData,
@@ -26,14 +29,20 @@ import {
  *
  * Two permissions split the module in half:
  *   manageCrmLeads — the Admin side: register and assign every lead, see
- *     every rep's leads, filter by rep/week/month.
+ *     every rep's leads, filter by rep/week/month, set the reminder
+ *     schedule. Can never set a lead's pipeline status — that's the rep's
+ *     call, since they're the one who actually knows the customer.
  *   workCrmLeads   — the sales rep side: see only leads assigned to you,
- *     move them through the pipeline.
+ *     reveal a phone number, move a lead through the pipeline.
  */
 
 export interface CrmActionState {
   error: string | null;
   lead?: CrmLeadData;
+}
+
+export interface CrmScheduleActionState {
+  error: string | null;
 }
 
 const LEAD_INCLUDE = { assignedTo: { select: { name: true } } } as const;
@@ -73,6 +82,67 @@ function parseMoney(value: unknown): number | null | undefined {
 }
 
 // -----------------------------------------------------------------------
+// The twice-weekly scheduled check (lib/crm/schedule.ts has the "when")
+// -----------------------------------------------------------------------
+
+/**
+ * Flags every still-open lead (not Closed/Failed) last touched before the
+ * most recent scheduled slot. Cheap and idempotent — see
+ * lib/crm/schedule.ts's doc comment for why re-running this is always
+ * safe. `scopeToRepId` narrows it to one rep (called on every rep page
+ * load); omitted, it runs across every rep at once (called when an Admin
+ * loads CRM, so their "who's overdue" list is accurate for everyone).
+ */
+async function applyCrmSchedule(scopeToRepId?: string): Promise<void> {
+  const schedule = await getCrmSchedule();
+  const since = dueSinceInstant(schedule);
+  if (!since) return; // schedule turned off
+
+  await prisma.crmLead.updateMany({
+    where: {
+      ...(scopeToRepId ? { assignedToId: scopeToRepId } : {}),
+      status: { notIn: ["Closed", "Failed"] },
+      dueForReview: false,
+      updatedAt: { lt: since },
+    },
+    data: { dueForReview: true },
+  });
+}
+
+/** Which reps currently have at least one lead needing re-confirmation —
+ * the Admin's passive notice, never an override. */
+export interface CrmOverdueRep {
+  repId: string;
+  repName: string;
+  count: number;
+}
+
+export async function getCrmOverdueRepsAction(): Promise<CrmOverdueRep[]> {
+  const user = await requireCurrentUser();
+  requireCrm(user);
+  if (!canManage(user)) return [];
+
+  await applyCrmSchedule();
+
+  const groups = await prisma.crmLead.groupBy({
+    by: ["assignedToId"],
+    where: { dueForReview: true, status: { notIn: ["Closed", "Failed"] } },
+    _count: { _all: true },
+  });
+  if (groups.length === 0) return [];
+
+  const reps = await prisma.user.findMany({
+    where: { id: { in: groups.map((g) => g.assignedToId) } },
+    select: { id: true, name: true },
+  });
+  const nameById = new Map(reps.map((r) => [r.id, r.name]));
+
+  return groups
+    .map((g) => ({ repId: g.assignedToId, repName: nameById.get(g.assignedToId) ?? "?", count: g._count._all }))
+    .sort((a, b) => a.repName.localeCompare(b.repName));
+}
+
+// -----------------------------------------------------------------------
 // Reading
 // -----------------------------------------------------------------------
 
@@ -84,6 +154,8 @@ export async function loadMoreCrmLeadsAction(
 ): Promise<{ leads: CrmLeadData[]; hasMore: boolean }> {
   const user = await requireCurrentUser();
   requireCrm(user);
+  const isAdmin = canManage(user);
+  await applyCrmSchedule(isAdmin ? undefined : user.id);
 
   const rows = await prisma.crmLead.findMany({
     where: buildLeadWhere(filters ?? {}, forcedRepIdFor(user)),
@@ -93,13 +165,31 @@ export async function loadMoreCrmLeadsAction(
     take: CRM_PAGE_SIZE + 1,
   });
   const hasMore = rows.length > CRM_PAGE_SIZE;
-  return { leads: rows.slice(0, CRM_PAGE_SIZE).map(toLeadData), hasMore };
+  const leads = rows.slice(0, CRM_PAGE_SIZE).map((r) => toLeadData(r, canRevealPhone(isAdmin, r)));
+  return { leads, hasMore };
+}
+
+/** Every one of the calling rep's leads currently flagged for
+ * re-confirmation — the actual "you must update these" gate. Always the
+ * rep's own leads regardless of whatever list filter is on screen, since
+ * the check isn't optional and shouldn't hide behind a filter. */
+export async function loadCrmDueLeadsAction(): Promise<CrmLeadData[]> {
+  const user = await requireCurrentUser();
+  requireCrm(user);
+  if (canManage(user)) return []; // Admin is never blocked — nothing to confirm
+
+  await applyCrmSchedule(user.id);
+
+  const rows = await prisma.crmLead.findMany({
+    where: { assignedToId: user.id, dueForReview: true, status: { notIn: ["Closed", "Failed"] } },
+    orderBy: CRM_LEAD_ORDER,
+    include: LEAD_INCLUDE,
+  });
+  return rows.map((r) => toLeadData(r, canRevealPhone(false, r)));
 }
 
 /** Totals for the current filter, across every matching lead — not just
- * whatever page happens to be loaded on screen. This is what stands in for
- * the old weekly report: always current, computed from whatever the reps
- * have actually set rather than a signed-off snapshot. */
+ * whatever page happens to be loaded on screen. */
 export async function getCrmPeriodSummaryAction(filters: CrmLeadFilters): Promise<CrmPeriodSummary> {
   const user = await requireCurrentUser();
   requireCrm(user);
@@ -173,7 +263,7 @@ export async function createCrmLeadAction(
   });
 
   revalidatePath("/crm");
-  return { error: null, lead: toLeadData(created) };
+  return { error: null, lead: toLeadData(created, true) };
 }
 
 /** Editing a lead's details, including reassigning it, is Admin-only — a rep
@@ -210,7 +300,7 @@ export async function updateCrmLeadAction(
   });
 
   revalidatePath("/crm");
-  return { error: null, lead: toLeadData(updated) };
+  return { error: null, lead: toLeadData(updated, true) };
 }
 
 export async function deleteCrmLeadAction(leadId: string): Promise<void> {
@@ -223,8 +313,38 @@ export async function deleteCrmLeadAction(leadId: string): Promise<void> {
 }
 
 // -----------------------------------------------------------------------
-// Rep: moving a lead through the pipeline
+// Rep: revealing a phone number, and moving a lead through the pipeline
 // -----------------------------------------------------------------------
+
+/**
+ * One-time reveal of a lead's phone number — not a pipeline state. Only
+ * the assigned rep can trigger it (an Admin already sees every phone
+ * number, having typed it in); calling it again once revealed is a safe
+ * no-op. Nothing else about the lead changes.
+ */
+export async function revealCrmLeadPhoneAction(leadId: string): Promise<CrmActionState> {
+  const user = await requireCurrentUser();
+  try {
+    requireCrm(user);
+  } catch (err) {
+    if (err instanceof PermissionError) return { error: err.message };
+    throw err;
+  }
+
+  const existing = await prisma.crmLead.findUnique({ where: { id: leadId }, include: LEAD_INCLUDE });
+  if (!existing) return { error: "Lead not found." };
+  if (existing.assignedToId !== user.id) return { error: "That lead isn't assigned to you." };
+
+  const updated = existing.seenAt
+    ? existing
+    : await prisma.crmLead.update({
+        where: { id: leadId },
+        data: { seenAt: new Date() },
+        include: LEAD_INCLUDE,
+      });
+
+  return { error: null, lead: toLeadData(updated, true) };
+}
 
 export interface CrmStatusPayload {
   saleAmount?: string | number | null;
@@ -233,13 +353,11 @@ export interface CrmStatusPayload {
 }
 
 /**
- * The single write a rep makes. `seenAt` is stamped the first time a lead
- * leaves Unseen and then left alone — it records when the rep first picked
- * the lead up, which must survive every later move.
- *
- * Unseen is a system state, not a destination: a lead that has been
- * acknowledged can be moved back to Seen but never back to Unseen, so the
- * "waiting for the rep" state always means exactly that.
+ * The pipeline write — assigned-rep-only, full stop. An Admin can see
+ * every status but never sets one: they didn't talk to the customer, the
+ * rep did. Re-picking the lead's own current status is a valid, ordinary
+ * call here too — that's exactly how a rep clears a "needs review" flag
+ * without actually changing anything.
  */
 export async function setCrmLeadStatusAction(
   leadId: string,
@@ -259,7 +377,7 @@ export async function setCrmLeadStatusAction(
 
   const existing = await prisma.crmLead.findUnique({ where: { id: leadId } });
   if (!existing) return { error: "Lead not found." };
-  if (!canManage(user) && existing.assignedToId !== user.id) {
+  if (existing.assignedToId !== user.id) {
     return { error: "That lead isn't assigned to you." };
   }
 
@@ -288,19 +406,20 @@ export async function setCrmLeadStatusAction(
     where: { id: leadId },
     data: {
       status: status as CrmLeadStatus,
-      // Only ever set once — the first acknowledgement is the one that counts.
-      seenAt: existing.seenAt ?? new Date(),
       // Figures belong to the outcome that produced them; moving off Closed
       // or Failed clears them rather than leaving stale numbers behind.
       saleAmount,
       profit,
       failureNote,
+      // Any status write — even re-picking the same one — is the
+      // confirmation the scheduled check was waiting for.
+      dueForReview: false,
     },
     include: LEAD_INCLUDE,
   });
 
   revalidatePath("/crm");
-  return { error: null, lead: toLeadData(updated) };
+  return { error: null, lead: toLeadData(updated, true) };
 }
 
 /** Used by the Admin lead form to populate the "assign to" list. */
@@ -309,4 +428,45 @@ export async function listCrmRepsAction(): Promise<{ id: string; name: string }[
   requireCrm(user);
   const users = await prisma.user.findMany({ where: { active: true }, orderBy: { name: "asc" } });
   return users.filter((u) => can(u, "workCrmLeads")).map((u) => ({ id: u.id, name: u.name }));
+}
+
+// -----------------------------------------------------------------------
+// Settings — the twice-weekly reminder schedule (Admin-only)
+// -----------------------------------------------------------------------
+
+export async function getCrmScheduleAction(): Promise<CrmSchedule> {
+  const user = await requireCurrentUser();
+  requireCrm(user);
+  return getCrmSchedule();
+}
+
+export async function setCrmScheduleAction(
+  _prevState: CrmScheduleActionState,
+  formData: FormData
+): Promise<CrmScheduleActionState> {
+  const user = await requireCurrentUser();
+  try {
+    requireCrm(user);
+    if (!canManage(user)) throw new PermissionError("Only a CRM admin can change the schedule.");
+  } catch (err) {
+    if (err instanceof PermissionError) return { error: err.message };
+    throw err;
+  }
+
+  const schedule = normalizeSchedule({
+    enabled: formData.get("enabled") === "on",
+    day1: formData.get("day1"),
+    hour1: formData.get("hour1"),
+    day2: formData.get("day2"),
+    hour2: formData.get("hour2"),
+  });
+
+  await prisma.crmSettings.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", ...schedule },
+    update: schedule,
+  });
+
+  revalidatePath("/crm");
+  return { error: null };
 }

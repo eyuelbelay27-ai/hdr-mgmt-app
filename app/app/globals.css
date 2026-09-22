@@ -1307,3 +1307,58 @@ button.tab {
   padding-top: 8px;
   margin-top: 3px;
 }
+
+/* Section tab strip (Leads / Settings) atop the CRM workspace, for Admin. */
+.crm-toolbar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+/* A lead flagged by the twice-weekly scheduled check — a visible edge so
+   it stands out in an ordinary list, distinct from the "Needs Update"
+   badge itself (which also renders inline in .crm-card-top). */
+.crm-card-due {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger);
+}
+.crm-reveal-btn {
+  width: fit-content;
+}
+.crm-card-phone-hidden {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-faint);
+  width: fit-content;
+}
+
+/* The rep-side blocking gate — replaces the whole Leads view until every
+   flagged lead is re-confirmed. */
+.crm-gate {
+  padding: 16px;
+  border-color: var(--danger);
+}
+.crm-gate-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--danger);
+}
+.crm-gate-head h1 {
+  color: var(--text);
+}
+
+/* The Admin's passive notice of who's behind — never an override. */
+.crm-overdue-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text);
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}

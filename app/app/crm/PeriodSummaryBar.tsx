@@ -14,8 +14,8 @@ export function PeriodSummaryBar({ summary }: { summary: CrmPeriodSummary }) {
         <div className="mono">{summary.leadsWorked}</div>
       </div>
       <div>
-        <div className="label">Seen</div>
-        <div className="mono">{summary.seenCount}</div>
+        <div className="label">Ongoing</div>
+        <div className="mono">{summary.ongoingCount}</div>
       </div>
       <div>
         <div className="label">Closed</div>
