@@ -9,13 +9,17 @@
  * client).
  *
  * face-api.js descriptors are 128-dimensional; a Euclidean distance below
- * ~0.6 is that library's own convention for "same person". We use a
- * slightly stricter 0.5 given the stakes (payroll-adjacent data), easy to
- * retune here in one place if real-world testing calls for it.
+ * ~0.6 is that library's own convention for "same person" (the threshold
+ * its model was actually tuned/benchmarked against). An initial, untested
+ * 0.5 here proved too strict on real hardware — two genuine same-person
+ * captures a few minutes apart (different angle/lighting/expression) came
+ * back just over it and got rejected. 0.6 matches the library's own
+ * calibration; retune here in one place if further real-world testing
+ * calls for it.
  */
 
 export const DESCRIPTOR_LENGTH = 128;
-export const MATCH_DISTANCE_THRESHOLD = 0.5;
+export const MATCH_DISTANCE_THRESHOLD = 0.6;
 
 export function isValidDescriptor(value: unknown): value is number[] {
   return (
