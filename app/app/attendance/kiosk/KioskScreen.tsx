@@ -202,33 +202,33 @@ export function KioskScreen({ initialEmployees }: { initialEmployees: KioskEmplo
     setScreen("select");
   };
 
-  if (screen === "loading") {
-    return (
-      <div className="kiosk-root kiosk-center">
-        <Camera size={40} strokeWidth={1.5} />
-        <p>Starting camera…</p>
-      </div>
-    );
-  }
-
-  if (screen === "cameraError") {
-    return (
-      <div className="kiosk-root kiosk-center">
-        <XCircle size={48} strokeWidth={1.5} color="var(--danger)" />
-        <p>Couldn&apos;t access the camera. Check the browser&apos;s camera permission for this page and reload.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="kiosk-root">
-      {/* Video always mounted (camera stream stays open) — hidden off-screen
+      {/* Video is mounted here unconditionally, from the very first render —
+          it must already exist in the DOM by the time the mount effect
+          above runs, or attaching the camera stream to it silently no-ops
+          (videoRef.current is still null) and nothing ever appears, even
+          though the camera permission was granted. Hidden off-screen
           outside capture so the ref/stream never has to be torn down and
           re-created between employees. */}
       <div className={screen === "capture" || screen === "submitting" ? "kiosk-video-wrap" : "kiosk-video-hidden"}>
-        <video ref={videoRef} muted playsInline className="kiosk-video" />
+        <video ref={videoRef} muted playsInline autoPlay className="kiosk-video" />
         <canvas ref={canvasRef} style={{ display: "none" }} />
       </div>
+
+      {screen === "loading" && (
+        <div className="kiosk-root kiosk-center">
+          <Camera size={40} strokeWidth={1.5} />
+          <p>Starting camera…</p>
+        </div>
+      )}
+
+      {screen === "cameraError" && (
+        <div className="kiosk-root kiosk-center">
+          <XCircle size={48} strokeWidth={1.5} color="var(--danger)" />
+          <p>Couldn&apos;t access the camera. Check the browser&apos;s camera permission for this page and reload.</p>
+        </div>
+      )}
 
       {screen === "select" && (
         <div className="kiosk-select">
