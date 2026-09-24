@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   Clock,
   Contact,
+  UserCheck,
   Users,
   Settings as SettingsIcon,
   Menu,
@@ -28,6 +29,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   reconciliation: ClipboardCheck,
   overtime: Clock,
   crm: Contact,
+  attendance: UserCheck,
   users: Users,
   settings: SettingsIcon,
 };
