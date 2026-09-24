@@ -7,7 +7,11 @@ import { authConfig } from "./auth.config";
 // bundle. Route handlers and server actions use the full config in auth.ts.
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PATHS = ["/login"];
+// The kiosk screen deliberately has no login (Section: user decision) —
+// its only access restriction is the device-token cookie, checked inside
+// the page itself and re-checked independently by every server action it
+// calls. Everything else under /attendance stays behind normal auth.
+const PUBLIC_PATHS = ["/login", "/attendance/kiosk"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;

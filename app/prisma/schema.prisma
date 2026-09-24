@@ -115,6 +115,9 @@ model User {
   overtimeRequests    OvertimeRequest[]      @relation("OvertimeSubmittedBy")
   crmLeads            CrmLead[]              @relation("CrmLeadAssignedTo")
   crmWeeklyReports    CrmWeeklyReport[]      @relation("CrmReportRep")
+  attendanceProfile   AttendanceProfile?
+  attendanceRecords   AttendanceRecord[]
+  authorizedDevices   AttendanceDevice[]
 }
 
 // -----------------------------------------------------------------------
@@ -728,4 +731,93 @@ model CrmWeeklyReport {
   // overwriting what was already submitted.
   @@unique([repId, weekEnd])
   @@index([repId])
+}
+
+// -----------------------------------------------------------------------
+// Attendance — face-recognition kiosk, locked to one authorized office PC.
+// A standalone module like CRM/Overtime Control: nothing here reads from
+// or writes to Job/Budget/Expense/Inventory, the only shared piece is the
+// existing User table (attendance tracks the same staff already in the
+// app). See the plan doc for the full spec.
+// -----------------------------------------------------------------------
+
+/**
+ * One row per employee who has captured a reference photo. Created the
+ * first time that person completes a kiosk capture with no profile on
+ * file yet — that capture becomes their reference going forward
+ * (Section: user decision, no separate admin upload step).
+ */
+model AttendanceProfile {
+  id       String @id @default(cuid())
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String @unique
+
+  referencePhotoUrl  String
+  referencePhotoName String
+  // 128-float face descriptor from face-api.js's recognition model,
+  // stored as a JSON array — what every future check-in/check-out photo
+  // is compared against. See lib/attendance/faceMatch.ts.
+  descriptor Json
+
+  capturedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+/**
+ * One row per employee per calendar day (Addis local, see
+ * lib/attendance/day.ts). checkInAt/checkOutAt are set once each and
+ * never client-editable — only the server action that just verified a
+ * face match writes them. Photos are the audit trail an owner can review
+ * on the dashboard; distances are the match scores at the moment of
+ * capture, kept for the same reason.
+ */
+model AttendanceRecord {
+  id     String   @id @default(cuid())
+  user   User     @relation(fields: [userId], references: [id])
+  userId String
+  date   DateTime // normalized to that Addis day's midnight, stored as UTC
+
+  checkInAt       DateTime?
+  checkInPhotoUrl String?
+  checkInDistance Float?
+
+  checkOutAt       DateTime?
+  checkOutPhotoUrl String?
+  checkOutDistance Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+/** Singleton — the expected check-in/check-out times used purely to
+ * compute late/early flags on the dashboard. Never blocks an actual
+ * check-in/check-out (Section 5 of the plan). */
+model AttendanceSettings {
+  id                     String   @id @default("singleton")
+  expectedCheckInHour    Int      @default(9)
+  expectedCheckInMinute  Int      @default(0)
+  expectedCheckOutHour   Int      @default(17)
+  expectedCheckOutMinute Int      @default(0)
+  updatedAt              DateTime @updatedAt
+}
+
+/**
+ * The device-token lock (Section 5 of the plan) — the kiosk page itself
+ * needs no login, so this token, set as an HttpOnly cookie on the one
+ * authorized office PC, is the entire access restriction. Only a hash is
+ * stored; the check-in/check-out action re-validates it server-side on
+ * every single request regardless of what the client claims.
+ */
+model AttendanceDevice {
+  id                 String    @id @default(cuid())
+  tokenHash          String    @unique
+  label              String?
+  authorizedBy       User      @relation(fields: [authorizedById], references: [id])
+  authorizedById     String
+  authorizedAt       DateTime  @default(now())
+  lastSeenAt         DateTime?
+  revokedAt          DateTime?
 }
