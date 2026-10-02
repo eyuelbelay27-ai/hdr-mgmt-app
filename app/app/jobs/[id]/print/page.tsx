@@ -52,7 +52,14 @@ export default async function JobPrintPage({ params }: { params: Promise<{ id: s
   const cutListPlates = job.cutFiles.filter((f) => isImage(f.kind));
 
   const canSeeFinancials = canSeeTab(user, "tab_payments");
-  const totals = costEstimateTotals(job.costEstimateItems, job.costEstimateSoldPrice, job.costEstimateCommissionActive);
+  const totals = costEstimateTotals(
+    job.costEstimateItems,
+    job.costEstimateSoldPrice,
+    job.costEstimateCommissionActive,
+    job.costEstimateCommissionMode,
+    job.costEstimateCommissionPercent,
+    job.costEstimateCommissionAmount
+  );
   const allocated = totalAllocatedCash(job.budgetItems);
   const actual = actualTotalExpenses(job.expenses);
   const finalProfit = finalProfitAfterExpenses(job.costEstimateSoldPrice, job.expenses, totals.commission);
