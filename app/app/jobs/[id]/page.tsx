@@ -103,7 +103,9 @@ export default async function JobDetailPage({
             )}
             {job.status === "WaitingForApproval" && job.budgetStatus === "Draft" && (
               <>
-                {can(user, "approveBudget") && <ApproveBudgetControl jobId={job.id} />}
+                {can(user, "approveBudget") && (
+                  <ApproveBudgetControl jobId={job.id} hasBudgetItems={job.budgetItems.length > 0} />
+                )}
                 {can(user, "requestRevision") && <RequestRevisionControl jobId={job.id} />}
               </>
             )}

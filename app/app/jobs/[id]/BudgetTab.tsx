@@ -45,7 +45,7 @@ export function BudgetTab({
           <div style={{ fontSize: 22, fontWeight: 700 }}>{totalCash.toLocaleString()} Br</div>
         </div>
         {job.status === "WaitingForApproval" && job.budgetStatus === "Draft" && can(user, "approveBudget") && (
-          <ApproveBudgetControl jobId={job.id} />
+          <ApproveBudgetControl jobId={job.id} hasBudgetItems={job.budgetItems.length > 0} />
         )}
         {job.budgetStatus === "Approved" && job.adminUnlocked && can(user, "approveBudget") && (
           <form action={undoBudgetApprovalAction.bind(null, job.id)}>
