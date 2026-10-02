@@ -182,10 +182,16 @@ export async function approveBudgetAction(
   const deadline = deadlineRaw ? new Date(deadlineRaw) : null;
   if (!deadline || Number.isNaN(deadline.getTime())) return { error: "Choose a deadline." };
 
-  const job = await prisma.job.findUnique({ where: { id: jobId } });
+  const job = await prisma.job.findUnique({ where: { id: jobId }, include: { budgetItems: { select: { id: true } } } });
   if (!job) return { error: "Job not found." };
   if (job.status !== "WaitingForApproval") {
     return { error: "Only a job Waiting for Approval can have its budget approved." };
+  }
+  // The approver is the one who dictates the budget — never approve a
+  // blank one, whether nothing was ever pulled from the Cost Estimate or
+  // manually added (Section: user request).
+  if (job.budgetItems.length === 0) {
+    return { error: "Add at least one budget item before approving." };
   }
 
   await prisma.$transaction(async (tx) => {

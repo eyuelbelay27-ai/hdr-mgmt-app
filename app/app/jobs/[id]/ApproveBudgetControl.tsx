@@ -19,9 +19,13 @@ function ConfirmButton({ enabled }: { enabled: boolean }) {
  * The exact same control renders at both entry points (header shortcut and
  * Budget tab button — Section 6.1) so they behave identically: click
  * Approve Budget, an inline date picker appears, Confirm Approval stays
- * disabled until a date is chosen.
+ * disabled until a date is chosen AND the job has at least one budget
+ * item — the approver is the one who dictates the budget, so a blank one
+ * (never pulled from the Cost Estimate, never filled in manually) can't
+ * be approved (Section: user request). Re-checked server-side in
+ * approveBudgetAction regardless of this client-side disable.
  */
-export function ApproveBudgetControl({ jobId }: { jobId: string }) {
+export function ApproveBudgetControl({ jobId, hasBudgetItems }: { jobId: string; hasBudgetItems: boolean }) {
   const [open, setOpen] = useState(false);
   const [deadline, setDeadline] = useState("");
   const boundAction = approveBudgetAction.bind(null, jobId);
@@ -48,11 +52,12 @@ export function ApproveBudgetControl({ jobId }: { jobId: string }) {
           onChange={(e) => setDeadline(e.target.value)}
         />
       </div>
-      <ConfirmButton enabled={!!deadline} />
+      <ConfirmButton enabled={!!deadline && hasBudgetItems} />
       <button className="btn btn-sm" type="button" onClick={() => setOpen(false)}>
         Cancel
       </button>
-      {!deadline && <span className="label">Choose a date to enable Confirm Approval.</span>}
+      {!hasBudgetItems && <span className="label">Add at least one budget item before approving.</span>}
+      {hasBudgetItems && !deadline && <span className="label">Choose a date to enable Confirm Approval.</span>}
       {state.error && <p className="login-error">{state.error}</p>}
     </form>
   );
