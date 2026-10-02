@@ -47,6 +47,11 @@ enum CostEstimateSource {
   PriceDatabase
 }
 
+enum CommissionMode {
+  Percentage
+  Manual
+}
+
 enum BudgetItemSource {
   Manual
   CostEstimate
@@ -192,15 +197,20 @@ model Job {
   cutFiles        CutFile[]
 
   // Cost Estimate (Section 7.2)
-  costEstimatePreparedBy       String?
-  costEstimateGeneratedAt      DateTime?
-  costEstimateNotes            String?
-  costEstimatePriceListName    String?
-  costEstimatePriceListUrl     String?
-  costEstimatePriceListKind    String?
-  costEstimateSoldPrice        Decimal            @default(0) @db.Decimal(14, 2)
-  costEstimateCommissionActive Boolean            @default(false)
-  costEstimateItems            CostEstimateItem[]
+  costEstimatePreparedBy  String?
+  costEstimateGeneratedAt DateTime?
+  costEstimateSoldPrice   Decimal            @default(0) @db.Decimal(14, 2)
+  // Commission is Active/Inactive as before; while Active, Percentage (of
+  // Sub Total, user-adjustable, no longer fixed at 7%) and Manual (a flat
+  // Br figure typed directly) are two different ways to arrive at the
+  // commission figure — exactly one of costEstimateCommissionPercent /
+  // costEstimateCommissionAmount is read, picked by the mode (Section:
+  // user request).
+  costEstimateCommissionActive  Boolean            @default(false)
+  costEstimateCommissionMode    CommissionMode     @default(Percentage)
+  costEstimateCommissionPercent Decimal            @default(7) @db.Decimal(5, 2)
+  costEstimateCommissionAmount  Decimal            @default(0) @db.Decimal(14, 2)
+  costEstimateItems             CostEstimateItem[]
 
   // Budget (Section 7.3, 6.1)
   budgetStatus     BudgetStatus @default(Draft)

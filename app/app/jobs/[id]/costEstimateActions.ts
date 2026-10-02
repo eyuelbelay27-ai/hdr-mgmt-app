@@ -140,33 +140,25 @@ export async function updateSoldPriceAction(
 
   const soldPrice = toNumber(formData.get("soldPrice"));
   const commissionActive = formData.get("commissionActive") === "on";
+  const commissionMode = formData.get("commissionMode") === "Manual" ? "Manual" : "Percentage";
+  const commissionPercent = toNumber(formData.get("commissionPercent"));
+  const commissionAmount = toNumber(formData.get("commissionAmount"));
   if (soldPrice < 0) return { error: "Sold price can't be negative." };
-
-  await prisma.job.update({
-    where: { id: jobId },
-    data: { costEstimateSoldPrice: soldPrice, costEstimateCommissionActive: commissionActive },
-  });
-  revalidatePath(`/jobs/${jobId}`);
-  return { error: null };
-}
-
-export async function updateCostEstimateNotesAction(
-  jobId: string,
-  _prevState: ActionState,
-  formData: FormData
-): Promise<ActionState> {
-  const user = await requireCurrentUser();
-  try {
-    requireAction(user, "manageCostEstimateNotes", "edit");
-  } catch (err) {
-    if (err instanceof PermissionError) return { error: err.message };
-    throw err;
+  if (commissionActive && commissionMode === "Percentage" && commissionPercent < 0) {
+    return { error: "Commission percentage can't be negative." };
+  }
+  if (commissionActive && commissionMode === "Manual" && commissionAmount < 0) {
+    return { error: "Commission amount can't be negative." };
   }
 
   await prisma.job.update({
     where: { id: jobId },
     data: {
-      costEstimateNotes: String(formData.get("notes") ?? "").trim() || null,
+      costEstimateSoldPrice: soldPrice,
+      costEstimateCommissionActive: commissionActive,
+      costEstimateCommissionMode: commissionMode,
+      costEstimateCommissionPercent: commissionPercent,
+      costEstimateCommissionAmount: commissionAmount,
     },
   });
   revalidatePath(`/jobs/${jobId}`);

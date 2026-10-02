@@ -1,11 +1,9 @@
 import { can, canViewAction, type PermissionSubject } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { costEstimateTotals, costEstimateLineTotal, isOrphanedLine } from "@/lib/calc/cost-estimate";
+import { costEstimateTotals, costEstimateLineTotal, isOrphanedLine, type CommissionMode } from "@/lib/calc/cost-estimate";
 import { toNumber } from "@/lib/money";
 import { CostEstimateCategorySheet } from "./CostEstimateCategorySheet";
 import { SoldPriceForm } from "./SoldPriceForm";
-import { CostEstimateNotesForm } from "./CostEstimateNotesForm";
-import { Lightbox } from "../../Lightbox";
 
 interface CostItem {
   id: string;
@@ -26,10 +24,9 @@ interface CostJob {
   costEstimateItems: CostItem[];
   costEstimateSoldPrice: unknown;
   costEstimateCommissionActive: boolean;
-  costEstimateNotes: string | null;
-  costEstimatePriceListName: string | null;
-  costEstimatePriceListUrl: string | null;
-  costEstimatePriceListKind: string | null;
+  costEstimateCommissionMode: CommissionMode;
+  costEstimateCommissionPercent: unknown;
+  costEstimateCommissionAmount: unknown;
 }
 
 export async function CostEstimateTab({
@@ -74,14 +71,16 @@ export async function CostEstimateTab({
 
   const editableQty = can(user, "manageCostEstimate") && !locked;
   const canAddAdhoc = can(user, "addCostEstimateItem") && !locked;
-  const canEditNotes = can(user, "manageCostEstimateNotes") && !locked;
   const canSeeProfit = canViewAction(user, "manageSalePriceProfit");
   const canEditProfit = can(user, "manageSalePriceProfit") && !locked;
 
   const totals = costEstimateTotals(
     job.costEstimateItems,
     job.costEstimateSoldPrice,
-    job.costEstimateCommissionActive
+    job.costEstimateCommissionActive,
+    job.costEstimateCommissionMode,
+    job.costEstimateCommissionPercent,
+    job.costEstimateCommissionAmount
   );
 
   return (
@@ -116,6 +115,9 @@ export async function CostEstimateTab({
               jobId={job.id}
               soldPrice={toNumber(job.costEstimateSoldPrice)}
               commissionActive={job.costEstimateCommissionActive}
+              commissionMode={job.costEstimateCommissionMode}
+              commissionPercent={toNumber(job.costEstimateCommissionPercent)}
+              commissionAmount={toNumber(job.costEstimateCommissionAmount)}
             />
           ) : (
             <div className="label">
@@ -129,7 +131,7 @@ export async function CostEstimateTab({
               <div className="mono">{totals.subTotal.toLocaleString()} Br</div>
             </div>
             <div>
-              <div className="label">Commission (7%)</div>
+              <div className="label">Commission</div>
               <div className="mono">{totals.commission.toLocaleString()} Br</div>
             </div>
             <div>
@@ -143,27 +145,6 @@ export async function CostEstimateTab({
           </div>
         </div>
       )}
-
-      <div className="card" style={{ padding: 16 }}>
-        <h3 style={{ marginTop: 0 }}>Notes</h3>
-        {job.costEstimatePriceListUrl && (
-          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
-            <Lightbox
-              file={{
-                name: job.costEstimatePriceListName ?? "price list",
-                url: job.costEstimatePriceListUrl,
-                kind: job.costEstimatePriceListKind ?? "",
-              }}
-            />
-            <span className="label">{job.costEstimatePriceListName}</span>
-          </div>
-        )}
-        {canEditNotes ? (
-          <CostEstimateNotesForm jobId={job.id} notes={job.costEstimateNotes} />
-        ) : (
-          <p style={{ whiteSpace: "pre-wrap" }}>{job.costEstimateNotes || "—"}</p>
-        )}
-      </div>
     </div>
   );
 }

@@ -36,7 +36,14 @@ export default async function ReconciliationDetailPage({ params }: { params: Pro
 
   const allocated = totalAllocatedCash(job.budgetItems);
   const actual = actualTotalExpenses(job.expenses);
-  const totals = costEstimateTotals(job.costEstimateItems, job.costEstimateSoldPrice, job.costEstimateCommissionActive);
+  const totals = costEstimateTotals(
+    job.costEstimateItems,
+    job.costEstimateSoldPrice,
+    job.costEstimateCommissionActive,
+    job.costEstimateCommissionMode,
+    job.costEstimateCommissionPercent,
+    job.costEstimateCommissionAmount
+  );
   const finalProfit = finalProfitAfterExpenses(job.costEstimateSoldPrice, job.expenses, totals.commission);
   const stats = expensesStats(job.expenses);
   const receiptedExpenses = job.expenses.filter((e) => e.receiptUrl);

@@ -44,18 +44,32 @@ export function costEstimateLineTotal(line: CostEstimateLine): number {
   return round2(toNumber(line.qty) * toNumber(line.material.rate));
 }
 
+export type CommissionMode = "Percentage" | "Manual";
+
 /**
  * Cost Estimate totals (Section 7.2). "Grand Total" deliberately means the
  * final client-facing sale figure, not the material cost sum (that's
  * "Sub Total") — the brief calls this rename out explicitly.
+ *
+ * Commission, while active, comes from one of two user-chosen modes
+ * (Section: user request) — Percentage (of Sub Total, no longer fixed at
+ * 7%) or Manual (a flat Br figure typed directly, ignoring Sub Total
+ * entirely).
  */
 export function costEstimateTotals(
   items: CostEstimateLine[],
   soldPrice: unknown,
-  commissionActive: boolean
+  commissionActive: boolean,
+  commissionMode: CommissionMode,
+  commissionPercent: unknown,
+  commissionAmount: unknown
 ) {
   const subTotal = round2(items.reduce((sum, i) => sum + costEstimateLineTotal(i), 0));
-  const commission = commissionActive ? round2(subTotal * 0.07) : 0;
+  const commission = !commissionActive
+    ? 0
+    : commissionMode === "Manual"
+      ? round2(toNumber(commissionAmount))
+      : round2(subTotal * (toNumber(commissionPercent) / 100));
   const sold = toNumber(soldPrice);
   const profit = round2(sold - subTotal - commission);
   return { subTotal, commission, profit, grandTotal: sold };

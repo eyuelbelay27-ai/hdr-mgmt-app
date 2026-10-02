@@ -168,7 +168,6 @@ export async function deleteJobAction(
   }
 
   const fileUrls = [
-    job.costEstimatePriceListUrl,
     ...job.components.map((c) => c.artUrl),
     ...job.cutFiles.map((c) => c.url as string | null),
     ...job.expenses.map((e) => e.receiptUrl),
