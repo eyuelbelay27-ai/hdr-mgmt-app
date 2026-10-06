@@ -10,6 +10,7 @@ import {
   Clock,
   Contact,
   UserCheck,
+  Wallet,
   Users,
   Settings as SettingsIcon,
   Menu,
@@ -30,6 +31,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   overtime: Clock,
   crm: Contact,
   attendance: UserCheck,
+  payroll: Wallet,
   users: Users,
   settings: SettingsIcon,
 };
