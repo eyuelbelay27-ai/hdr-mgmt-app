@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useFormState } from "react-dom";
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2, X } from "lucide-react";
 import { OVERTIME_TYPES, type PayrollRates } from "@/lib/payroll/calc";
-import { parsePayrollMonth, payrollMonthLabel } from "@/lib/payroll/month";
+import { ETHIOPIAN_MONTH_NAMES, ethiopianToday } from "@/lib/payroll/ethiopian";
 import {
   addPayrollDebtAction,
   createPayrollEmployeeAction,
@@ -17,8 +17,9 @@ import {
 import { SubmitButton } from "../SubmitButton";
 import { useAutosave } from "../useAutosave";
 import { SaveStatusBadge } from "../SaveStatusBadge";
+import { money } from "./MonthlyPayroll";
 
-interface EmployeeRowData {
+export interface EmployeeRowData {
   id: string;
   name: string;
   salary: number;
@@ -28,29 +29,25 @@ interface EmployeeRowData {
   owed: number;
 }
 
-interface DebtData {
+export interface DebtData {
   id: string;
   employeeName: string;
   amount: number;
-  date: string;
+  dateLabel: string;
   note: string | null;
   createdBy: string;
 }
 
-interface RepaymentData {
+export interface RepaymentData {
   id: string;
   employeeName: string;
+  monthLabel: string;
   monthKey: string;
   amount: number;
 }
 
 const initialState: PayrollActionState = { error: null };
 
-function money(n: number): string {
-  return `${n.toLocaleString(undefined, { maximumFractionDigits: 2 })} Br`;
-}
-
-/** Resets its form after each successful submit. */
 function useResettingForm(action: (prev: PayrollActionState, fd: FormData) => Promise<PayrollActionState>) {
   const [state, formAction] = useFormState(action, initialState);
   const formRef = useRef<HTMLFormElement>(null);
@@ -58,6 +55,14 @@ function useResettingForm(action: (prev: PayrollActionState, fd: FormData) => Pr
     if (state !== initialState && state.error === null) formRef.current?.reset();
   }, [state]);
   return { state, formAction, formRef };
+}
+
+function Avatar({ name, size = 32 }: { name: string; size?: number }) {
+  return (
+    <span className="pr-avatar" style={{ width: size, height: size, fontSize: size * 0.42 }}>
+      {name.trim().charAt(0).toUpperCase() || "?"}
+    </span>
+  );
 }
 
 export function PayrollSettingsPanel({
@@ -72,10 +77,10 @@ export function PayrollSettingsPanel({
   repayments: RepaymentData[];
 }) {
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <EmployeesCard employees={employees} />
-      <RatesCard rates={rates} />
-      <DebtsCard employees={employees} debts={debts} repayments={repayments} />
+    <div className="pr-stack">
+      <EmployeesSection employees={employees} />
+      <RatesSection rates={rates} />
+      <DebtsSection employees={employees} debts={debts} repayments={repayments} />
     </div>
   );
 }
@@ -84,54 +89,66 @@ export function PayrollSettingsPanel({
 // Employees
 // -----------------------------------------------------------------------
 
-function EmployeesCard({ employees }: { employees: EmployeeRowData[] }) {
+function EmployeesSection({ employees }: { employees: EmployeeRowData[] }) {
   const { state, formAction, formRef } = useResettingForm(createPayrollEmployeeAction);
+  const [showForm, setShowForm] = useState(employees.length === 0);
 
   return (
-    <div className="card" style={{ padding: 16, display: "grid", gap: 12 }}>
-      <div>
-        <h3 style={{ margin: 0 }}>Employees</h3>
-        <p className="label" style={{ marginTop: 4, marginBottom: 0, textTransform: "none" }}>
-          A salary change here applies to months you start from now on. To change a month that&apos;s already
-          started, edit the salary in that month&apos;s row.
-        </p>
+    <div className="pr-section">
+      <div className="pr-section-head">
+        <h3>Employees</h3>
+        <span className="pr-count">{employees.filter((e) => e.active).length} active</span>
+        <button type="button" className="btn btn-sm pr-btn-soft" onClick={() => setShowForm((v) => !v)}>
+          {showForm ? <X size={15} strokeWidth={2.25} /> : <Plus size={15} strokeWidth={2.25} />}
+          {showForm ? "Close" : "Add employee"}
+        </button>
       </div>
 
-      <form ref={formRef} action={formAction} style={{ display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap" }}>
-        <div style={{ flex: "2 1 180px" }}>
-          <label className="label" htmlFor="newEmployeeName">Name</label>
-          <input className="input" id="newEmployeeName" name="name" required />
-        </div>
-        <div style={{ flex: "1 1 140px" }}>
-          <label className="label" htmlFor="newEmployeeSalary">Monthly Salary (Br)</label>
-          <input className="input" id="newEmployeeSalary" name="salary" type="number" min="0" step="any" required />
-        </div>
-        <SubmitButton label="Add Employee" pendingLabel="Adding…" className="btn btn-sm btn-primary" />
-        {state.error && <span className="login-error">{state.error}</span>}
-      </form>
+      {showForm && (
+        <form ref={formRef} action={formAction} className="pr-form">
+          <div>
+            <label className="pr-k" htmlFor="newEmployeeName">
+              Name
+            </label>
+            <input className="input" id="newEmployeeName" name="name" required />
+          </div>
+          <div>
+            <label className="pr-k" htmlFor="newEmployeeSalary">
+              Monthly salary (Br)
+            </label>
+            <input
+              className="input"
+              id="newEmployeeSalary"
+              name="salary"
+              type="number"
+              min="0"
+              step="any"
+              inputMode="decimal"
+              required
+            />
+          </div>
+          <SubmitButton label="Add Employee" pendingLabel="Adding…" className="btn btn-primary" />
+          {state.error && (
+            <span className="login-error" style={{ gridColumn: "1 / -1" }}>
+              {state.error}
+            </span>
+          )}
+        </form>
+      )}
 
       {employees.length === 0 ? (
-        <p className="label" style={{ margin: 0 }}>No employees yet.</p>
+        <p className="pr-empty">No employees yet.</p>
       ) : (
-        <div className="dtable-wrap">
-          <table className="dtable">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Monthly Salary</th>
-                <th>Active</th>
-                <th>Owes</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((e) => (
-                <EmployeeRow key={e.id} employee={e} />
-              ))}
-            </tbody>
-          </table>
+        <div className="pr-list">
+          {employees.map((e) => (
+            <EmployeeRow key={e.id} employee={e} />
+          ))}
         </div>
       )}
+      <p className="pr-sub" style={{ margin: 0, whiteSpace: "normal" }}>
+        A salary change here applies to months you start from now on. To change a month that&apos;s already started,
+        edit the salary on that month&apos;s card.
+      </p>
     </div>
   );
 }
@@ -162,8 +179,9 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
   }
 
   return (
-    <tr style={active ? undefined : { opacity: 0.6 }}>
-      <td data-label="Name">
+    <div className="pr-row pr-emp" style={active ? undefined : { opacity: 0.55 }}>
+      <Avatar name={name} />
+      <div className="pr-emp-main">
         <input
           className="input"
           aria-label="Employee name"
@@ -172,53 +190,53 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
             setName(e.target.value);
             autosave.schedule(() => build({ name: e.target.value, salary, active }));
           }}
+          style={{ flex: "1 1 180px", width: "auto" }}
         />
-      </td>
-      <td data-label="Monthly Salary">
         <input
           className="input"
           type="number"
           min="0"
           step="any"
+          inputMode="decimal"
           aria-label={`${employee.name} monthly salary`}
           value={salary}
           onChange={(e) => {
             setSalary(e.target.value);
             autosave.schedule(() => build({ name, salary: e.target.value, active }));
           }}
-          style={{ width: 130 }}
+          style={{ flex: "0 1 120px", width: 120 }}
         />
-      </td>
-      <td data-label="Active">
-        <input
-          type="checkbox"
-          aria-label={`${employee.name} active`}
-          checked={active}
-          onChange={(e) => {
-            setActive(e.target.checked);
-            autosave.saveNow(() => build({ name, salary, active: e.target.checked }));
-          }}
-          style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
-        />
-      </td>
-      <td data-label="Owes" className="mono">{employee.owed > 0 ? money(employee.owed) : "—"}</td>
-      <td>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <SaveStatusBadge status={autosave.status} error={autosave.error} />
-          {deleteError && <span className="login-error">{deleteError}</span>}
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            aria-label={`Delete ${employee.name}`}
-            title="Delete"
-            disabled={deleting}
-            onClick={remove}
-          >
-            <Trash2 size={14} strokeWidth={1.75} />
-          </button>
-        </div>
-      </td>
-    </tr>
+        <label className="pr-toggle">
+          <input
+            type="checkbox"
+            aria-label={`${employee.name} active`}
+            checked={active}
+            onChange={(e) => {
+              setActive(e.target.checked);
+              autosave.saveNow(() => build({ name, salary, active: e.target.checked }));
+            }}
+          />
+          Active
+        </label>
+        {employee.owed > 0 && (
+          <span className="badge" style={{ background: "var(--warn-soft)", color: "var(--warn)" }}>
+            Owes {money(employee.owed)}
+          </span>
+        )}
+        <SaveStatusBadge status={autosave.status} error={autosave.error} />
+        {deleteError && <span className="login-error">{deleteError}</span>}
+      </div>
+      <button
+        type="button"
+        className="btn btn-sm btn-ghost pr-icon-btn"
+        aria-label={`Delete ${employee.name}`}
+        title="Delete"
+        disabled={deleting}
+        onClick={remove}
+      >
+        <Trash2 size={15} strokeWidth={1.75} />
+      </button>
+    </div>
   );
 }
 
@@ -226,30 +244,40 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
 // Overtime rates
 // -----------------------------------------------------------------------
 
-function RatesCard({ rates }: { rates: PayrollRates }) {
+function RatesSection({ rates }: { rates: PayrollRates }) {
   const [state, formAction] = useFormState(savePayrollSettingsAction, initialState);
   const saved = state !== initialState && state.error === null;
 
   return (
-    <form action={formAction} className="card" style={{ padding: 16, display: "grid", gap: 12, maxWidth: 620 }}>
-      <div>
-        <h3 style={{ margin: 0 }}>Overtime Rates</h3>
-        <p className="label" style={{ marginTop: 4, marginBottom: 0, textTransform: "none" }}>
-          Hourly wage = monthly salary ÷ working hours per month. Overtime pay = hours × hourly wage × multiplier.
-          For example, 10,400 Br ÷ 208 = 50 Br/hr, so 1 hour at ×1.75 pays 87.50 Br. Changes apply to months you
-          start from now on.
-        </p>
+    <div className="pr-section">
+      <div className="pr-section-head">
+        <h3>Overtime Rates</h3>
       </div>
-
-      <div className="form-field" style={{ maxWidth: 220 }}>
-        <label className="label" htmlFor="hoursPerMonth">Working Hours per Month</label>
-        <input className="input" id="hoursPerMonth" name="hoursPerMonth" type="number" min="0" step="any" defaultValue={rates.hoursPerMonth} required />
-      </div>
-
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+      <form
+        action={formAction}
+        className="pr-form"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))" }}
+      >
+        <div>
+          <label className="pr-k" htmlFor="hoursPerMonth">
+            Hours / month
+          </label>
+          <input
+            className="input"
+            id="hoursPerMonth"
+            name="hoursPerMonth"
+            type="number"
+            min="0"
+            step="any"
+            defaultValue={rates.hoursPerMonth}
+            required
+          />
+        </div>
         {OVERTIME_TYPES.map((t) => (
-          <div key={t.multiplierKey} style={{ flex: "1 1 120px" }}>
-            <label className="label" htmlFor={t.multiplierKey}>{t.label} (×)</label>
+          <div key={t.multiplierKey}>
+            <label className="pr-k" htmlFor={t.multiplierKey}>
+              {t.label} (×)
+            </label>
             <input
               className="input"
               id={t.multiplierKey}
@@ -262,14 +290,21 @@ function RatesCard({ rates }: { rates: PayrollRates }) {
             />
           </div>
         ))}
-      </div>
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <SubmitButton label="Save Rates" pendingLabel="Saving…" className="btn btn-sm btn-primary" />
-        {state.error && <span className="login-error">{state.error}</span>}
-        {saved && <span className="label" style={{ margin: 0, textTransform: "none" }}>Saved</span>}
-      </div>
-    </form>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <SubmitButton label="Save Rates" pendingLabel="Saving…" className="btn btn-primary" />
+          {saved && <span className="pr-sub">Saved</span>}
+        </div>
+        {state.error && (
+          <span className="login-error" style={{ gridColumn: "1 / -1" }}>
+            {state.error}
+          </span>
+        )}
+      </form>
+      <p className="pr-sub" style={{ margin: 0, whiteSpace: "normal" }}>
+        Hourly wage = salary ÷ hours per month. Overtime pay = hours × hourly wage × multiplier. For example, 10,400 ÷
+        208 = 50 Br/hr, so 1 night hour at ×1.75 pays 87.50 Br. Changes apply to months you start from now on.
+      </p>
+    </div>
   );
 }
 
@@ -277,7 +312,58 @@ function RatesCard({ rates }: { rates: PayrollRates }) {
 // Debts and repayments
 // -----------------------------------------------------------------------
 
-function DebtsCard({
+function EthiopianDateFields() {
+  const today = ethiopianToday();
+  const years = [today.year - 1, today.year, today.year + 1];
+  return (
+    <div style={{ gridColumn: "span 1" }}>
+      <span className="pr-k">Date</span>
+      <div style={{ display: "flex", gap: 4 }}>
+        <select
+          className="input"
+          name="dateDay"
+          aria-label="Day"
+          defaultValue={today.day}
+          style={{ flex: "0 0 62px", paddingRight: 2 }}
+        >
+          {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+        <select
+          className="input"
+          name="dateMonth"
+          aria-label="Month"
+          defaultValue={today.month}
+          style={{ flex: 1, minWidth: 0 }}
+        >
+          {ETHIOPIAN_MONTH_NAMES.map((m, i) => (
+            <option key={m} value={i + 1}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <select
+          className="input"
+          name="dateYear"
+          aria-label="Year"
+          defaultValue={today.year}
+          style={{ flex: "0 0 74px", paddingRight: 2 }}
+        >
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+function DebtsSection({
   employees,
   debts,
   repayments,
@@ -287,112 +373,160 @@ function DebtsCard({
   repayments: RepaymentData[];
 }) {
   const { state, formAction, formRef } = useResettingForm(addPayrollDebtAction);
-  const today = new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [showForm, setShowForm] = useState(false);
   const withDebt = employees.filter((e) => e.borrowed > 0);
+  const [view, setView] = useState<"balances" | "debts" | "repayments">("balances");
 
   return (
-    <div className="card" style={{ padding: 16, display: "grid", gap: 14 }}>
-      <div>
-        <h3 style={{ margin: 0 }}>Debts</h3>
-        <p className="label" style={{ marginTop: 4, marginBottom: 0, textTransform: "none" }}>
-          Record an advance or loan here. It&apos;s paid back by typing a repayment into a month&apos;s payroll.
-        </p>
+    <div className="pr-section">
+      <div className="pr-section-head">
+        <h3>Debts</h3>
+        <span className="pr-count">{money(withDebt.reduce((s, e) => s + e.owed, 0))} Br owed</span>
+        <button
+          type="button"
+          className="btn btn-sm pr-btn-soft"
+          onClick={() => setShowForm((v) => !v)}
+          disabled={employees.length === 0}
+        >
+          {showForm ? <X size={15} strokeWidth={2.25} /> : <Plus size={15} strokeWidth={2.25} />}
+          {showForm ? "Close" : "Add debt"}
+        </button>
       </div>
+      <p className="pr-sub" style={{ margin: 0, whiteSpace: "normal" }}>
+        Record an advance or loan here. It&apos;s paid back by typing a repayment on a month&apos;s payroll card.
+      </p>
 
-      {employees.length === 0 ? (
-        <p className="label" style={{ margin: 0 }}>Add an employee first.</p>
-      ) : (
-        <form ref={formRef} action={formAction} style={{ display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap" }}>
-          <div style={{ flex: "2 1 170px" }}>
-            <label className="label" htmlFor="debtEmployee">Employee</label>
+      {showForm && (
+        <form ref={formRef} action={formAction} className="pr-form">
+          <div>
+            <label className="pr-k" htmlFor="debtEmployee">
+              Employee
+            </label>
             <select className="input" id="debtEmployee" name="employeeId" required defaultValue="">
-              <option value="" disabled>Choose…</option>
+              <option value="" disabled>
+                Choose…
+              </option>
               {employees.map((e) => (
-                <option key={e.id} value={e.id}>{e.name}{e.active ? "" : " (inactive)"}</option>
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                  {e.active ? "" : " (inactive)"}
+                </option>
               ))}
             </select>
           </div>
-          <div style={{ flex: "1 1 120px" }}>
-            <label className="label" htmlFor="debtAmount">Amount (Br)</label>
-            <input className="input" id="debtAmount" name="amount" type="number" min="0" step="any" required />
+          <div>
+            <label className="pr-k" htmlFor="debtAmount">
+              Amount (Br)
+            </label>
+            <input
+              className="input"
+              id="debtAmount"
+              name="amount"
+              type="number"
+              min="0"
+              step="any"
+              inputMode="decimal"
+              required
+            />
           </div>
-          <div style={{ flex: "1 1 140px" }}>
-            <label className="label" htmlFor="debtDate">Date</label>
-            <input className="input" id="debtDate" name="date" type="date" defaultValue={today} required />
-          </div>
-          <div style={{ flex: "2 1 180px" }}>
-            <label className="label" htmlFor="debtNote">Note</label>
+          <EthiopianDateFields />
+          <div>
+            <label className="pr-k" htmlFor="debtNote">
+              Note
+            </label>
             <input className="input" id="debtNote" name="note" placeholder="e.g. Salary advance" />
           </div>
-          <SubmitButton label="Add Debt" pendingLabel="Adding…" className="btn btn-sm btn-primary" />
-          {state.error && <span className="login-error">{state.error}</span>}
+          <SubmitButton label="Add Debt" pendingLabel="Adding…" className="btn btn-primary" />
+          {state.error && (
+            <span className="login-error" style={{ gridColumn: "1 / -1" }}>
+              {state.error}
+            </span>
+          )}
         </form>
       )}
 
-      {withDebt.length > 0 && (
-        <div>
-          <h4 style={{ margin: "0 0 6px" }}>Balances</h4>
-          <div className="dtable-wrap">
-            <table className="dtable">
-              <thead>
-                <tr><th>Employee</th><th>Borrowed</th><th>Repaid</th><th>Still Owes</th></tr>
-              </thead>
-              <tbody>
-                {withDebt.map((e) => (
-                  <tr key={e.id}>
-                    <td data-label="Employee">{e.name}</td>
-                    <td data-label="Borrowed" className="mono">{money(e.borrowed)}</td>
-                    <td data-label="Repaid" className="mono">{money(e.repaid)}</td>
-                    <td data-label="Still Owes" className="mono" style={{ fontWeight: 700 }}>{money(e.owed)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <div className="pr-segmented" style={{ justifySelf: "start" }}>
+        {(
+          [
+            ["balances", "Balances"],
+            ["debts", `Debts (${debts.length})`],
+            ["repayments", `Repayments (${repayments.length})`],
+          ] as const
+        ).map(([key, text]) => (
+          <button
+            key={key}
+            type="button"
+            className={`pr-seg${view === key ? " active" : ""}`}
+            style={{
+              border: 0,
+              cursor: "pointer",
+              padding: "6px 10px",
+              fontSize: 12,
+            }}
+            onClick={() => setView(key)}
+          >
+            {text}
+          </button>
+        ))}
+      </div>
 
-      {debts.length > 0 && (
-        <div>
-          <h4 style={{ margin: "0 0 6px" }}>Debts Recorded</h4>
-          <div className="dtable-wrap">
-            <table className="dtable">
-              <thead>
-                <tr><th>Date</th><th>Employee</th><th>Amount</th><th>Note</th><th>Added By</th><th></th></tr>
-              </thead>
-              <tbody>
-                {debts.map((d) => (
-                  <DebtRow key={d.id} debt={d} />
-                ))}
-              </tbody>
-            </table>
+      {view === "balances" &&
+        (withDebt.length === 0 ? (
+          <p className="pr-empty">Nobody owes anything.</p>
+        ) : (
+          <div className="pr-list">
+            {withDebt.map((e) => (
+              <div key={e.id} className="pr-row" data-balance={e.name}>
+                <Avatar name={e.name} />
+                <span className="pr-who">
+                  <div className="pr-name" style={{ fontSize: 13.5 }}>
+                    {e.name}
+                  </div>
+                  <div className="pr-sub">
+                    Borrowed {money(e.borrowed)} · Repaid {money(e.repaid)}
+                  </div>
+                </span>
+                <span>
+                  <div className="pr-k">Still owes</div>
+                  <div className="pr-v">{money(e.owed)} Br</div>
+                </span>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        ))}
 
-      {repayments.length > 0 && (
-        <div>
-          <h4 style={{ margin: "0 0 6px" }}>Repayments</h4>
-          <div className="dtable-wrap">
-            <table className="dtable">
-              <thead>
-                <tr><th>Month</th><th>Employee</th><th>Amount</th></tr>
-              </thead>
-              <tbody>
-                {repayments.map((r) => (
-                  <tr key={r.id}>
-                    <td data-label="Month">
-                      <a href={`/payroll?month=${r.monthKey}`}>{payrollMonthLabel(parsePayrollMonth(r.monthKey)!)}</a>
-                    </td>
-                    <td data-label="Employee">{r.employeeName}</td>
-                    <td data-label="Amount" className="mono">{money(r.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {view === "debts" &&
+        (debts.length === 0 ? (
+          <p className="pr-empty">No debts recorded.</p>
+        ) : (
+          <div className="pr-list">
+            {debts.map((d) => (
+              <DebtRow key={d.id} debt={d} />
+            ))}
           </div>
-        </div>
-      )}
+        ))}
+
+      {view === "repayments" &&
+        (repayments.length === 0 ? (
+          <p className="pr-empty">No repayments yet.</p>
+        ) : (
+          <div className="pr-list">
+            {repayments.map((r) => (
+              <div key={r.id} className="pr-row">
+                <Avatar name={r.employeeName} />
+                <span className="pr-who">
+                  <div className="pr-name" style={{ fontSize: 13.5 }}>
+                    {r.employeeName}
+                  </div>
+                  <a className="pr-sub" href={`/payroll?month=${r.monthKey}`} style={{ textDecoration: "underline" }}>
+                    {r.monthLabel}
+                  </a>
+                </span>
+                <span className="pr-v">{money(r.amount)} Br</span>
+              </div>
+            ))}
+          </div>
+        ))}
     </div>
   );
 }
@@ -402,7 +536,7 @@ function DebtRow({ debt }: { debt: DebtData }) {
   const [error, setError] = useState<string | null>(null);
 
   function remove() {
-    if (!confirm(`Delete this ${money(debt.amount)} debt for ${debt.employeeName}?`)) return;
+    if (!confirm(`Delete this ${money(debt.amount)} Br debt for ${debt.employeeName}?`)) return;
     setError(null);
     startDelete(async () => {
       const result = await deletePayrollDebtAction(debt.id);
@@ -411,27 +545,29 @@ function DebtRow({ debt }: { debt: DebtData }) {
   }
 
   return (
-    <tr>
-      <td data-label="Date">{debt.date}</td>
-      <td data-label="Employee">{debt.employeeName}</td>
-      <td data-label="Amount" className="mono">{money(debt.amount)}</td>
-      <td data-label="Note">{debt.note || "—"}</td>
-      <td data-label="Added By">{debt.createdBy}</td>
-      <td>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {error && <span className="login-error">{error}</span>}
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            aria-label={`Delete debt for ${debt.employeeName}`}
-            title="Delete"
-            disabled={deleting}
-            onClick={remove}
-          >
-            <Trash2 size={14} strokeWidth={1.75} />
-          </button>
+    <div className="pr-row" data-debt={debt.note ?? ""}>
+      <Avatar name={debt.employeeName} />
+      <span className="pr-who">
+        <div className="pr-name" style={{ fontSize: 13.5 }}>
+          {debt.employeeName}
         </div>
-      </td>
-    </tr>
+        <div className="pr-sub">
+          {debt.dateLabel}
+          {debt.note ? ` · ${debt.note}` : ""} · by {debt.createdBy}
+        </div>
+      </span>
+      <span className="pr-v">{money(debt.amount)} Br</span>
+      {error && <span className="login-error">{error}</span>}
+      <button
+        type="button"
+        className="btn btn-sm btn-ghost pr-icon-btn"
+        aria-label={`Delete debt for ${debt.employeeName}`}
+        title="Delete"
+        disabled={deleting}
+        onClick={remove}
+      >
+        <Trash2 size={15} strokeWidth={1.75} />
+      </button>
+    </div>
   );
 }

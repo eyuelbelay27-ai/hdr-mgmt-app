@@ -1469,3 +1469,434 @@ button.tab {
   margin: 0;
   color: #fff;
 }
+
+/* -----------------------------------------------------------------------
+   Payroll module — card-based layout from the owner's mockup: segmented
+   tabs, month pill, warning banner, collapsible employee cards, accent
+   totals card. Scoped with a pr- prefix so nothing else is affected.
+   ----------------------------------------------------------------------- */
+.pr-stack {
+  display: grid;
+  gap: 12px;
+}
+.pr-segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+}
+.pr-seg {
+  flex: 1;
+  text-align: center;
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.pr-seg:hover {
+  color: var(--text);
+}
+.pr-seg.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(196, 22, 67, 0.25);
+}
+.pr-month {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 14px;
+  padding: 3px;
+}
+.pr-month-btn {
+  width: 40px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  border-radius: 11px;
+  cursor: pointer;
+}
+.pr-month-btn:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+.pr-month-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  border-left: 1px solid rgba(196, 22, 67, 0.15);
+  border-right: 1px solid rgba(196, 22, 67, 0.15);
+}
+.pr-month-select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 6px 2px;
+  cursor: pointer;
+  text-align: center;
+}
+.pr-month-select:focus {
+  outline: 2px solid var(--accent);
+  border-radius: 6px;
+}
+.pr-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  background: var(--warn-soft);
+  border-radius: 12px;
+  font-size: 13px;
+}
+.pr-banner strong {
+  color: var(--accent);
+}
+.pr-banner .pr-banner-text {
+  flex: 1 1 180px;
+}
+.pr-btn-soft {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent);
+}
+.pr-btn-soft:hover {
+  filter: none;
+  background: rgba(196, 22, 67, 0.16);
+}
+.pr-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr));
+  align-items: start;
+}
+.pr-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.pr-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.pr-avatar {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 16px;
+}
+.pr-who {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pr-name {
+  font-weight: 700;
+  font-size: 14.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pr-sub {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pr-head-stat {
+  flex-shrink: 0;
+  padding-left: 10px;
+  border-left: 1px solid var(--border-soft);
+  text-align: left;
+}
+.pr-k {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.pr-v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.pr-v.accent {
+  color: var(--accent);
+}
+.pr-v.negative {
+  color: var(--danger);
+}
+.pr-chevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  transition: transform 0.15s;
+}
+.pr-card.open .pr-chevron {
+  transform: rotate(180deg);
+}
+.pr-card-body {
+  padding: 0 12px 12px;
+  display: grid;
+  gap: 10px;
+}
+.pr-panel {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+.pr-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+.pr-fields .input {
+  background: var(--surface);
+  min-height: 36px;
+  padding: 6px 9px;
+}
+.pr-field-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.pr-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.pr-summary > div {
+  padding: 0 8px;
+  border-left: 1px solid var(--border);
+}
+.pr-summary > div:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+.pr-chips {
+  display: grid;
+  gap: 4px;
+}
+.pr-chip {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  padding: 6px 8px;
+  background: var(--danger-soft);
+  border-radius: 8px;
+}
+.pr-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pr-card-foot .pr-spacer {
+  flex: 1;
+}
+.pr-totals {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.pr-totals-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+}
+.pr-totals-head .pr-k {
+  color: rgba(255, 255, 255, 0.8);
+}
+.pr-totals-head .pr-v {
+  font-size: 18px;
+}
+.pr-totals-title {
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 600;
+}
+.pr-totals-body {
+  padding: 12px 16px;
+  display: grid;
+  gap: 8px;
+}
+.pr-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+.pr-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pr-section-head h3 {
+  margin: 0;
+  font-size: 16px;
+  flex: 1;
+}
+.pr-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.pr-form {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  align-items: end;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px;
+}
+.pr-form .input {
+  background: var(--surface);
+}
+.pr-list {
+  display: grid;
+}
+.pr-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+.pr-row:first-child {
+  border-top: 0;
+}
+.pr-row .input {
+  min-height: 36px;
+  padding: 6px 9px;
+}
+.pr-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.pr-empty {
+  text-align: center;
+  padding: 18px 12px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.pr-icon-btn {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+}
+@media (max-width: 640px) {
+  .pr-head-stat.hide-sm {
+    display: none;
+  }
+  .pr-seg {
+    font-size: 12.5px;
+    padding: 9px 6px;
+  }
+}
+.pr-summary.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.pr-net {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+.pr-net .pr-v {
+  font-size: 17px;
+}
+.pr-net.negative {
+  background: var(--danger-soft);
+}
+.pr-toolbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.pr-toolbar > :last-child {
+  justify-self: end;
+}
+.pr-emp {
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+.pr-emp-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 480px) {
+  .pr-toolbar {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .pr-toolbar > :first-child,
+  .pr-toolbar > :last-child {
+    display: none;
+  }
+}

@@ -18,6 +18,8 @@ export interface PayrollHours {
 export interface PayrollRow extends PayrollRates, PayrollHours {
   salary: number;
   debtRepayment: number;
+  /** Sum of that month's PayrollDeduction rows for the employee. */
+  deductions: number;
 }
 
 export const DEFAULT_PAYROLL_RATES: PayrollRates = {
@@ -52,6 +54,7 @@ export function grossPay(row: PayrollRow): number {
   return round2(row.salary + overtimePay(row));
 }
 
+/** Can go negative when deductions and repayment exceed gross pay. */
 export function netPay(row: PayrollRow): number {
-  return round2(grossPay(row) - row.debtRepayment);
+  return round2(grossPay(row) - row.debtRepayment - row.deductions);
 }

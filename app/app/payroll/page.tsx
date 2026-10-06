@@ -3,11 +3,19 @@ import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/prisma";
 import { can, canSeePage } from "@/lib/permissions";
 import { round2, toNumber } from "@/lib/money";
-import { currentPayrollMonth, formatPayrollMonthKey, parsePayrollMonth } from "@/lib/payroll/month";
+import { formatEthiopianDate, toEthiopian } from "@/lib/payroll/ethiopian";
+import { currentPayrollMonth, formatPayrollMonthKey, parsePayrollMonth, payrollMonthLabel } from "@/lib/payroll/month";
 import { getPayrollRates } from "@/lib/payroll/settings";
 import { AppNav } from "../AppNav";
 import { MonthlyPayroll, type PayrollEntryData } from "./MonthlyPayroll";
+import { DeductionsPanel } from "./DeductionsPanel";
 import { PayrollSettingsPanel } from "./PayrollSettingsPanel";
+
+const TABS = [
+  { key: "payroll", label: "Monthly Payroll" },
+  { key: "deductions", label: "Deductions" },
+  { key: "settings", label: "Settings" },
+] as const;
 
 export default async function PayrollPage({
   searchParams,
@@ -30,15 +38,20 @@ export default async function PayrollPage({
   }
 
   const sp = await searchParams;
-  const tab = sp.tab === "settings" ? "settings" : "payroll";
+  const tab = TABS.find((t) => t.key === sp.tab)?.key ?? "payroll";
   const month = parsePayrollMonth(sp.month) ?? currentPayrollMonth();
   const monthKey = formatPayrollMonthKey(month);
 
-  const [employees, debtSums, repaidSums, entries, debts, repayments, rates] = await Promise.all([
+  const [employees, debtSums, repaidSums, entries, monthDeductions, debts, repayments, rates] = await Promise.all([
     prisma.payrollEmployee.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }] }),
     prisma.payrollDebt.groupBy({ by: ["employeeId"], _sum: { amount: true } }),
     prisma.payrollEntry.groupBy({ by: ["employeeId"], _sum: { debtRepayment: true } }),
     prisma.payrollEntry.findMany({ where: { ...month }, include: { employee: { select: { name: true } } } }),
+    prisma.payrollDeduction.findMany({
+      where: { ...month },
+      orderBy: { createdAt: "asc" },
+      include: { employee: { select: { name: true } } },
+    }),
     prisma.payrollDebt.findMany({ orderBy: [{ date: "desc" }, { createdAt: "desc" }], include: { employee: { select: { name: true } } } }),
     prisma.payrollEntry.findMany({
       where: { debtRepayment: { gt: 0 } },
@@ -50,11 +63,18 @@ export default async function PayrollPage({
 
   const borrowedBy = new Map(debtSums.map((d) => [d.employeeId, toNumber(d._sum.amount)]));
   const repaidBy = new Map(repaidSums.map((r) => [r.employeeId, toNumber(r._sum.debtRepayment)]));
+  const deductionsBy = new Map<string, { id: string; reason: string; amount: number }[]>();
+  for (const d of monthDeductions) {
+    const list = deductionsBy.get(d.employeeId) ?? [];
+    list.push({ id: d.id, reason: d.reason, amount: toNumber(d.amount) });
+    deductionsBy.set(d.employeeId, list);
+  }
 
   const monthEntries: PayrollEntryData[] = entries
     .map((e) => {
       const repayment = toNumber(e.debtRepayment);
       const repaidElsewhere = (repaidBy.get(e.employeeId) ?? 0) - repayment;
+      const deductionItems = deductionsBy.get(e.employeeId) ?? [];
       return {
         id: e.id,
         employeeName: e.employee.name,
@@ -71,6 +91,9 @@ export default async function PayrollPage({
         otRestDayHours: toNumber(e.otRestDayHours),
         otHolidayHours: toNumber(e.otHolidayHours),
         debtRepayment: repayment,
+        deductions: round2(deductionItems.reduce((s, d) => s + d.amount, 0)),
+        deductionItems,
+        receipt: e.receiptUrl ? { url: e.receiptUrl, name: e.receiptName ?? "receipt", kind: e.receiptKind ?? "" } : null,
       };
     })
     .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
@@ -78,40 +101,27 @@ export default async function PayrollPage({
   const inMonth = new Set(entries.map((e) => e.employeeId));
   const missingActive = employees.filter((e) => e.active && !inMonth.has(e.id)).map((e) => e.name);
 
-  const employeeRows = employees.map((e) => {
-    const borrowed = borrowedBy.get(e.id) ?? 0;
-    const repaid = repaidBy.get(e.id) ?? 0;
-    return {
-      id: e.id,
-      name: e.name,
-      salary: toNumber(e.salary),
-      active: e.active,
-      borrowed,
-      repaid,
-      owed: round2(borrowed - repaid),
-    };
-  });
-
   return (
     <div className="app-shell">
       <AppNav user={user} activePage="payroll" />
       <main className="app-main">
-        <h1 style={{ marginTop: 0, marginBottom: 4 }}>Payroll</h1>
-        <p className="label" style={{ marginBottom: 12 }}>
-          Monthly pay: salary plus overtime, minus any debt repayment.
-        </p>
+        <div className="pr-stack" style={{ maxWidth: 1100 }}>
+          <h1 style={{ margin: 0 }}>Payroll</h1>
 
-        <div style={{ display: "grid", gap: 16 }}>
-          <div className="crm-toolbar">
-            <a href={`/payroll?month=${monthKey}`} className={`tab${tab === "payroll" ? " active" : ""}`}>
-              Monthly Payroll
-            </a>
-            <a href={`/payroll?tab=settings&month=${monthKey}`} className={`tab${tab === "settings" ? " active" : ""}`}>
-              Settings
-            </a>
-          </div>
+          <nav className="pr-segmented" aria-label="Payroll sections">
+            {TABS.map((t) => (
+              <a
+                key={t.key}
+                href={`/payroll?${t.key === "payroll" ? "" : `tab=${t.key}&`}month=${monthKey}`}
+                className={`pr-seg${tab === t.key ? " active" : ""}`}
+                aria-current={tab === t.key ? "page" : undefined}
+              >
+                {t.label}
+              </a>
+            ))}
+          </nav>
 
-          {tab === "payroll" ? (
+          {tab === "payroll" && (
             <MonthlyPayroll
               key={`${monthKey}:${monthEntries.map((e) => e.id).join(",")}`}
               monthKey={monthKey}
@@ -119,15 +129,37 @@ export default async function PayrollPage({
               missingActive={missingActive}
               activeCount={employees.filter((e) => e.active).length}
             />
-          ) : (
+          )}
+
+          {tab === "deductions" && (
+            <DeductionsPanel
+              key={monthKey}
+              monthKey={monthKey}
+              employees={employees.map((e) => ({ id: e.id, name: e.name, active: e.active }))}
+              deductions={monthDeductions.map((d) => ({
+                id: d.id,
+                employeeName: d.employee.name,
+                amount: toNumber(d.amount),
+                reason: d.reason,
+                createdBy: d.createdBy,
+                createdAt: d.createdAt.toISOString(),
+              }))}
+            />
+          )}
+
+          {tab === "settings" && (
             <PayrollSettingsPanel
-              employees={employeeRows}
               rates={rates}
+              employees={employees.map((e) => {
+                const borrowed = borrowedBy.get(e.id) ?? 0;
+                const repaid = repaidBy.get(e.id) ?? 0;
+                return { id: e.id, name: e.name, salary: toNumber(e.salary), active: e.active, borrowed, repaid, owed: round2(borrowed - repaid) };
+              })}
               debts={debts.map((d) => ({
                 id: d.id,
                 employeeName: d.employee.name,
                 amount: toNumber(d.amount),
-                date: d.date.toISOString().slice(0, 10),
+                dateLabel: formatEthiopianDate(toEthiopian(d.date)),
                 note: d.note,
                 createdBy: d.createdBy,
               }))}
@@ -135,6 +167,7 @@ export default async function PayrollPage({
                 id: r.id,
                 employeeName: r.employee.name,
                 monthKey: formatPayrollMonthKey({ year: r.year, month: r.month }),
+                monthLabel: payrollMonthLabel({ year: r.year, month: r.month }),
                 amount: toNumber(r.debtRepayment),
               }))}
             />

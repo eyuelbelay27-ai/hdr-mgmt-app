@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { can, requirePage, PermissionError, type PermissionSubject } from "@/lib/permissions";
 import { round2, toNumber } from "@/lib/money";
-import { grossPay } from "@/lib/payroll/calc";
+import { saveUpload, getUploadedFile, deleteUpload } from "@/lib/storage";
+import { isValidEthiopianDate, toGregorian } from "@/lib/payroll/ethiopian";
 import { parsePayrollMonth } from "@/lib/payroll/month";
 import { getPayrollRates } from "@/lib/payroll/settings";
 
@@ -109,12 +110,13 @@ export async function deletePayrollEmployeeAction(employeeId: string): Promise<P
   const { error } = await authorize();
   if (error) return { error };
 
-  const [entries, debts] = await Promise.all([
+  const [entries, debts, deductions] = await Promise.all([
     prisma.payrollEntry.count({ where: { employeeId } }),
     prisma.payrollDebt.count({ where: { employeeId } }),
+    prisma.payrollDeduction.count({ where: { employeeId } }),
   ]);
-  if (entries > 0 || debts > 0) {
-    return { error: "This employee has payroll or debt history. Untick Active instead of deleting." };
+  if (entries > 0 || debts > 0 || deductions > 0) {
+    return { error: "This employee has payroll history. Turn off Active instead of deleting." };
   }
 
   await prisma.payrollEmployee.delete({ where: { id: employeeId } });
@@ -135,18 +137,23 @@ export async function addPayrollDebtAction(
 
   const employeeId = trimmed(formData, "employeeId");
   const amount = nonNegative(formData, "amount");
-  const dateRaw = trimmed(formData, "date");
   const note = trimmed(formData, "note") || null;
+  // Entered in the Ethiopian calendar, stored as the matching Gregorian day.
+  const ethiopianDate = {
+    year: Number(trimmed(formData, "dateYear")),
+    month: Number(trimmed(formData, "dateMonth")),
+    day: Number(trimmed(formData, "dateDay")),
+  };
 
   if (!employeeId) return { error: "Choose an employee." };
   if (!amount) return { error: "Enter an amount greater than zero." };
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return { error: "Enter a valid date." };
+  if (!isValidEthiopianDate(ethiopianDate)) return { error: "Enter a valid date." };
 
   const employee = await prisma.payrollEmployee.findUnique({ where: { id: employeeId } });
   if (!employee) return { error: "That employee no longer exists." };
 
   await prisma.payrollDebt.create({
-    data: { employeeId, amount, date: new Date(`${dateRaw}T00:00:00Z`), note, createdBy: user.name },
+    data: { employeeId, amount, date: toGregorian(ethiopianDate), note, createdBy: user.name },
   });
   revalidatePath("/payroll");
   return { error: null };
@@ -261,26 +268,12 @@ export async function updatePayrollEntryAction(entryId: string, formData: FormDa
   }
   if (debtRepayment === null) return { error: "Repayment must be zero or more." };
 
+  // Net pay may go negative (owner's call), so only the debt balance limits
+  // a repayment.
   if (debtRepayment > 0) {
     const owed = await outstandingDebt(entry.employeeId, entry.id);
     if (debtRepayment > owed) {
       return { error: `${entry.employee.name} only owes ${br(owed)}.` };
-    }
-    const gross = grossPay({
-      salary,
-      otNormalHours,
-      otNightHours,
-      otRestDayHours,
-      otHolidayHours,
-      debtRepayment,
-      hoursPerMonth: toNumber(entry.hoursPerMonth),
-      otNormalMultiplier: toNumber(entry.otNormalMultiplier),
-      otNightMultiplier: toNumber(entry.otNightMultiplier),
-      otRestDayMultiplier: toNumber(entry.otRestDayMultiplier),
-      otHolidayMultiplier: toNumber(entry.otHolidayMultiplier),
-    });
-    if (debtRepayment > gross) {
-      return { error: `Repayment can't be more than this month's pay (${br(gross)}).` };
     }
   }
 
@@ -293,12 +286,101 @@ export async function updatePayrollEntryAction(entryId: string, formData: FormDa
 }
 
 /** Takes an employee off one month. Any repayment on that row goes back
- * onto their debt balance. */
+ * onto their debt balance; that month's deductions stay recorded. */
 export async function removePayrollEntryAction(entryId: string): Promise<PayrollActionState> {
   const { error } = await authorize();
   if (error) return { error };
 
-  await prisma.payrollEntry.deleteMany({ where: { id: entryId } });
+  const entry = await prisma.payrollEntry.findUnique({ where: { id: entryId } });
+  if (!entry) return { error: null };
+  await prisma.payrollEntry.delete({ where: { id: entryId } });
+  await deleteUpload(entry.receiptUrl);
+  revalidatePath("/payroll");
+  return { error: null };
+}
+
+// -----------------------------------------------------------------------
+// Payment receipts — one optional bank slip / screenshot per monthly row
+// -----------------------------------------------------------------------
+
+export interface PayrollReceiptState extends PayrollActionState {
+  receipt?: { url: string; name: string; kind: string };
+}
+
+export async function uploadPayrollReceiptAction(entryId: string, formData: FormData): Promise<PayrollReceiptState> {
+  const { error } = await authorize();
+  if (error) return { error };
+
+  const file = getUploadedFile(formData, "receipt");
+  if (!file) return { error: "Choose a file to upload." };
+  if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+    return { error: "Upload a photo or a PDF." };
+  }
+
+  const entry = await prisma.payrollEntry.findUnique({ where: { id: entryId } });
+  if (!entry) return { error: "This row no longer exists. Reload the page." };
+
+  const stored = await saveUpload(file);
+  await prisma.payrollEntry.update({
+    where: { id: entryId },
+    data: { receiptUrl: stored.url, receiptName: stored.name, receiptKind: stored.kind },
+  });
+  await deleteUpload(entry.receiptUrl);
+  revalidatePath("/payroll");
+  return { error: null, receipt: stored };
+}
+
+export async function removePayrollReceiptAction(entryId: string): Promise<PayrollActionState> {
+  const { error } = await authorize();
+  if (error) return { error };
+
+  const entry = await prisma.payrollEntry.findUnique({ where: { id: entryId } });
+  if (!entry) return { error: null };
+  await prisma.payrollEntry.update({
+    where: { id: entryId },
+    data: { receiptUrl: null, receiptName: null, receiptKind: null },
+  });
+  await deleteUpload(entry.receiptUrl);
+  revalidatePath("/payroll");
+  return { error: null };
+}
+
+// -----------------------------------------------------------------------
+// Deductions — penalties etc., subtracted from that month's net pay
+// -----------------------------------------------------------------------
+
+export async function addPayrollDeductionAction(
+  _prevState: PayrollActionState,
+  formData: FormData
+): Promise<PayrollActionState> {
+  const { user, error } = await authorize();
+  if (error || !user) return { error };
+
+  const employeeId = trimmed(formData, "employeeId");
+  const month = parsePayrollMonth(trimmed(formData, "month"));
+  const amount = nonNegative(formData, "amount");
+  const reason = trimmed(formData, "reason");
+
+  if (!employeeId) return { error: "Choose an employee." };
+  if (!month) return { error: "Choose a month." };
+  if (!amount) return { error: "Enter an amount greater than zero." };
+  if (!reason) return { error: "Write the reason for the deduction." };
+
+  const employee = await prisma.payrollEmployee.findUnique({ where: { id: employeeId } });
+  if (!employee) return { error: "That employee no longer exists." };
+
+  await prisma.payrollDeduction.create({
+    data: { employeeId, ...month, amount, reason, createdBy: user.name },
+  });
+  revalidatePath("/payroll");
+  return { error: null };
+}
+
+export async function deletePayrollDeductionAction(deductionId: string): Promise<PayrollActionState> {
+  const { error } = await authorize();
+  if (error) return { error };
+
+  await prisma.payrollDeduction.deleteMany({ where: { id: deductionId } });
   revalidatePath("/payroll");
   return { error: null };
 }
