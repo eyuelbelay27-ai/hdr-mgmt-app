@@ -831,3 +831,85 @@ model AttendanceDevice {
   lastSeenAt         DateTime?
   revokedAt          DateTime?
 }
+
+// -----------------------------------------------------------------------
+// Payroll — a standalone module, like CRM/Overtime Control. No relation to
+// any other table: employees here are their own records (not app Users),
+// since plenty of paid staff never log in. Net pay is Salary + Overtime −
+// Debt repayment; there is deliberately no tax, pension or absence logic.
+// -----------------------------------------------------------------------
+
+model PayrollEmployee {
+  id     String  @id @default(cuid())
+  name   String
+  // Current monthly salary — copied onto each month's row when that month
+  // is started, so a later raise never rewrites an already-run month.
+  salary Decimal @db.Decimal(14, 2)
+  active Boolean @default(true)
+
+  debts   PayrollDebt[]
+  entries PayrollEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/** Money an employee owes the company (an advance or loan). Repaid only
+ * through PayrollEntry.debtRepayment; the outstanding balance is always
+ * computed (sum of debts − sum of repayments), never stored. */
+model PayrollDebt {
+  id         String          @id @default(cuid())
+  employee   PayrollEmployee @relation(fields: [employeeId], references: [id])
+  employeeId String
+  amount     Decimal         @db.Decimal(14, 2)
+  date       DateTime
+  note       String?
+  createdBy  String
+  createdAt  DateTime        @default(now())
+
+  @@index([employeeId])
+}
+
+/** Singleton. Overtime is paid as hours × hourly wage × multiplier, where
+ * hourly wage = monthly salary ÷ hoursPerMonth. */
+model PayrollSettings {
+  id                  String   @id @default("singleton")
+  hoursPerMonth       Decimal  @default(208) @db.Decimal(6, 2)
+  otNormalMultiplier  Decimal  @default(1.5) @db.Decimal(5, 2)
+  otNightMultiplier   Decimal  @default(1.75) @db.Decimal(5, 2)
+  otRestDayMultiplier Decimal  @default(2) @db.Decimal(5, 2)
+  otHolidayMultiplier Decimal  @default(2.5) @db.Decimal(5, 2)
+  updatedAt           DateTime @updatedAt
+}
+
+/** One employee's pay for one month. The salary, hoursPerMonth and the four
+ * multipliers are snapshots taken when the month was started, so editing
+ * Settings or an employee's salary later only affects months started after
+ * that. The salary snapshot stays editable on the row itself. */
+model PayrollEntry {
+  id         String          @id @default(cuid())
+  employee   PayrollEmployee @relation(fields: [employeeId], references: [id])
+  employeeId String
+  year       Int
+  month      Int // 1–12
+
+  salary              Decimal @db.Decimal(14, 2)
+  hoursPerMonth       Decimal @db.Decimal(6, 2)
+  otNormalMultiplier  Decimal @db.Decimal(5, 2)
+  otNightMultiplier   Decimal @db.Decimal(5, 2)
+  otRestDayMultiplier Decimal @db.Decimal(5, 2)
+  otHolidayMultiplier Decimal @db.Decimal(5, 2)
+
+  otNormalHours  Decimal @default(0) @db.Decimal(6, 2)
+  otNightHours   Decimal @default(0) @db.Decimal(6, 2)
+  otRestDayHours Decimal @default(0) @db.Decimal(6, 2)
+  otHolidayHours Decimal @default(0) @db.Decimal(6, 2)
+  debtRepayment  Decimal @default(0) @db.Decimal(14, 2)
+
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, year, month])
+  @@index([year, month])
+}
