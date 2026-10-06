@@ -847,8 +847,9 @@ model PayrollEmployee {
   salary Decimal @db.Decimal(14, 2)
   active Boolean @default(true)
 
-  debts   PayrollDebt[]
-  entries PayrollEntry[]
+  debts      PayrollDebt[]
+  entries    PayrollEntry[]
+  deductions PayrollDeduction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -890,8 +891,9 @@ model PayrollEntry {
   id         String          @id @default(cuid())
   employee   PayrollEmployee @relation(fields: [employeeId], references: [id])
   employeeId String
+  // Ethiopian calendar: year E.C., month 1 (Meskerem) – 12 (Nehase).
   year       Int
-  month      Int // 1–12
+  month      Int
 
   salary              Decimal @db.Decimal(14, 2)
   hoursPerMonth       Decimal @db.Decimal(6, 2)
@@ -906,10 +908,33 @@ model PayrollEntry {
   otHolidayHours Decimal @default(0) @db.Decimal(6, 2)
   debtRepayment  Decimal @default(0) @db.Decimal(14, 2)
 
+  // Optional proof of payment — a bank slip or transfer screenshot.
+  receiptUrl  String?
+  receiptName String?
+  receiptKind String?
+
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([employeeId, year, month])
   @@index([year, month])
+}
+
+/** A penalty or other deduction, subtracted from that employee's net pay
+ * for the given month (Ethiopian calendar, same as PayrollEntry). Net pay
+ * is allowed to go negative. */
+model PayrollDeduction {
+  id         String          @id @default(cuid())
+  employee   PayrollEmployee @relation(fields: [employeeId], references: [id])
+  employeeId String
+  year       Int
+  month      Int
+  amount     Decimal         @db.Decimal(14, 2)
+  reason     String
+  createdBy  String
+  createdAt  DateTime        @default(now())
+
+  @@index([year, month])
+  @@index([employeeId])
 }
