@@ -847,6 +847,13 @@ model PayrollEmployee {
   salary Decimal @db.Decimal(14, 2)
   active Boolean @default(true)
 
+  // Which kinds of pay this employee gets. Copied onto each month's row when
+  // the month is started. Overtime is computed from salary, so it only
+  // applies while paySalary is also on.
+  paySalary     Boolean @default(true)
+  payOvertime   Boolean @default(true)
+  payCommission Boolean @default(false)
+
   debts      PayrollDebt[]
   entries    PayrollEntry[]
   deductions PayrollDeduction[]
@@ -908,6 +915,12 @@ model PayrollEntry {
   otHolidayHours Decimal @default(0) @db.Decimal(6, 2)
   debtRepayment  Decimal @default(0) @db.Decimal(14, 2)
 
+  // Pay types for this month (snapshot of the employee's, adjustable per row).
+  paySalary     Boolean @default(true)
+  payOvertime   Boolean @default(true)
+  payCommission Boolean @default(false)
+  commissions   PayrollCommission[]
+
   // Optional proof of payment — a bank slip or transfer screenshot.
   receiptUrl  String?
   receiptName String?
@@ -937,4 +950,19 @@ model PayrollDeduction {
 
   @@index([year, month])
   @@index([employeeId])
+}
+
+/** One commission line on a monthly payroll row: a typed job/customer name
+ * and amount. A row can have any number; they're summed into gross pay
+ * while the row's payCommission is on. */
+model PayrollCommission {
+  id        String       @id @default(cuid())
+  entry     PayrollEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entryId   String
+  jobName   String
+  amount    Decimal      @db.Decimal(14, 2)
+  createdBy String
+  createdAt DateTime     @default(now())
+
+  @@index([entryId])
 }

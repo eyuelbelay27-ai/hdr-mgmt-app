@@ -6,6 +6,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { can, requirePage, PermissionError, type PermissionSubject } from "@/lib/permissions";
 import { round2, toNumber } from "@/lib/money";
 import { saveUpload, getUploadedFile, deleteUpload } from "@/lib/storage";
+import { normalizePayTypes, type PayTypes } from "@/lib/payroll/calc";
 import { isValidEthiopianDate, toGregorian } from "@/lib/payroll/ethiopian";
 import { parsePayrollMonth } from "@/lib/payroll/month";
 import { getPayrollRates } from "@/lib/payroll/settings";
@@ -49,6 +50,19 @@ function nonNegative(formData: FormData, key: string): number | null {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
+/** Salary/Overtime/Commission switches; null when neither Salary nor
+ * Commission is on, since such an employee would never be paid anything. */
+function readPayTypes(formData: FormData): PayTypes | null {
+  const types = normalizePayTypes({
+    paySalary: formData.get("paySalary") === "on",
+    payOvertime: formData.get("payOvertime") === "on",
+    payCommission: formData.get("payCommission") === "on",
+  });
+  return types.paySalary || types.payCommission ? types : null;
+}
+
+const PAY_TYPES_ERROR = "Turn on Salary or Commission (or both).";
+
 function br(n: number): string {
   return `${n.toLocaleString()} Br`;
 }
@@ -80,9 +94,13 @@ export async function createPayrollEmployeeAction(
   const name = trimmed(formData, "name");
   const salary = nonNegative(formData, "salary");
   if (!name) return { error: "Enter the employee's name." };
-  if (!trimmed(formData, "salary") || salary === null) return { error: "Enter a valid monthly salary." };
+  const payTypes = readPayTypes(formData);
+  if (!payTypes) return { error: PAY_TYPES_ERROR };
+  if (payTypes.paySalary && (!trimmed(formData, "salary") || salary === null)) {
+    return { error: "Enter a valid monthly salary." };
+  }
 
-  await prisma.payrollEmployee.create({ data: { name, salary } });
+  await prisma.payrollEmployee.create({ data: { name, salary: salary ?? 0, ...payTypes } });
   revalidatePath("/payroll");
   return { error: null };
 }
@@ -94,11 +112,15 @@ export async function updatePayrollEmployeeAction(employeeId: string, formData: 
   const name = trimmed(formData, "name");
   const salary = nonNegative(formData, "salary");
   if (!name) return { error: "Name can't be empty." };
-  if (!trimmed(formData, "salary") || salary === null) return { error: "Enter a valid monthly salary." };
+  const payTypes = readPayTypes(formData);
+  if (!payTypes) return { error: PAY_TYPES_ERROR };
+  if (salary === null || (payTypes.paySalary && !trimmed(formData, "salary"))) {
+    return { error: "Enter a valid monthly salary." };
+  }
 
   await prisma.payrollEmployee.update({
     where: { id: employeeId },
-    data: { name, salary, active: formData.get("active") === "on" },
+    data: { name, salary, active: formData.get("active") === "on", ...payTypes },
   });
   revalidatePath("/payroll");
   return { error: null };
@@ -241,7 +263,14 @@ export async function startPayrollMonthAction(monthKey: string): Promise<Payroll
   if (toAdd.length === 0) return { error: "There are no active employees to add." };
 
   await prisma.payrollEntry.createMany({
-    data: toAdd.map((e) => ({ employeeId: e.id, ...month, salary: e.salary, ...rates, updatedBy: user.name })),
+    data: toAdd.map((e) => ({
+      employeeId: e.id,
+      ...month,
+      salary: e.salary,
+      ...rates,
+      ...normalizePayTypes(e),
+      updatedBy: user.name,
+    })),
     skipDuplicates: true,
   });
   revalidatePath("/payroll");
@@ -267,6 +296,8 @@ export async function updatePayrollEntryAction(entryId: string, formData: FormDa
     return { error: "Overtime hours must be zero or more." };
   }
   if (debtRepayment === null) return { error: "Repayment must be zero or more." };
+  const payTypes = readPayTypes(formData);
+  if (!payTypes) return { error: PAY_TYPES_ERROR };
 
   // Net pay may go negative (owner's call), so only the debt balance limits
   // a repayment.
@@ -279,7 +310,16 @@ export async function updatePayrollEntryAction(entryId: string, formData: FormDa
 
   await prisma.payrollEntry.update({
     where: { id: entryId },
-    data: { salary, otNormalHours, otNightHours, otRestDayHours, otHolidayHours, debtRepayment, updatedBy: user.name },
+    data: {
+      salary,
+      otNormalHours,
+      otNightHours,
+      otRestDayHours,
+      otHolidayHours,
+      debtRepayment,
+      ...payTypes,
+      updatedBy: user.name,
+    },
   });
   revalidatePath("/payroll");
   return { error: null };
@@ -381,6 +421,42 @@ export async function deletePayrollDeductionAction(deductionId: string): Promise
   if (error) return { error };
 
   await prisma.payrollDeduction.deleteMany({ where: { id: deductionId } });
+  revalidatePath("/payroll");
+  return { error: null };
+}
+
+// -----------------------------------------------------------------------
+// Commission — job/customer + amount lines on a monthly row
+// -----------------------------------------------------------------------
+
+export interface PayrollCommissionState extends PayrollActionState {
+  line?: { id: string; jobName: string; amount: number };
+}
+
+export async function addPayrollCommissionAction(entryId: string, formData: FormData): Promise<PayrollCommissionState> {
+  const { user, error } = await authorize();
+  if (error || !user) return { error };
+
+  const jobName = trimmed(formData, "jobName");
+  const amount = nonNegative(formData, "amount");
+  if (!jobName) return { error: "Enter the job or customer name." };
+  if (!amount) return { error: "Enter a commission amount greater than zero." };
+
+  const entry = await prisma.payrollEntry.findUnique({ where: { id: entryId } });
+  if (!entry) return { error: "This row no longer exists. Reload the page." };
+
+  const line = await prisma.payrollCommission.create({
+    data: { entryId, jobName, amount, createdBy: user.name },
+  });
+  revalidatePath("/payroll");
+  return { error: null, line: { id: line.id, jobName: line.jobName, amount: toNumber(line.amount) } };
+}
+
+export async function deletePayrollCommissionAction(commissionId: string): Promise<PayrollActionState> {
+  const { error } = await authorize();
+  if (error) return { error };
+
+  await prisma.payrollCommission.deleteMany({ where: { id: commissionId } });
   revalidatePath("/payroll");
   return { error: null };
 }

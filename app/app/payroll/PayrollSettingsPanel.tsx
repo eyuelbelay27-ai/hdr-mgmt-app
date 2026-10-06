@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useFormState } from "react-dom";
 import { Plus, Trash2, X } from "lucide-react";
-import { OVERTIME_TYPES, type PayrollRates } from "@/lib/payroll/calc";
+import { OVERTIME_TYPES, normalizePayTypes, type PayTypes, type PayrollRates } from "@/lib/payroll/calc";
 import { ETHIOPIAN_MONTH_NAMES, ethiopianToday } from "@/lib/payroll/ethiopian";
 import {
   addPayrollDebtAction,
@@ -19,7 +19,7 @@ import { useAutosave } from "../useAutosave";
 import { SaveStatusBadge } from "../SaveStatusBadge";
 import { money } from "./MonthlyPayroll";
 
-export interface EmployeeRowData {
+export interface EmployeeRowData extends PayTypes {
   id: string;
   name: string;
   salary: number;
@@ -47,6 +47,12 @@ export interface RepaymentData {
 }
 
 const initialState: PayrollActionState = { error: null };
+
+const PAY_TYPES: [keyof PayTypes, string][] = [
+  ["paySalary", "Salary"],
+  ["payOvertime", "Overtime"],
+  ["payCommission", "Commission"],
+];
 
 function useResettingForm(action: (prev: PayrollActionState, fd: FormData) => Promise<PayrollActionState>) {
   const [state, formAction] = useFormState(action, initialState);
@@ -124,8 +130,18 @@ function EmployeesSection({ employees }: { employees: EmployeeRowData[] }) {
               min="0"
               step="any"
               inputMode="decimal"
-              required
             />
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <span className="pr-k">Gets paid</span>
+            <div className="pr-pills" style={{ marginTop: 4 }}>
+              {PAY_TYPES.map(([key, text]) => (
+                <label key={key} className="pr-toggle" style={{ color: "var(--text)" }}>
+                  <input type="checkbox" name={key} defaultChecked={key !== "payCommission"} />
+                  {text}
+                </label>
+              ))}
+            </div>
           </div>
           <SubmitButton label="Add Employee" pendingLabel="Adding…" className="btn btn-primary" />
           {state.error && (
@@ -146,8 +162,8 @@ function EmployeesSection({ employees }: { employees: EmployeeRowData[] }) {
         </div>
       )}
       <p className="pr-sub" style={{ margin: 0, whiteSpace: "normal" }}>
-        A salary change here applies to months you start from now on. To change a month that&apos;s already started,
-        edit the salary on that month&apos;s card.
+        Salary and pay-type changes here apply to months you start from now on. To change a month that&apos;s already
+        started, edit it on that month&apos;s card. Overtime needs Salary, since it&apos;s calculated from it.
       </p>
     </div>
   );
@@ -157,16 +173,36 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
   const [name, setName] = useState(employee.name);
   const [salary, setSalary] = useState(String(employee.salary));
   const [active, setActive] = useState(employee.active);
+  const [types, setTypes] = useState<PayTypes>({
+    paySalary: employee.paySalary,
+    payOvertime: employee.payOvertime,
+    payCommission: employee.payCommission,
+  });
+  const [typeError, setTypeError] = useState<string | null>(null);
   const autosave = useAutosave((fd) => updatePayrollEmployeeAction(employee.id, fd));
   const [deleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  function build(next: { name: string; salary: string; active: boolean }) {
+  function build(next: { name: string; salary: string; active: boolean; types: PayTypes }) {
     const fd = new FormData();
     fd.set("name", next.name);
     fd.set("salary", next.salary);
     if (next.active) fd.set("active", "on");
+    PAY_TYPES.forEach(([key]) => {
+      if (next.types[key]) fd.set(key, "on");
+    });
     return fd;
+  }
+
+  function switchType(key: keyof PayTypes) {
+    const next = normalizePayTypes({ ...types, [key]: !types[key] });
+    if (!next.paySalary && !next.payCommission) {
+      setTypeError("Keep Salary or Commission on.");
+      return;
+    }
+    setTypeError(null);
+    setTypes(next);
+    autosave.saveNow(() => build({ name, salary, active, types: next }));
   }
 
   function remove() {
@@ -179,7 +215,7 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
   }
 
   return (
-    <div className="pr-row pr-emp" style={active ? undefined : { opacity: 0.55 }}>
+    <div className="pr-row pr-emp" style={active ? undefined : { opacity: 0.55 }} data-employee-row={employee.name}>
       <Avatar name={name} />
       <div className="pr-emp-main">
         <input
@@ -188,24 +224,26 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
           value={name}
           onChange={(e) => {
             setName(e.target.value);
-            autosave.schedule(() => build({ name: e.target.value, salary, active }));
+            autosave.schedule(() => build({ name: e.target.value, salary, active, types }));
           }}
           style={{ flex: "1 1 180px", width: "auto" }}
         />
-        <input
-          className="input"
-          type="number"
-          min="0"
-          step="any"
-          inputMode="decimal"
-          aria-label={`${employee.name} monthly salary`}
-          value={salary}
-          onChange={(e) => {
-            setSalary(e.target.value);
-            autosave.schedule(() => build({ name, salary: e.target.value, active }));
-          }}
-          style={{ flex: "0 1 120px", width: 120 }}
-        />
+        {types.paySalary && (
+          <input
+            className="input"
+            type="number"
+            min="0"
+            step="any"
+            inputMode="decimal"
+            aria-label={`${employee.name} monthly salary`}
+            value={salary}
+            onChange={(e) => {
+              setSalary(e.target.value);
+              autosave.schedule(() => build({ name, salary: e.target.value, active, types }));
+            }}
+            style={{ flex: "0 1 120px", width: 120 }}
+          />
+        )}
         <label className="pr-toggle">
           <input
             type="checkbox"
@@ -213,17 +251,36 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
             checked={active}
             onChange={(e) => {
               setActive(e.target.checked);
-              autosave.saveNow(() => build({ name, salary, active: e.target.checked }));
+              autosave.saveNow(() => build({ name, salary, active: e.target.checked, types }));
             }}
           />
           Active
         </label>
-        {employee.owed > 0 && (
-          <span className="badge" style={{ background: "var(--warn-soft)", color: "var(--warn)" }}>
-            Owes {money(employee.owed)}
-          </span>
-        )}
+        <div className="pr-pills" role="group" aria-label={`${employee.name} pay types`} style={{ flexBasis: "100%" }}>
+          {PAY_TYPES.map(([key, text]) => {
+            const disabled = key === "payOvertime" && !types.paySalary;
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`pr-pill${types[key] ? " on" : ""}`}
+                aria-pressed={types[key]}
+                disabled={disabled}
+                title={disabled ? "Overtime needs Salary" : undefined}
+                onClick={() => switchType(key)}
+              >
+                {text}
+              </button>
+            );
+          })}
+          {employee.owed > 0 && (
+            <span className="badge" style={{ background: "var(--warn-soft)", color: "var(--warn)" }}>
+              Owes {money(employee.owed)}
+            </span>
+          )}
+        </div>
         <SaveStatusBadge status={autosave.status} error={autosave.error} />
+        {typeError && <span className="login-error">{typeError}</span>}
         {deleteError && <span className="login-error">{deleteError}</span>}
       </div>
       <button

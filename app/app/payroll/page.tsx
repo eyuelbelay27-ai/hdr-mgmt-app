@@ -46,7 +46,10 @@ export default async function PayrollPage({
     prisma.payrollEmployee.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }] }),
     prisma.payrollDebt.groupBy({ by: ["employeeId"], _sum: { amount: true } }),
     prisma.payrollEntry.groupBy({ by: ["employeeId"], _sum: { debtRepayment: true } }),
-    prisma.payrollEntry.findMany({ where: { ...month }, include: { employee: { select: { name: true } } } }),
+    prisma.payrollEntry.findMany({
+      where: { ...month },
+      include: { employee: { select: { name: true } }, commissions: { orderBy: { createdAt: "asc" } } },
+    }),
     prisma.payrollDeduction.findMany({
       where: { ...month },
       orderBy: { createdAt: "asc" },
@@ -91,6 +94,11 @@ export default async function PayrollPage({
         otRestDayHours: toNumber(e.otRestDayHours),
         otHolidayHours: toNumber(e.otHolidayHours),
         debtRepayment: repayment,
+        paySalary: e.paySalary,
+        payOvertime: e.payOvertime,
+        payCommission: e.payCommission,
+        commissionItems: e.commissions.map((c) => ({ id: c.id, jobName: c.jobName, amount: toNumber(c.amount) })),
+        commission: round2(e.commissions.reduce((s, c) => s + toNumber(c.amount), 0)),
         deductions: round2(deductionItems.reduce((s, d) => s + d.amount, 0)),
         deductionItems,
         receipt: e.receiptUrl ? { url: e.receiptUrl, name: e.receiptName ?? "receipt", kind: e.receiptKind ?? "" } : null,
@@ -153,7 +161,18 @@ export default async function PayrollPage({
               employees={employees.map((e) => {
                 const borrowed = borrowedBy.get(e.id) ?? 0;
                 const repaid = repaidBy.get(e.id) ?? 0;
-                return { id: e.id, name: e.name, salary: toNumber(e.salary), active: e.active, borrowed, repaid, owed: round2(borrowed - repaid) };
+                return {
+                  id: e.id,
+                  name: e.name,
+                  salary: toNumber(e.salary),
+                  active: e.active,
+                  paySalary: e.paySalary,
+                  payOvertime: e.payOvertime,
+                  payCommission: e.payCommission,
+                  borrowed,
+                  repaid,
+                  owed: round2(borrowed - repaid),
+                };
               })}
               debts={debts.map((d) => ({
                 id: d.id,

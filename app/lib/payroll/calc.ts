@@ -15,11 +15,32 @@ export interface PayrollHours {
   otHolidayHours: number;
 }
 
-export interface PayrollRow extends PayrollRates, PayrollHours {
+export interface PayTypes {
+  paySalary: boolean;
+  payOvertime: boolean;
+  payCommission: boolean;
+}
+
+export interface PayrollRow extends PayrollRates, PayrollHours, PayTypes {
   salary: number;
   debtRepayment: number;
   /** Sum of that month's PayrollDeduction rows for the employee. */
   deductions: number;
+  /** Sum of the row's commission lines. */
+  commission: number;
+}
+
+/** Overtime is computed from salary, so it can't apply without it. */
+export function normalizePayTypes(t: PayTypes): PayTypes {
+  return { paySalary: t.paySalary, payOvertime: t.paySalary && t.payOvertime, payCommission: t.payCommission };
+}
+
+export function salaryPay(row: PayrollRow): number {
+  return row.paySalary ? row.salary : 0;
+}
+
+export function commissionPay(row: PayrollRow): number {
+  return row.payCommission ? round2(row.commission) : 0;
 }
 
 export const DEFAULT_PAYROLL_RATES: PayrollRates = {
@@ -43,6 +64,7 @@ export function hourlyWage(salary: number, hoursPerMonth: number): number {
 
 /** Rounded once at the end, so per-type rounding never drifts the total. */
 export function overtimePay(row: PayrollRow): number {
+  if (!row.paySalary || !row.payOvertime) return 0;
   const weightedHours = OVERTIME_TYPES.reduce(
     (sum, t) => sum + row[t.hoursKey] * row[t.multiplierKey],
     0
@@ -51,7 +73,7 @@ export function overtimePay(row: PayrollRow): number {
 }
 
 export function grossPay(row: PayrollRow): number {
-  return round2(row.salary + overtimePay(row));
+  return round2(salaryPay(row) + overtimePay(row) + commissionPay(row));
 }
 
 /** Can go negative when deductions and repayment exceed gross pay. */
