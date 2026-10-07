@@ -48,7 +48,10 @@ export default async function PayrollPage({
     prisma.payrollEntry.groupBy({ by: ["employeeId"], _sum: { debtRepayment: true } }),
     prisma.payrollEntry.findMany({
       where: { ...month },
-      include: { employee: { select: { name: true } }, commissions: { orderBy: { createdAt: "asc" } } },
+      include: {
+        employee: { select: { name: true, bankName: true, bankAccount: true } },
+        commissions: { orderBy: { createdAt: "asc" } },
+      },
     }),
     prisma.payrollDeduction.findMany({
       where: { ...month },
@@ -102,6 +105,9 @@ export default async function PayrollPage({
         deductions: round2(deductionItems.reduce((s, d) => s + d.amount, 0)),
         deductionItems,
         receipt: e.receiptUrl ? { url: e.receiptUrl, name: e.receiptName ?? "receipt", kind: e.receiptKind ?? "" } : null,
+        // Read live from the employee (not snapshotted): it's where to pay, not how much.
+        bankName: e.employee.bankName,
+        bankAccount: e.employee.bankAccount,
       };
     })
     .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
@@ -169,6 +175,8 @@ export default async function PayrollPage({
                   paySalary: e.paySalary,
                   payOvertime: e.payOvertime,
                   payCommission: e.payCommission,
+                  bankName: e.bankName,
+                  bankAccount: e.bankAccount,
                   borrowed,
                   repaid,
                   owed: round2(borrowed - repaid),

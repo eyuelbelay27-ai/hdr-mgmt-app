@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { AlertTriangle, ChevronDown, Paperclip, Plus, Trash2, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Copy, Landmark, Paperclip, Plus, Trash2, X } from "lucide-react";
 import {
   OVERTIME_TYPES,
   commissionPay,
@@ -43,6 +43,8 @@ export interface PayrollEntryData extends PayrollRow {
   deductionItems: { id: string; reason: string; amount: number }[];
   commissionItems: CommissionLine[];
   receipt: FileRef | null;
+  bankName: string | null;
+  bankAccount: string | null;
 }
 
 const EDITABLE_FIELDS = ["salary", ...OVERTIME_TYPES.map((t) => t.hoursKey), "debtRepayment"] as const;
@@ -400,6 +402,8 @@ function EmployeeCard({
             })}
           </div>
 
+          <PayTo bankName={entry.bankName} bankAccount={entry.bankAccount} employeeName={entry.employeeName} />
+
           <div className="pr-panel">
             {(types.paySalary || hasDebt) && (
               <div className="pr-fields">
@@ -459,6 +463,59 @@ function EmployeeCard({
             </button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function PayTo({
+  bankName,
+  bankAccount,
+  employeeName,
+}: {
+  bankName: string | null;
+  bankAccount: string | null;
+  employeeName: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  if (!bankName && !bankAccount) {
+    return (
+      <div className="pr-payto empty">
+        <Landmark size={15} strokeWidth={1.75} />
+        <span>No bank details yet. Add them in Settings.</span>
+      </div>
+    );
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(bankAccount ?? "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard can be unavailable (e.g. non-HTTPS); the number is still visible to copy by hand.
+    }
+  }
+
+  return (
+    <div className="pr-payto" data-payto={employeeName}>
+      <Landmark size={15} strokeWidth={1.75} />
+      <span className="pr-payto-text">
+        {bankName && <span>{bankName}</span>}
+        {bankName && bankAccount && <span className="pr-payto-dot">·</span>}
+        {bankAccount && <span className="mono">{bankAccount}</span>}
+      </span>
+      {bankAccount && (
+        <button
+          type="button"
+          className="btn btn-sm btn-ghost pr-icon-btn"
+          aria-label={`Copy ${employeeName}'s account number`}
+          title={copied ? "Copied" : "Copy account number"}
+          onClick={copy}
+        >
+          {copied ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
+        </button>
       )}
     </div>
   );
