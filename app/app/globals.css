@@ -1995,3 +1995,40 @@ button.tab {
     min-height: 28px;
   }
 }
+.pr-bank-fields {
+  flex-basis: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+.pr-payto {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+  min-height: 36px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.pr-payto-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  color: var(--text);
+  font-weight: 600;
+}
+.pr-payto-dot {
+  color: var(--text-faint);
+}
+.pr-payto.empty {
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .pr-bank-fields {
+    grid-template-columns: 1fr;
+  }
+}

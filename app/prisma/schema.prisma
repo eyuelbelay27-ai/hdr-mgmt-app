@@ -854,6 +854,11 @@ model PayrollEmployee {
   payOvertime   Boolean @default(true)
   payCommission Boolean @default(false)
 
+  // Where to send this employee's pay. Text, not a number, so leading zeros
+  // and wallet IDs survive as typed.
+  bankName    String?
+  bankAccount String?
+
   debts      PayrollDebt[]
   entries    PayrollEntry[]
   deductions PayrollDeduction[]

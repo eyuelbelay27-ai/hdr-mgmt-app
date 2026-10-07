@@ -63,6 +63,14 @@ function readPayTypes(formData: FormData): PayTypes | null {
 
 const PAY_TYPES_ERROR = "Turn on Salary or Commission (or both).";
 
+/** Optional bank/wallet name and account number; blank clears them. */
+function readBankDetails(formData: FormData): { bankName: string | null; bankAccount: string | null } {
+  return {
+    bankName: trimmed(formData, "bankName").slice(0, 80) || null,
+    bankAccount: trimmed(formData, "bankAccount").slice(0, 60) || null,
+  };
+}
+
 function br(n: number): string {
   return `${n.toLocaleString()} Br`;
 }
@@ -100,7 +108,7 @@ export async function createPayrollEmployeeAction(
     return { error: "Enter a valid monthly salary." };
   }
 
-  await prisma.payrollEmployee.create({ data: { name, salary: salary ?? 0, ...payTypes } });
+  await prisma.payrollEmployee.create({ data: { name, salary: salary ?? 0, ...payTypes, ...readBankDetails(formData) } });
   revalidatePath("/payroll");
   return { error: null };
 }
@@ -120,7 +128,7 @@ export async function updatePayrollEmployeeAction(employeeId: string, formData: 
 
   await prisma.payrollEmployee.update({
     where: { id: employeeId },
-    data: { name, salary, active: formData.get("active") === "on", ...payTypes },
+    data: { name, salary, active: formData.get("active") === "on", ...payTypes, ...readBankDetails(formData) },
   });
   revalidatePath("/payroll");
   return { error: null };

@@ -24,6 +24,8 @@ export interface EmployeeRowData extends PayTypes {
   name: string;
   salary: number;
   active: boolean;
+  bankName: string | null;
+  bankAccount: string | null;
   borrowed: number;
   repaid: number;
   owed: number;
@@ -47,6 +49,27 @@ export interface RepaymentData {
 }
 
 const initialState: PayrollActionState = { error: null };
+
+const BANK_SUGGESTIONS = [
+  "Commercial Bank of Ethiopia",
+  "Awash Bank",
+  "Bank of Abyssinia",
+  "Dashen Bank",
+  "Wegagen Bank",
+  "Hibret Bank",
+  "Nib International Bank",
+  "Cooperative Bank of Oromia",
+  "Abay Bank",
+  "Berhan Bank",
+  "Bunna Bank",
+  "Zemen Bank",
+  "Enat Bank",
+  "Oromia Bank",
+  "Lion International Bank",
+  "Amhara Bank",
+  "telebirr",
+  "M-PESA",
+];
 
 const PAY_TYPES: [keyof PayTypes, string][] = [
   ["paySalary", "Salary"],
@@ -132,6 +155,32 @@ function EmployeesSection({ employees }: { employees: EmployeeRowData[] }) {
               inputMode="decimal"
             />
           </div>
+          <div>
+            <label className="pr-k" htmlFor="newEmployeeBank">
+              Bank / wallet
+            </label>
+            <input
+              className="input"
+              id="newEmployeeBank"
+              name="bankName"
+              list="payroll-banks"
+              placeholder="Optional"
+              autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="pr-k" htmlFor="newEmployeeAccount">
+              Account number
+            </label>
+            <input
+              className="input"
+              id="newEmployeeAccount"
+              name="bankAccount"
+              inputMode="numeric"
+              placeholder="Optional"
+              autoComplete="off"
+            />
+          </div>
           <div style={{ gridColumn: "1 / -1" }}>
             <span className="pr-k">Gets paid</span>
             <div className="pr-pills" style={{ marginTop: 4 }}>
@@ -151,6 +200,12 @@ function EmployeesSection({ employees }: { employees: EmployeeRowData[] }) {
           )}
         </form>
       )}
+
+      <datalist id="payroll-banks">
+        {BANK_SUGGESTIONS.map((b) => (
+          <option key={b} value={b} />
+        ))}
+      </datalist>
 
       {employees.length === 0 ? (
         <p className="pr-empty">No employees yet.</p>
@@ -178,15 +233,20 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
     payOvertime: employee.payOvertime,
     payCommission: employee.payCommission,
   });
+  const [bankName, setBankName] = useState(employee.bankName ?? "");
+  const [bankAccount, setBankAccount] = useState(employee.bankAccount ?? "");
   const [typeError, setTypeError] = useState<string | null>(null);
   const autosave = useAutosave((fd) => updatePayrollEmployeeAction(employee.id, fd));
+  const current = { name, salary, active, types, bankName, bankAccount };
   const [deleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  function build(next: { name: string; salary: string; active: boolean; types: PayTypes }) {
+  function build(next: typeof current) {
     const fd = new FormData();
     fd.set("name", next.name);
     fd.set("salary", next.salary);
+    fd.set("bankName", next.bankName);
+    fd.set("bankAccount", next.bankAccount);
     if (next.active) fd.set("active", "on");
     PAY_TYPES.forEach(([key]) => {
       if (next.types[key]) fd.set(key, "on");
@@ -202,7 +262,7 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
     }
     setTypeError(null);
     setTypes(next);
-    autosave.saveNow(() => build({ name, salary, active, types: next }));
+    autosave.saveNow(() => build({ ...current, types: next }));
   }
 
   function remove() {
@@ -224,7 +284,7 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
           value={name}
           onChange={(e) => {
             setName(e.target.value);
-            autosave.schedule(() => build({ name: e.target.value, salary, active, types }));
+            autosave.schedule(() => build({ ...current, name: e.target.value }));
           }}
           style={{ flex: "1 1 180px", width: "auto" }}
         />
@@ -239,7 +299,7 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
             value={salary}
             onChange={(e) => {
               setSalary(e.target.value);
-              autosave.schedule(() => build({ name, salary: e.target.value, active, types }));
+              autosave.schedule(() => build({ ...current, salary: e.target.value }));
             }}
             style={{ flex: "0 1 120px", width: 120 }}
           />
@@ -251,7 +311,7 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
             checked={active}
             onChange={(e) => {
               setActive(e.target.checked);
-              autosave.saveNow(() => build({ name, salary, active: e.target.checked, types }));
+              autosave.saveNow(() => build({ ...current, active: e.target.checked }));
             }}
           />
           Active
@@ -278,6 +338,32 @@ function EmployeeRow({ employee }: { employee: EmployeeRowData }) {
               Owes {money(employee.owed)}
             </span>
           )}
+        </div>
+        <div className="pr-bank-fields">
+          <input
+            className="input"
+            list="payroll-banks"
+            placeholder="Bank / wallet"
+            autoComplete="off"
+            aria-label={`${employee.name} bank or wallet`}
+            value={bankName}
+            onChange={(e) => {
+              setBankName(e.target.value);
+              autosave.schedule(() => build({ ...current, bankName: e.target.value }));
+            }}
+          />
+          <input
+            className="input"
+            inputMode="numeric"
+            placeholder="Account number"
+            autoComplete="off"
+            aria-label={`${employee.name} account number`}
+            value={bankAccount}
+            onChange={(e) => {
+              setBankAccount(e.target.value);
+              autosave.schedule(() => build({ ...current, bankAccount: e.target.value }));
+            }}
+          />
         </div>
         <SaveStatusBadge status={autosave.status} error={autosave.error} />
         {typeError && <span className="login-error">{typeError}</span>}
