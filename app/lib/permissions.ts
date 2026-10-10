@@ -50,6 +50,7 @@ export const ACTION_KEYS = [
   { key: "manageUsers", label: "Manage users & permissions" },
   { key: "submitOvertimeRequest", label: "Submit overtime requests" },
   { key: "approveOvertimeRequest", label: "Approve/reject overtime requests" },
+  { key: "markOvertimePaid", label: "Overtime: mark approved requests Paid / Unpaid" },
   { key: "manageCrmLeads", label: "CRM: register & assign leads, see every rep's leads" },
   { key: "workCrmLeads", label: "CRM: work assigned leads as a sales rep" },
   { key: "manageAttendance", label: "Attendance: view dashboard, edit settings, authorize the kiosk device" },

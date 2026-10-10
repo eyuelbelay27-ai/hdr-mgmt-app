@@ -6,7 +6,16 @@ import { OvertimeCard } from "./OvertimeCard";
 import { AddOvertimeForm } from "./AddOvertimeForm";
 import { loadMoreOvertimeRequestsAction, type OvertimeRequestData } from "./actions";
 
-const FILTERS = ["All", "Pending", "Approved", "Rejected"] as const;
+const FILTERS = ["All", "Pending", "Unpaid", "Paid", "Rejected"] as const;
+
+/** "Unpaid"/"Paid" only ever mean Approved requests — a Pending or
+ * Rejected one isn't owed anything yet. */
+function matches(r: OvertimeRequestData, filter: (typeof FILTERS)[number]): boolean {
+  if (filter === "All") return true;
+  if (filter === "Unpaid") return r.status === "Approved" && !r.paid;
+  if (filter === "Paid") return r.status === "Approved" && r.paid;
+  return r.status === filter;
+}
 
 /**
  * Owns the request list as local state, seeded once from the server —
@@ -21,6 +30,7 @@ export function OvertimeBoard({
   currentUserName,
   canSubmit,
   canApprove,
+  canMarkPaid,
 }: {
   initialRequests: OvertimeRequestData[];
   initialHasMore: boolean;
@@ -28,6 +38,7 @@ export function OvertimeBoard({
   currentUserName: string;
   canSubmit: boolean;
   canApprove: boolean;
+  canMarkPaid: boolean;
 }) {
   const [requests, setRequests] = useState(initialRequests);
   const [hasMore, setHasMore] = useState(initialHasMore);
@@ -53,8 +64,9 @@ export function OvertimeBoard({
     setLoadingMore(false);
   };
 
-  const visible = filter === "All" ? requests : requests.filter((r) => r.status === filter);
+  const visible = requests.filter((r) => matches(r, filter));
   const pendingCount = requests.filter((r) => r.status === "Pending").length;
+  const unpaidCount = requests.filter((r) => matches(r, "Unpaid")).length;
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -84,6 +96,7 @@ export function OvertimeBoard({
           >
             {f}
             {f === "Pending" && pendingCount > 0 ? ` (${pendingCount})` : ""}
+            {f === "Unpaid" && unpaidCount > 0 ? ` (${unpaidCount})` : ""}
           </button>
         ))}
       </div>
@@ -97,6 +110,7 @@ export function OvertimeBoard({
             currentUserName={currentUserName}
             canSubmit={canSubmit}
             canApprove={canApprove}
+            canMarkPaid={canMarkPaid}
             onUpdate={handleUpdate}
             onRemove={handleRemove}
           />

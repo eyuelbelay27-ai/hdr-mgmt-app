@@ -615,6 +615,12 @@ model OvertimeRequest {
   decidedAt     DateTime?
   rejectionNote String?
 
+  // Whether the approved overtime has been paid out; Admin-only to change
+  // (permission "markOvertimePaid"). Snapshot name, like decidedBy.
+  paid   Boolean   @default(false)
+  paidBy String?
+  paidAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
