@@ -25,6 +25,8 @@
   --info-soft: rgba(29, 78, 216, 0.12);
   --radius-card: 12px;
   --radius-control: 8px;
+  --font-inter: "Inter Variable";
+  --font-space-grotesk: "Space Grotesk Variable";
   --mono: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --sans: var(--font-inter), ui-sans-serif, "Segoe UI", "Noto Sans Ethiopic", "Nyala", system-ui, sans-serif;
   --display: var(--font-space-grotesk), var(--sans);

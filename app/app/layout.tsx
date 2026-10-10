@@ -1,14 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+// Fonts ship inside the app (npm packages) instead of next/font/google:
+// downloading them from Google at build time on the host occasionally
+// produced a page and stylesheet with mismatched font class names, so the
+// app silently fell back to the device's default font.
+import "@fontsource-variable/inter";
+import "@fontsource-variable/space-grotesk";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  weight: ["500", "700"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Hadar Advertising — Job Management",
@@ -32,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en">
       <body>{children}</body>
     </html>
   );
