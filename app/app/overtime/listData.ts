@@ -14,6 +14,9 @@ export function toRequestData(r: {
   decidedBy: string | null;
   decidedAt: Date | null;
   rejectionNote: string | null;
+  paid: boolean;
+  paidBy: string | null;
+  paidAt: Date | null;
 }): OvertimeRequestData {
   return {
     id: r.id,
@@ -27,5 +30,8 @@ export function toRequestData(r: {
     decidedBy: r.decidedBy,
     decidedAt: r.decidedAt,
     rejectionNote: r.rejectionNote,
+    paid: r.paid,
+    paidBy: r.paidBy,
+    paidAt: r.paidAt,
   };
 }

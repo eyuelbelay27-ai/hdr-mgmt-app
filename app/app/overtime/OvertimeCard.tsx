@@ -8,6 +8,7 @@ import {
   approveOvertimeRequestAction,
   unapproveOvertimeRequestAction,
   deleteOvertimeRequestAction,
+  setOvertimePaidAction,
   type OvertimeRequestData,
 } from "./actions";
 import { RejectOvertimeControl } from "./RejectOvertimeControl";
@@ -49,6 +50,7 @@ export function OvertimeCard({
   currentUserName,
   canSubmit,
   canApprove,
+  canMarkPaid,
   onUpdate,
   onRemove,
 }: {
@@ -57,6 +59,7 @@ export function OvertimeCard({
   currentUserName: string;
   canSubmit: boolean;
   canApprove: boolean;
+  canMarkPaid: boolean;
   onUpdate: (id: string, patch: Partial<OvertimeRequestData>) => void;
   onRemove: (id: string) => void;
 }) {
@@ -82,6 +85,18 @@ export function OvertimeCard({
     setBusy(true);
     await withdrawOvertimeRequestAction(request.id);
     onRemove(request.id);
+  };
+
+  const handleSetPaid = async (paid: boolean) => {
+    setError(null);
+    setBusy(true);
+    const result = await setOvertimePaidAction(request.id, paid);
+    setBusy(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    onUpdate(request.id, paid ? { paid: true, paidBy: currentUserName, paidAt: new Date() } : { paid: false, paidBy: null, paidAt: null });
   };
 
   const handleUnapprove = async () => {
@@ -127,8 +142,19 @@ export function OvertimeCard({
         </span>
         <div className="expense-row-main">
           <div className="expense-row-item">{request.title}</div>
-          <span className="badge" style={{ background: tone.bg, color: tone.fg }}>
-            {request.status}
+          <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
+            <span className="badge" style={{ background: tone.bg, color: tone.fg }}>
+              {request.status}
+            </span>
+            {isApproved && (
+              <span
+                className="badge"
+                data-paid={request.paid ? "paid" : "unpaid"}
+                style={request.paid ? { background: "var(--info-soft)", color: "var(--info)" } : { background: "var(--warn-soft)", color: "var(--warn)" }}
+              >
+                {request.paid ? "Paid" : "Unpaid"}
+              </span>
+            )}
           </span>
         </div>
         <div className="expense-row-amounts">
@@ -207,6 +233,14 @@ export function OvertimeCard({
                   </div>
                 </div>
               )}
+              {isApproved && request.paid && request.paidBy && (
+                <div>
+                  <div className="label" style={{ marginBottom: 2 }}>Paid By</div>
+                  <div style={{ fontSize: 13.5 }}>
+                    {request.paidBy}{request.paidAt ? ` · ${fmtDateLabel(request.paidAt)}` : ""}
+                  </div>
+                </div>
+              )}
               {request.rejectionNote && (
                 <div className="pricedb-field-full">
                   <div className="label" style={{ marginBottom: 2 }}>Rejection Reason</div>
@@ -216,7 +250,7 @@ export function OvertimeCard({
             </div>
           )}
 
-          {!editing && (canApprove || (isPending && isOwner && canSubmit)) && (
+          {!editing && (canApprove || (isApproved && canMarkPaid) || (isPending && isOwner && canSubmit)) && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
               {isPending && isOwner && canSubmit && (
                 <>
@@ -241,7 +275,18 @@ export function OvertimeCard({
                   />
                 </>
               )}
-              {isApproved && canApprove && (
+              {isApproved && canMarkPaid && (
+                request.paid ? (
+                  <button className="btn btn-sm" type="button" disabled={busy} onClick={() => handleSetPaid(false)}>
+                    {busy ? "Saving…" : "Mark Unpaid"}
+                  </button>
+                ) : (
+                  <button className="btn btn-sm btn-primary" type="button" disabled={busy} onClick={() => handleSetPaid(true)}>
+                    {busy ? "Saving…" : "Mark Paid"}
+                  </button>
+                )
+              )}
+              {isApproved && canApprove && !request.paid && (
                 <button className="btn btn-sm" type="button" disabled={busy} onClick={handleUnapprove}>
                   {busy ? "Unapproving…" : "Unapprove"}
                 </button>
@@ -264,6 +309,7 @@ export function OvertimeCard({
               )}
             </div>
           )}
+          {!editing && error && <p className="login-error" style={{ marginTop: 8 }}>{error}</p>}
         </div>
       )}
     </div>

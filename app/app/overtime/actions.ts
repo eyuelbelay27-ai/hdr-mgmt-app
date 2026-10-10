@@ -18,6 +18,9 @@ export interface OvertimeRequestData {
   decidedBy: string | null;
   decidedAt: Date | null;
   rejectionNote: string | null;
+  paid: boolean;
+  paidBy: string | null;
+  paidAt: Date | null;
 }
 
 export interface ActionState {
@@ -107,6 +110,9 @@ export async function submitOvertimeRequestAction(
       decidedBy: created.decidedBy,
       decidedAt: created.decidedAt,
       rejectionNote: created.rejectionNote,
+      paid: created.paid,
+      paidBy: created.paidBy,
+      paidAt: created.paidAt,
     },
   };
 }
@@ -194,6 +200,7 @@ export async function unapproveOvertimeRequestAction(requestId: string): Promise
   const existing = await prisma.overtimeRequest.findUnique({ where: { id: requestId } });
   if (!existing) return;
   if (existing.status !== "Approved") throw new PermissionError("Only an Approved request can be unapproved.");
+  if (existing.paid) throw new PermissionError("This request is marked Paid. Mark it Unpaid before unapproving.");
 
   await prisma.overtimeRequest.update({
     where: { id: requestId },
@@ -239,6 +246,30 @@ export async function rejectOvertimeRequestAction(
   await prisma.overtimeRequest.update({
     where: { id: requestId },
     data: { status: "Rejected", decidedBy: user.name, decidedAt: new Date(), rejectionNote: note },
+  });
+  revalidatePath("/overtime");
+  return { error: null };
+}
+
+/** Admin-only (markOvertimePaid): records whether approved overtime has
+ * actually been paid out, so the team stops guessing. */
+export async function setOvertimePaidAction(requestId: string, paid: boolean): Promise<ActionState> {
+  const user = await requireCurrentUser();
+  try {
+    requirePage(user, "overtime");
+    requireAction(user, "markOvertimePaid", "edit");
+  } catch (err) {
+    if (err instanceof PermissionError) return { error: err.message };
+    throw err;
+  }
+
+  const existing = await prisma.overtimeRequest.findUnique({ where: { id: requestId } });
+  if (!existing) return { error: "Request not found." };
+  if (existing.status !== "Approved") return { error: "Only an Approved request can be marked Paid." };
+
+  await prisma.overtimeRequest.update({
+    where: { id: requestId },
+    data: paid ? { paid: true, paidBy: user.name, paidAt: new Date() } : { paid: false, paidBy: null, paidAt: null },
   });
   revalidatePath("/overtime");
   return { error: null };

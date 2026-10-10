@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { can, canSeePage } from "@/lib/permissions";
 import { AppNav } from "../AppNav";
 import { OvertimeBoard } from "./OvertimeBoard";
-import { OVERTIME_PAGE_SIZE } from "./listData";
+import { OVERTIME_PAGE_SIZE, toRequestData } from "./listData";
 
 export default async function OvertimePage() {
   const user = await getCurrentUser();
@@ -32,19 +32,7 @@ export default async function OvertimePage() {
   });
   const hasMore = rows.length > OVERTIME_PAGE_SIZE;
 
-  const initialRequests = rows.slice(0, OVERTIME_PAGE_SIZE).map((r) => ({
-    id: r.id,
-    title: r.title,
-    description: r.description,
-    startAt: r.startAt,
-    employeeNames: r.employeeNames,
-    status: r.status,
-    submittedById: r.submittedById,
-    submittedByName: r.submittedBy.name,
-    decidedBy: r.decidedBy,
-    decidedAt: r.decidedAt,
-    rejectionNote: r.rejectionNote,
-  }));
+  const initialRequests = rows.slice(0, OVERTIME_PAGE_SIZE).map(toRequestData);
 
   return (
     <div className="app-shell">
@@ -62,6 +50,7 @@ export default async function OvertimePage() {
           currentUserName={user.name}
           canSubmit={can(user, "submitOvertimeRequest")}
           canApprove={can(user, "approveOvertimeRequest")}
+          canMarkPaid={can(user, "markOvertimePaid")}
         />
       </main>
     </div>
