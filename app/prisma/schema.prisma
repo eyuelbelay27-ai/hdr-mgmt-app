@@ -120,9 +120,6 @@ model User {
   overtimeRequests    OvertimeRequest[]      @relation("OvertimeSubmittedBy")
   crmLeads            CrmLead[]              @relation("CrmLeadAssignedTo")
   crmWeeklyReports    CrmWeeklyReport[]      @relation("CrmReportRep")
-  attendanceProfile   AttendanceProfile?
-  attendanceRecords   AttendanceRecord[]
-  authorizedDevices   AttendanceDevice[]
 }
 
 // -----------------------------------------------------------------------
@@ -750,95 +747,6 @@ model CrmWeeklyReport {
 }
 
 // -----------------------------------------------------------------------
-// Attendance — face-recognition kiosk, locked to one authorized office PC.
-// A standalone module like CRM/Overtime Control: nothing here reads from
-// or writes to Job/Budget/Expense/Inventory, the only shared piece is the
-// existing User table (attendance tracks the same staff already in the
-// app). See the plan doc for the full spec.
-// -----------------------------------------------------------------------
-
-/**
- * One row per employee who has captured a reference photo. Created the
- * first time that person completes a kiosk capture with no profile on
- * file yet — that capture becomes their reference going forward
- * (Section: user decision, no separate admin upload step).
- */
-model AttendanceProfile {
-  id       String @id @default(cuid())
-  user     User   @relation(fields: [userId], references: [id])
-  userId   String @unique
-
-  referencePhotoUrl  String
-  referencePhotoName String
-  // 128-float face descriptor from face-api.js's recognition model,
-  // stored as a JSON array — what every future check-in/check-out photo
-  // is compared against. See lib/attendance/faceMatch.ts.
-  descriptor Json
-
-  capturedAt DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-/**
- * One row per employee per calendar day (Addis local, see
- * lib/attendance/day.ts). checkInAt/checkOutAt are set once each and
- * never client-editable — only the server action that just verified a
- * face match writes them. Photos are the audit trail an owner can review
- * on the dashboard; distances are the match scores at the moment of
- * capture, kept for the same reason.
- */
-model AttendanceRecord {
-  id     String   @id @default(cuid())
-  user   User     @relation(fields: [userId], references: [id])
-  userId String
-  date   DateTime // normalized to that Addis day's midnight, stored as UTC
-
-  checkInAt       DateTime?
-  checkInPhotoUrl String?
-  checkInDistance Float?
-
-  checkOutAt       DateTime?
-  checkOutPhotoUrl String?
-  checkOutDistance Float?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([userId, date])
-  @@index([date])
-}
-
-/** Singleton — the expected check-in/check-out times used purely to
- * compute late/early flags on the dashboard. Never blocks an actual
- * check-in/check-out (Section 5 of the plan). */
-model AttendanceSettings {
-  id                     String   @id @default("singleton")
-  expectedCheckInHour    Int      @default(9)
-  expectedCheckInMinute  Int      @default(0)
-  expectedCheckOutHour   Int      @default(17)
-  expectedCheckOutMinute Int      @default(0)
-  updatedAt              DateTime @updatedAt
-}
-
-/**
- * The device-token lock (Section 5 of the plan) — the kiosk page itself
- * needs no login, so this token, set as an HttpOnly cookie on the one
- * authorized office PC, is the entire access restriction. Only a hash is
- * stored; the check-in/check-out action re-validates it server-side on
- * every single request regardless of what the client claims.
- */
-model AttendanceDevice {
-  id                 String    @id @default(cuid())
-  tokenHash          String    @unique
-  label              String?
-  authorizedBy       User      @relation(fields: [authorizedById], references: [id])
-  authorizedById     String
-  authorizedAt       DateTime  @default(now())
-  lastSeenAt         DateTime?
-  revokedAt          DateTime?
-}
-
-// -----------------------------------------------------------------------
 // Payroll — a standalone module, like CRM/Overtime Control. No relation to
 // any other table: employees here are their own records (not app Users),
 // since plenty of paid staff never log in. Net pay is Salary + Overtime −
@@ -977,3 +885,96 @@ model PayrollCommission {
 
   @@index([entryId])
 }
+
+// -----------------------------------------------------------------------
+// PulseClock — standalone attendance module (replaced the old Attendance
+// module). Employees are its own list, not app users. Check-in/out happens
+// on any logged-in device whose user has the "pulseclock" page permission;
+// identity is a face match against the reference captured at the
+// employee's first check-in. The admin side is behind its own PIN.
+// -----------------------------------------------------------------------
+
+model PulseEmployee {
+  id     String  @id @default(cuid())
+  name   String
+  role   String?
+  active Boolean @default(true)
+
+  // Face reference: a face-api.js 128-float descriptor (JSON array) and the
+  // photo it came from, set by the employee's first check-in. Null until
+  // then, or after an admin resets it.
+  descriptor         Json?
+  referencePhotoUrl  String?
+  referencePhotoName String?
+  enrolledAt         DateTime?
+
+  attendance PulseAttendance[]
+  leave      PulseLeave[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/** One employee's attendance for one work day (Addis Ababa date, stored
+ * as that day's UTC midnight). */
+model PulseAttendance {
+  id         String        @id @default(cuid())
+  employee   PulseEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  workDate   DateTime
+  checkInAt  DateTime?
+  checkOutAt DateTime?
+  late       Boolean       @default(false)
+  early      Boolean       @default(false)
+  // "face" for kiosk events, "admin-correction" once an admin edits it.
+  source     String        @default("face")
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([employeeId, workDate])
+  @@index([workDate])
+}
+
+model PulseLeave {
+  id         String        @id @default(cuid())
+  employee   PulseEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+  date       DateTime
+  reason     String
+  createdBy  String
+  createdAt  DateTime      @default(now())
+
+  @@index([date])
+}
+
+model PulseHoliday {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  reason    String
+  createdBy String
+  createdAt DateTime @default(now())
+}
+
+/** Append-only log of check-ins and admin changes. */
+model PulseAudit {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  detail    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/** Singleton. Times are minutes after midnight, Addis Ababa. workDays uses
+ * JS weekday numbers (0 = Sunday). */
+model PulseSettings {
+  id            String   @id @default("singleton")
+  shiftStartMin Int      @default(510)
+  shiftEndMin   Int      @default(1050)
+  graceMin      Int      @default(30)
+  workDays      String   @default("1,2,3,4,5,6")
+  adminPinHash  String?
+  updatedAt     DateTime @updatedAt
+}
+
