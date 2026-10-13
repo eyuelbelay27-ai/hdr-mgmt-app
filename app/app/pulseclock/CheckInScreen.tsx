@@ -65,7 +65,7 @@ export function CheckInScreen({
       <div className="pc-hero">
         <div className="pc-eyebrow"><span className="pc-dot" />Face-verified attendance</div>
         <h1>{greeting}.</h1>
-        <p>Choose your name, look at the camera and blink once.</p>
+        <p>Choose your name, look at the camera and blink slowly.</p>
         <div className="pc-clock" aria-live="off">
           <b suppressHydrationWarning>{now?.time ?? "—"}</b>
           <small suppressHydrationWarning>{now?.date ?? ""}</small>
@@ -126,8 +126,11 @@ export function CheckInScreen({
 
 type Phase = "pick" | "loading" | "scan" | "sending" | "done" | "cameraError";
 
-const DETECT_INTERVAL_MS = 150;
-const BLINK_TIMEOUT_MS = 25000;
+const BLINK_TIMEOUT_MS = 30000;
+const VERIFY_FRAMES = 5;
+const VERIFY_MAX_TRIES = 25;
+/** Average anti-spoof / liveness score needed (0..1, Human's own scale). */
+const MIN_REAL = 0.5;
 
 function CaptureModal({ mode, employees, onClose }: { mode: Mode; employees: CheckInEmployee[]; onClose: () => void }) {
   const router = useRouter();
@@ -137,15 +140,13 @@ function CaptureModal({ mode, employees, onClose }: { mode: Mode; employees: Che
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const loopRef = useRef<number | null>(null);
-  const deadlineRef = useRef(0);
+  const runRef = useRef(0); // bumps on stop/close so a running loop exits
   const activeRef = useRef(true);
 
   const employee = employees.find((e) => e.id === employeeId) ?? null;
 
   const stop = useCallback(() => {
-    if (loopRef.current) window.clearTimeout(loopRef.current);
-    loopRef.current = null;
+    runRef.current++;
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);
@@ -184,12 +185,12 @@ function CaptureModal({ mode, employees, onClose }: { mode: Mode; employees: Che
     });
   }
 
-  async function submit(emp: CheckInEmployee, descriptor: Float32Array) {
+  async function submit(emp: CheckInEmployee, descriptor: number[]) {
     setPhase("sending");
     const fd = new FormData();
     fd.set("employeeId", emp.id);
     fd.set("action", mode);
-    fd.set("descriptor", JSON.stringify(Array.from(descriptor)));
+    fd.set("descriptor", JSON.stringify(descriptor));
     fd.set("livenessPassed", "true");
     if (!emp.enrolled) {
       const photo = await capturePhoto();
@@ -221,17 +222,26 @@ function CaptureModal({ mode, employees, onClose }: { mode: Mode; employees: Che
 
   async function start() {
     if (!employee) return;
+    const emp = employee;
+    const run = ++runRef.current;
+    const alive = () => activeRef.current && runRef.current === run;
     setPhase("loading");
-    setPrompt("Starting camera…");
+    setPrompt("Loading face recognition… (first time can take a moment)");
+
     let engine: typeof import("./faceEngine");
+    let human: Awaited<ReturnType<typeof engine.loadFaceEngine>>;
     try {
-      // face-api needs browser globals, so it's loaded only when the camera starts.
+      // Browser-only; loaded when the camera starts.
       engine = await import("./faceEngine");
-      const [, stream] = await Promise.all([
-        engine.loadFaceModels(),
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false }),
+      const [h, stream] = await Promise.all([
+        engine.loadFaceEngine(),
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: false,
+        }),
       ]);
-      if (!activeRef.current) {
+      human = h;
+      if (!alive()) {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
@@ -240,30 +250,68 @@ function CaptureModal({ mode, employees, onClose }: { mode: Mode; employees: Che
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => {});
       }
-    } catch {
+    } catch (err) {
+      if (!alive()) return;
       stop();
-      setPhase("cameraError");
+      if (err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "NotFoundError")) {
+        setPhase("cameraError");
+      } else {
+        finish(false, "Face recognition couldn't start on this device. Reload the page and try again.");
+      }
       return;
     }
-    setPhase("scan");
-    setPrompt("Center your face in the frame");
-    const blink = new engine.BlinkDetector();
-    deadlineRef.current = Date.now() + BLINK_TIMEOUT_MS;
-    const emp = employee;
 
-    const tick = async () => {
-      if (!activeRef.current || !videoRef.current) return;
-      if (Date.now() > deadlineRef.current) return finish(false, "No blink detected. Try again in good light.");
-      const frame = await engine.analyzeFrame(videoRef.current).catch(() => null);
-      if (!frame) {
-        setPrompt("Center your face in the frame");
-      } else {
-        setPrompt("Now blink once");
-        if (blink.push(frame.ear)) return submit(emp, frame.descriptor);
-      }
-      loopRef.current = window.setTimeout(tick, DETECT_INTERVAL_MS);
+    setPhase("scan");
+    const video = videoRef.current!;
+    const blink = new engine.BlinkDetector();
+    const deadline = Date.now() + BLINK_TIMEOUT_MS;
+    const guide: Record<string, string> = {
+      none: "Center your face in the frame",
+      many: "Only one person in the frame, please",
+      small: "Move a little closer",
     };
-    loopRef.current = window.setTimeout(tick, DETECT_INTERVAL_MS);
+
+    // 1. Liveness: wait for a real blink (fast, light model set).
+    for (;;) {
+      if (!alive()) return;
+      if (Date.now() > deadline) return finish(false, "No blink was seen. Face the camera in good light and blink slowly, closing your eyes for a moment.");
+      const f = await engine.lightFrame(human, video).catch(() => ({ kind: "none" as const }));
+      if (!alive()) return;
+      if (f.kind !== "face") {
+        setPrompt(guide[f.kind]);
+      } else {
+        setPrompt(blink.ready ? "Now blink slowly" : "Hold still…");
+        if (blink.push(f.openness)) break;
+      }
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+
+    // 2. Identity: several open-eye frames, averaged; plus anti-spoof checks.
+    setPrompt("Keep looking at the camera…");
+    const embeddings: number[][] = [];
+    let real = 0;
+    let live = 0;
+    for (let tries = 0; tries < VERIFY_MAX_TRIES && embeddings.length < VERIFY_FRAMES; tries++) {
+      if (!alive()) return;
+      const f = await engine.fullFrame(human, video).catch(() => ({ kind: "none" as const }));
+      if (!alive()) return;
+      if (f.kind !== "face") {
+        setPrompt(guide[f.kind]);
+        continue;
+      }
+      const e = f.face.embedding;
+      if (!e || e.length !== 1024 || !blink.isOpen(f.openness)) continue;
+      embeddings.push(Array.from(e));
+      real += f.face.real ?? 0;
+      live += f.face.live ?? 0;
+    }
+    if (embeddings.length < VERIFY_FRAMES) {
+      return finish(false, "Couldn't get a clear look at your face. Hold the phone steady at eye level and try again.");
+    }
+    if (real / embeddings.length < MIN_REAL || live / embeddings.length < MIN_REAL) {
+      return finish(false, "Couldn't confirm a live face. Use good light and look straight at the camera. Photos and screens aren't accepted.");
+    }
+    await submit(emp, engine.averageEmbedding(embeddings));
   }
 
   function retry() {

@@ -1,92 +1,168 @@
-import * as faceapi from "@vladmandic/face-api";
+import type { Human, Config, FaceResult } from "@vladmandic/human";
 
 /**
- * Browser-only face detection/landmarks/descriptor + blink-liveness. Never
- * imported from server code — the actual identity decision is re-made
- * server-side in pulseCaptureAction (see lib/pulseclock/faceMatch.ts);
- * everything here just prepares what gets sent up.
+ * Browser-only face pipeline on the Human library (github.com/vladmandic/human,
+ * MIT), the maintained successor to face-api.js. The library bundle and its
+ * models are self-hosted under /public/human so nothing depends on a CDN.
+ *
+ * Two passes:
+ *   1. Liveness: a light config (detector + mesh + iris) runs fast enough on
+ *      a phone to catch a real blink, judged against the person's own
+ *      open-eye baseline rather than one fixed number.
+ *   2. Identity: a full config (+ face embedding, anti-spoof, liveness
+ *      models) over several open-eye frames, averaged into one descriptor.
+ * The identity decision itself is made on the server (lib/pulseclock/faceMatch.ts).
  */
 
-let modelsLoaded = false;
+const BASE = "/human";
 
-export async function loadFaceModels(): Promise<void> {
-  if (modelsLoaded) return;
-  await Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
-    faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
-    faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
-  ]);
-  modelsLoaded = true;
+const COMMON: Partial<Config> = {
+  modelBasePath: `${BASE}/models/`,
+  cacheSensitivity: 0, // every frame is analysed fresh — needed for blinks and for averaging
+  debug: false,
+  filter: { enabled: true, equalization: true }, // evens out poor office lighting
+  body: { enabled: false },
+  hand: { enabled: false },
+  object: { enabled: false },
+  segmentation: { enabled: false },
+  gesture: { enabled: false },
+};
+
+const LIGHT: Partial<Config> = {
+  ...COMMON,
+  face: {
+    enabled: true,
+    detector: { rotation: false, maxDetected: 2, minConfidence: 0.5 },
+    mesh: { enabled: true },
+    iris: { enabled: true },
+    attention: { enabled: false },
+    description: { enabled: false },
+    emotion: { enabled: false },
+    antispoof: { enabled: false },
+    liveness: { enabled: false },
+    gear: { enabled: false },
+  } as Config["face"],
+};
+
+const FULL: Partial<Config> = {
+  ...COMMON,
+  face: {
+    ...(LIGHT.face as Config["face"]),
+    detector: { rotation: true, maxDetected: 2, minConfidence: 0.5 },
+    description: { enabled: true },
+    antispoof: { enabled: true },
+    liveness: { enabled: true },
+  } as Config["face"],
+};
+
+let humanPromise: Promise<Human> | null = null;
+
+export function loadFaceEngine(): Promise<Human> {
+  humanPromise ??= (async () => {
+    // Loaded from /public at runtime (not bundled) — a 2MB library would
+    // otherwise blow the production build's memory limit.
+    const mod = (await import(/* webpackIgnore: true */ `${BASE}/human.esm.js`)) as typeof import("@vladmandic/human");
+    const human = new mod.Human(FULL);
+    await human.load();
+    await human.warmup();
+    return human;
+  })().catch((err) => {
+    humanPromise = null;
+    throw err;
+  });
+  return humanPromise;
 }
 
-export interface FrameResult {
-  descriptor: Float32Array;
-  ear: number; // average eye-aspect-ratio this frame, for blink detection
-}
-
-const DETECTOR_OPTIONS = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
-
-/** Runs detection + landmarks + descriptor on one video frame. Null if no
- * face (or more than one — the kiosk only ever wants exactly one person
- * in frame) was found. */
-export async function analyzeFrame(video: HTMLVideoElement): Promise<FrameResult | null> {
-  const result = await faceapi
-    .detectSingleFace(video, DETECTOR_OPTIONS)
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-  if (!result) return null;
-
-  const ear = averageEyeAspectRatio(result.landmarks);
-  return { descriptor: result.descriptor, ear };
-}
-
-/** Classic Soukupová & Čech eye-aspect-ratio: low while closed, recovers
- * once open. Averaged across both eyes so a single dip-then-recover
- * sequence across consecutive frames is a blink. */
-function eyeAspectRatio(eye: faceapi.Point[]): number {
-  const dist = (a: faceapi.Point, b: faceapi.Point) => Math.hypot(a.x - b.x, a.y - b.y);
-  const vertical = dist(eye[1], eye[5]) + dist(eye[2], eye[4]);
-  const horizontal = dist(eye[0], eye[3]);
-  return horizontal === 0 ? 0 : vertical / (2 * horizontal);
-}
-
-function averageEyeAspectRatio(landmarks: faceapi.FaceLandmarks68): number {
-  const left = eyeAspectRatio(landmarks.getLeftEye());
-  const right = eyeAspectRatio(landmarks.getRightEye());
+/** Eye openness from the mesh, as Human's own blink gesture computes it:
+ * lid gap divided by eye-socket height, averaged over both eyes. */
+function eyeOpenness(face: FaceResult): number {
+  const m = face.mesh;
+  if (!m || m.length < 468) return 0;
+  const left = Math.abs(m[374][1] - m[386][1]) / Math.max(1, Math.abs(m[443][1] - m[450][1]));
+  const right = Math.abs(m[145][1] - m[159][1]) / Math.max(1, Math.abs(m[223][1] - m[230][1]));
   return (left + right) / 2;
 }
 
-export const EAR_BLINK_THRESHOLD = 0.23;
+export type FrameStatus =
+  | { kind: "none" }
+  | { kind: "many" }
+  | { kind: "small" }
+  | { kind: "face"; openness: number; face: FaceResult };
+
+/** Minimum face width in camera pixels — smaller faces give poor descriptors. */
+const MIN_FACE_PX = 110;
+
+function classify(faces: FaceResult[]): FrameStatus {
+  if (faces.length === 0) return { kind: "none" };
+  if (faces.length > 1) return { kind: "many" };
+  const face = faces[0];
+  if (Math.min(face.box[2], face.box[3]) < MIN_FACE_PX) return { kind: "small" };
+  return { kind: "face", openness: eyeOpenness(face), face };
+}
+
+export async function lightFrame(human: Human, video: HTMLVideoElement): Promise<FrameStatus> {
+  const res = await human.detect(video, LIGHT);
+  return classify(res.face);
+}
+
+export async function fullFrame(human: Human, video: HTMLVideoElement): Promise<FrameStatus> {
+  const res = await human.detect(video, FULL);
+  return classify(res.face);
+}
 
 /**
- * Tracks EAR readings across frames and reports the first completed
- * blink — a dip below threshold followed by a recovery above it, both
- * within a plausible human-blink frame span. Tune the two frame-count
- * bounds here if a real office webcam needs it; they were picked for a
- * ~150ms sampling interval (see KioskScreen's poll loop).
+ * Blink = eyes drop well below this person's open-eye baseline, then come
+ * back. The baseline is learned from the first frames with a face, so
+ * narrow eyes or glasses don't break it. Timing-free on purpose: a slow
+ * phone may only catch a single closed frame.
  */
 export class BlinkDetector {
-  private belowCount = 0;
-  private sawDip = false;
+  private samples: number[] = [];
+  private closed = false;
 
-  /** Feed one frame's EAR; returns true the moment a blink completes. */
-  push(ear: number): boolean {
-    if (ear < EAR_BLINK_THRESHOLD) {
-      this.belowCount++;
-      if (this.belowCount >= 1) this.sawDip = true;
+  get ready(): boolean {
+    return this.samples.length >= 4;
+  }
+
+  private baseline(): number {
+    const s = [...this.samples].sort((a, b) => a - b);
+    return s[Math.floor(s.length * 0.7)] ?? 0; // upper-middle: open-eye level
+  }
+
+  /** Feed one frame's openness; true the moment a blink completes. */
+  push(openness: number): boolean {
+    if (!this.ready) {
+      this.samples.push(openness);
       return false;
     }
-    // Eyes open this frame — did we just come out of a plausible blink?
-    if (this.sawDip && this.belowCount >= 1 && this.belowCount <= 6) {
-      this.reset();
+    const base = this.baseline();
+    if (base <= 0) return false;
+    if (openness < base * 0.55) {
+      this.closed = true;
+      return false;
+    }
+    if (this.closed && openness > base * 0.8) {
+      this.closed = false;
       return true;
     }
-    this.reset();
+    if (!this.closed && openness > base * 0.8) {
+      // keep adapting to the person's open-eye level
+      this.samples.push(openness);
+      if (this.samples.length > 30) this.samples.shift();
+    }
     return false;
   }
 
-  private reset(): void {
-    this.belowCount = 0;
-    this.sawDip = false;
+  isOpen(openness: number): boolean {
+    return this.ready && openness > this.baseline() * 0.75;
   }
+}
+
+/** Element-wise mean of several embeddings (kept in faceres' own scale,
+ * which the server's similarity calibration expects). */
+export function averageEmbedding(list: number[][]): number[] {
+  const n = list[0].length;
+  const out = new Array<number>(n).fill(0);
+  for (const e of list) for (let i = 0; i < n; i++) out[i] += e[i] / list.length;
+  return out;
 }

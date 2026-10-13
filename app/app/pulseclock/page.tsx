@@ -5,6 +5,7 @@ import { can, canSeePage } from "@/lib/permissions";
 import { ETHIOPIAN_MONTH_NAMES, ethiopianToday } from "@/lib/payroll/ethiopian";
 import { hasAdminSession } from "@/lib/pulseclock/adminSession";
 import { getPulseSettings } from "@/lib/pulseclock/settings";
+import { isValidDescriptor } from "@/lib/pulseclock/faceMatch";
 import {
   addisHHMM,
   addisTimeLabel,
@@ -121,7 +122,7 @@ export default async function PulseClockPage({
             id: e.id,
             name: e.name,
             role: e.role,
-            enrolled: !!e.descriptor,
+            enrolled: isValidDescriptor(e.descriptor),
             checkedIn: r?.checkInAt ? addisTimeLabel(r.checkInAt) : null,
             checkedOut: r?.checkOutAt ? addisTimeLabel(r.checkOutAt) : null,
           };
