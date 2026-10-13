@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { can, requirePage, PermissionError } from "@/lib/permissions";
 import { saveUpload, getUploadedFile, deleteUpload } from "@/lib/storage";
-import { euclideanDistance, isMatch, isValidDescriptor } from "@/lib/pulseclock/faceMatch";
+import { isMatch, isValidDescriptor, similarity } from "@/lib/pulseclock/faceMatch";
 import { isValidEthiopianDate, toGregorian } from "@/lib/payroll/ethiopian";
 import { addisInstant, addisMinutes, addisTimeLabel, addisWeekday, addisWorkDate, ethiopianDateLabel } from "@/lib/pulseclock/time";
 import { getPulseSettings, isEarly, isLate } from "@/lib/pulseclock/settings";
@@ -108,21 +108,30 @@ export async function pulseCaptureAction(formData: FormData): Promise<CaptureRes
       return { error: `${employee.name} is marked on leave today.` };
     }
 
+    // A reference from the old 128-float engine (or none) means "register now".
+    const reference = isValidDescriptor(employee.descriptor) ? employee.descriptor : null;
     let registered = false;
-    if (!employee.descriptor) {
+    let matchNote = "";
+    if (!reference) {
       if (action === "check-out") return { error: "No check-in found today. Check in first." };
       const photoFile = getUploadedFile(formData, "photo");
       if (!photoFile) return { error: "Capture failed. Try again." };
       const photo = await saveUpload(photoFile);
+      await deleteUpload(employee.referencePhotoUrl);
       await prisma.pulseEmployee.update({
         where: { id: employeeId },
         data: { descriptor, referencePhotoUrl: photo.url, referencePhotoName: photo.name, enrolledAt: now },
       });
       registered = true;
     } else {
-      const distance = euclideanDistance(descriptor, employee.descriptor as unknown as number[]);
-      if (!isMatch(distance)) {
-        await audit(user.name, "Face not matched", `${action} attempt for ${employee.name} was rejected`);
+      const sim = similarity(descriptor, reference);
+      matchNote = ` (match ${Math.round(sim * 100)}%)`;
+      if (!isMatch(sim)) {
+        await audit(
+          user.name,
+          "Face not matched",
+          `${action} attempt for ${employee.name} was rejected (similarity ${Math.round(sim * 100)}%)`
+        );
         return { error: `Face didn't match ${employee.name}'s record. No attendance was recorded.` };
       }
     }
@@ -137,7 +146,7 @@ export async function pulseCaptureAction(formData: FormData): Promise<CaptureRes
         create: { employeeId, workDate, checkInAt: now, late: isLate(minutes, rules) },
         update: { checkInAt: now, late: isLate(minutes, rules) },
       });
-      await audit(user.name, registered ? "Face registered & checked in" : "Checked in", `${employee.name} at ${addisTimeLabel(now)}`);
+      await audit(user.name, registered ? "Face registered & checked in" : "Checked in", `${employee.name} at ${addisTimeLabel(now)}${matchNote}`);
       revalidatePath("/pulseclock");
       return { error: null, outcome: registered ? "registered" : "checkedIn", at: now.toISOString() };
     }
@@ -148,7 +157,7 @@ export async function pulseCaptureAction(formData: FormData): Promise<CaptureRes
       return { error: "You just checked in. Check out later." };
     }
     await prisma.pulseAttendance.update({ where: { id: existing.id }, data: { checkOutAt: now, early: isEarly(minutes, rules) } });
-    await audit(user.name, "Checked out", `${employee.name} at ${addisTimeLabel(now)}`);
+    await audit(user.name, "Checked out", `${employee.name} at ${addisTimeLabel(now)}${matchNote}`);
     revalidatePath("/pulseclock");
     return { error: null, outcome: "checkedOut", at: now.toISOString() };
   });
