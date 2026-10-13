@@ -30,7 +30,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   reconciliation: ClipboardCheck,
   overtime: Clock,
   crm: Contact,
-  attendance: UserCheck,
+  pulseclock: UserCheck,
   payroll: Wallet,
   users: Users,
   settings: SettingsIcon,

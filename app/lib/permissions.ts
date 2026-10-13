@@ -53,7 +53,6 @@ export const ACTION_KEYS = [
   { key: "markOvertimePaid", label: "Overtime: mark approved requests Paid / Unpaid" },
   { key: "manageCrmLeads", label: "CRM: register & assign leads, see every rep's leads" },
   { key: "workCrmLeads", label: "CRM: work assigned leads as a sales rep" },
-  { key: "manageAttendance", label: "Attendance: view dashboard, edit settings, authorize the kiosk device" },
   { key: "managePayroll", label: "Payroll: manage employees, debts, overtime rates and monthly payroll" },
 ] as const;
 
@@ -67,7 +66,7 @@ export const PAGE_KEYS = [
   { key: "reconciliation", label: "Reconciliation" },
   { key: "overtime", label: "Overtime Control" },
   { key: "crm", label: "CRM" },
-  { key: "attendance", label: "Attendance" },
+  { key: "pulseclock", label: "PulseClock" },
   { key: "payroll", label: "Payroll" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
@@ -130,7 +129,7 @@ export const DEFAULT_PAGES_BY_ROLE: Record<Role, PageKey[]> = {
   Supervisor: ["dashboard", "jobs"],
   Manager: ["dashboard", "jobs", "calculator"],
   OwnerFinance: ["dashboard", "jobs", "calculator", "inventory", "reconciliation"],
-  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "attendance", "payroll", "users", "settings"],
+  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "payroll", "users", "settings"],
 };
 
 export const DEFAULT_TABS_BY_ROLE: Record<Role, TabKey[]> = {

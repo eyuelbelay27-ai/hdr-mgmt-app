@@ -3,7 +3,7 @@ import * as faceapi from "@vladmandic/face-api";
 /**
  * Browser-only face detection/landmarks/descriptor + blink-liveness. Never
  * imported from server code — the actual identity decision is re-made
- * server-side in submitKioskCaptureAction (see lib/attendance/faceMatch.ts);
+ * server-side in pulseCaptureAction (see lib/pulseclock/faceMatch.ts);
  * everything here just prepares what gets sent up.
  */
 
