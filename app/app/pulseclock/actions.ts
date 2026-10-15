@@ -192,13 +192,15 @@ export async function lockAdminAction(): Promise<void> {
   revalidatePath("/pulseclock");
 }
 
-/** First PIN or forgotten-PIN reset: app admins only. Changing it while
- * unlocked: anyone with an admin session. */
+/** The very first PIN: app admins only. After that the PIN can only be
+ * changed from inside the unlocked admin side — there is deliberately no
+ * forgot/reset path in the app (a lost PIN is reset in the database). */
 export async function setAdminPinAction(_prev: PulseState, formData: FormData): Promise<PulseState> {
   return guard(async () => {
     const user = await requireUse();
-    if (!can(user, "manageUsers") && !hasAdminSession(user.id)) {
-      return { error: "Only an app admin can set the PulseClock PIN." };
+    const { pinSet } = await getPulseSettings();
+    if (pinSet ? !hasAdminSession(user.id) : !can(user, "manageUsers")) {
+      return { error: pinSet ? "Unlock the admin side first." : "Only an app admin can set the PulseClock PIN." };
     }
     const pin = String(formData.get("pin") ?? "");
     if (!/^\d{4,8}$/.test(pin)) return { error: "The PIN must be 4–8 digits." };
@@ -232,6 +234,19 @@ export async function setEmployeeActiveAction(employeeId: string, active: boolea
     const user = await requireAdmin();
     const e = await prisma.pulseEmployee.update({ where: { id: employeeId }, data: { active } });
     await audit(user.name, active ? "Employee reactivated" : "Employee deactivated", e.name);
+    return done();
+  });
+}
+
+/** Permanently removes an employee with their face, attendance and leave. */
+export async function deleteEmployeeAction(employeeId: string): Promise<PulseState> {
+  return guard(async () => {
+    const user = await requireAdmin();
+    const e = await prisma.pulseEmployee.findUnique({ where: { id: employeeId } });
+    if (!e) return { error: "Employee not found." };
+    await prisma.pulseEmployee.delete({ where: { id: employeeId } }); // attendance & leave cascade
+    await deleteUpload(e.referencePhotoUrl);
+    await audit(user.name, "Employee deleted", `${e.name} and all their attendance records`);
     return done();
   });
 }

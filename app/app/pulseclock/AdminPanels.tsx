@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
 import { X } from "lucide-react";
 import { daysInEthiopianMonth, type EthiopianDate } from "@/lib/payroll/ethiopian";
-import type { MonthReport } from "@/lib/pulseclock/reports";
+import type { DailyLog, LogStatus, MonthReport } from "@/lib/pulseclock/reports";
 import {
   addEmployeeAction,
   addExceptionAction,
   correctAttendanceAction,
+  deleteEmployeeAction,
   deleteExceptionAction,
   lockAdminAction,
   resetFaceAction,
@@ -112,10 +115,10 @@ export function OverviewPanel({
     <>
       <Heading eyebrow={isToday ? "Today" : "Register"} title="Overview" sub={dayLabel + (dayNote ? ` · ${dayNote}` : "")}>
         <div className="pc-monthnav">
-          <a href={`/pulseclock?view=admin&tab=overview&date=${prevIso}`} aria-label="Previous day">‹</a>
+          <Link href={`/pulseclock?view=admin&tab=overview&date=${prevIso}`} aria-label="Previous day">‹</Link>
           <b>{isToday ? "Today" : dayLabel.split(", ").slice(1).join(", ")}</b>
           {nextIso ? (
-            <a href={`/pulseclock?view=admin&tab=overview&date=${nextIso}`} aria-label="Next day">›</a>
+            <Link href={`/pulseclock?view=admin&tab=overview&date=${nextIso}`} aria-label="Next day">›</Link>
           ) : (
             <a aria-disabled style={{ opacity: 0.3 }}>›</a>
           )}
@@ -326,6 +329,19 @@ export function EmployeesPanel({ employees }: { employees: EmployeeItem[] }) {
                 >
                   {e.active ? "Deactivate" : "Reactivate"}
                 </button>
+                <button
+                  type="button"
+                  className="pc-button pc-small pc-danger"
+                  disabled={pending}
+                  onClick={() =>
+                    run(
+                      () => deleteEmployeeAction(e.id),
+                      `Delete ${e.name} permanently?\n\nTheir face, photo, attendance and leave records will all be removed and can't be recovered.`
+                    )
+                  }
+                >
+                  Delete
+                </button>
               </span>
             </div>
           ))}
@@ -345,12 +361,20 @@ function csvCell(v: string | number): string {
 }
 
 export function ReportsPanel({
+  log,
+  logMonths,
+  empId,
+  staff,
   monthKey,
   monthLabel,
   prevKey,
   nextKey,
   report,
 }: {
+  log: DailyLog;
+  logMonths: number;
+  empId: string | null;
+  staff: { id: string; name: string }[];
   monthKey: string;
   monthLabel: string;
   prevKey: string;
@@ -381,9 +405,9 @@ export function ReportsPanel({
       <Heading eyebrow="Monthly" title="Reports" sub="Counts working days so far this month, excluding holidays.">
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <div className="pc-monthnav">
-            <a href={`/pulseclock?view=admin&tab=reports&month=${prevKey}`} aria-label="Previous month">‹</a>
+            <Link href={`/pulseclock?view=admin&tab=reports&month=${prevKey}`} aria-label="Previous month">‹</Link>
             <b>{monthLabel}</b>
-            <a href={`/pulseclock?view=admin&tab=reports&month=${nextKey}`} aria-label="Next month">›</a>
+            <Link href={`/pulseclock?view=admin&tab=reports&month=${nextKey}`} aria-label="Next month">›</Link>
           </div>
           <button type="button" className="pc-button pc-primary" onClick={download}>Download CSV</button>
         </div>
@@ -434,7 +458,100 @@ export function ReportsPanel({
           </div>
         )}
       </div>
+
+      <DailyLogPanel log={log} logMonths={logMonths} empId={empId} staff={staff} monthKey={monthKey} />
     </>
+  );
+}
+
+const LOG_PILL: Record<LogStatus, [string, string]> = {
+  ontime: ["pc-good", "On time"],
+  late: ["pc-warn", "Late"],
+  leave: ["pc-blue", "On leave"],
+  absent: ["pc-bad", "Absent"],
+  pending: ["pc-neutral", "Not in yet"],
+  extra: ["pc-blue", "Worked day off"],
+};
+
+function DailyLogPanel({
+  log,
+  logMonths,
+  empId,
+  staff,
+  monthKey,
+}: {
+  log: DailyLog;
+  logMonths: number;
+  empId: string | null;
+  staff: { id: string; name: string }[];
+  monthKey: string;
+}) {
+  const router = useRouter();
+  const base = `/pulseclock?view=admin&tab=reports&month=${monthKey}`;
+  const href = (months: number, emp: string | null) => `${base}&log=${months}${emp ? `&emp=${emp}` : ""}`;
+
+  return (
+    <div className="pc-panel">
+      <div className="pc-panelhead" style={{ flexWrap: "wrap" }}>
+        <div>
+          <h2>Daily log</h2>
+          <p>Every day, newest first. Scroll down for earlier days.</p>
+        </div>
+        <select
+          aria-label="Employee"
+          value={empId ?? ""}
+          onChange={(e) => router.push(href(logMonths, e.target.value || null), { scroll: false })}
+          style={{ width: "auto", minWidth: 170 }}
+        >
+          <option value="">All employees</option>
+          {staff.map((e) => (
+            <option key={e.id} value={e.id}>{e.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {log.months.length === 0 && <p className="pc-empty">Nothing recorded yet.</p>}
+      {log.months.map((m) => (
+        <section key={m.key} className="pc-logmonth">
+          <h3 className="pc-logmonth-title">{m.label}</h3>
+          {m.days.map((d) => (
+            <div key={d.key} className={`pc-logday${d.rows.length === 0 ? " pc-logday-off" : ""}`}>
+              <div className="pc-logdate" title={d.date}>
+                <b>{d.day}</b>
+                <small>{d.weekday.slice(0, 3)}</small>
+              </div>
+              <div className="pc-logrows">
+                {d.note && <div className="pc-sub" style={{ padding: "6px 0" }}>{d.note}</div>}
+                {d.rows.map((r) => (
+                  <div key={r.employeeId} className="pc-logrow">
+                    <b className="pc-logname">{r.name}</b>
+                    <span className="pc-logtimes">
+                      <span><small>In</small>{r.checkIn}</span>
+                      <span><small>Out</small>{r.checkOut}</span>
+                      <span><small>Hours</small>{r.hours}</span>
+                    </span>
+                    <span className="pc-logstatus">
+                      <span className={`pc-pill ${LOG_PILL[r.status][0]}`}>{LOG_PILL[r.status][1]}</span>
+                      {r.early && <span className="pc-pill pc-warn">Left early</span>}
+                      {r.corrected && <span className="pc-pill pc-neutral">Corrected</span>}
+                      {r.note && <span className="pc-sub">{r.note}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      ))}
+
+      {log.hasEarlier && logMonths < 240 ? (
+        <div style={{ textAlign: "center", paddingTop: 14 }}>
+          <Link className="pc-button pc-secondary" href={href(logMonths + 3, empId)} scroll={false}>
+            Show 3 earlier months
+          </Link>
+        </div>
+      ) : null}
+    </div>
   );
 }
 

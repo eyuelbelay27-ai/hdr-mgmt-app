@@ -3,12 +3,14 @@ import { cookies } from "next/headers";
 
 /**
  * The PulseClock admin side sits behind its own PIN on top of the app login.
- * A correct PIN sets this signed, HttpOnly cookie, bound to the app user who
- * entered it and valid for 12 hours; every admin page load and action
- * re-verifies it server-side.
+ * A correct PIN sets this signed, HttpOnly browser-session cookie, bound to
+ * the app user who entered it; every admin page load and action re-verifies
+ * it server-side. The PIN is asked on every opening of Admin: the client
+ * (AdminGuard) locks again on reload, leaving or closing the page, and the
+ * 2-hour expiry is only the server's backstop.
  */
 const COOKIE = "pulse_admin";
-const TTL_MS = 12 * 60 * 60 * 1000;
+const TTL_MS = 2 * 60 * 60 * 1000;
 
 function sign(value: string): string {
   const secret = process.env.AUTH_SECRET;
@@ -24,7 +26,6 @@ export function grantAdminSession(userId: string): void {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: TTL_MS / 1000,
   });
 }
 

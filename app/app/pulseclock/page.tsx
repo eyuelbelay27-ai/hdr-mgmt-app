@@ -16,6 +16,7 @@ import {
   WEEKDAY_NAMES,
 } from "@/lib/pulseclock/time";
 import {
+  buildDailyLog,
   buildMonthReport,
   currentPulseMonth,
   parsePulseMonth,
@@ -23,7 +24,9 @@ import {
   pulseMonthLabel,
   shiftPulseMonth,
 } from "@/lib/pulseclock/reports";
+import Link from "next/link";
 import { AppNav } from "../AppNav";
+import { AdminGuard } from "./AdminGuard";
 import { CheckInScreen } from "./CheckInScreen";
 import { AdminLogin } from "./AdminLogin";
 import {
@@ -60,7 +63,7 @@ function initials(name: string): string {
 export default async function PulseClockPage({
   searchParams,
 }: {
-  searchParams: { view?: string; tab?: string; month?: string; date?: string };
+  searchParams: { view?: string; tab?: string; month?: string; date?: string; log?: string; emp?: string };
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -209,9 +212,19 @@ export default async function PulseClockPage({
       );
     } else if (tab === "reports") {
       const month = parsePulseMonth(searchParams.month) ?? currentPulseMonth();
-      const report = await buildMonthReport(month, rules);
+      const logMonths = Math.min(Math.max(Number(searchParams.log) || 3, 1), 240);
+      const empId = searchParams.emp || null;
+      const [report, log, staff] = await Promise.all([
+        buildMonthReport(month, rules),
+        buildDailyLog(rules, logMonths, empId),
+        prisma.pulseEmployee.findMany({ orderBy: [{ active: "desc" }, { name: "asc" }], select: { id: true, name: true } }),
+      ]);
       panel = (
         <ReportsPanel
+          log={log}
+          logMonths={logMonths}
+          empId={empId}
+          staff={staff}
           monthKey={pulseMonthKey(month)}
           monthLabel={pulseMonthLabel(month)}
           prevKey={pulseMonthKey(shiftPulseMonth(month, -1))}
@@ -265,14 +278,15 @@ export default async function PulseClockPage({
     }
 
     body = (
+      <AdminGuard>
       <div className="pc-admin">
         <aside className="pc-side">
           <h3>Admin</h3>
           <nav>
             {TABS.map((t) => (
-              <a key={t.key} href={`/pulseclock?view=admin&tab=${t.key}`} className={t.key === tab ? "active" : ""}>
+              <Link key={t.key} href={`/pulseclock?view=admin&tab=${t.key}`} className={t.key === tab ? "active" : ""}>
                 {t.label}
-              </a>
+              </Link>
             ))}
           </nav>
           <form action={lockAdminAction} className="pc-sidefoot">
@@ -281,6 +295,7 @@ export default async function PulseClockPage({
         </aside>
         <section className="pc-content">{panel}</section>
       </div>
+      </AdminGuard>
     );
   }
 
