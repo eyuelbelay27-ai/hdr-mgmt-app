@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { ETHIOPIAN_MONTH_NAMES, daysInEthiopianMonth, ethiopianToday, toGregorian } from "@/lib/payroll/ethiopian";
-import { addisHHMM, addisWorkDate, ethiopianDateLabel } from "./time";
+import { ETHIOPIAN_MONTH_NAMES, daysInEthiopianMonth, ethiopianToday, toEthiopian, toGregorian } from "@/lib/payroll/ethiopian";
+import { addisHHMM, addisTimeLabel, addisWorkDate, ethiopianDateLabel } from "./time";
 import type { PulseRules } from "./settings";
 
 const DAY_MS = 86400000;
@@ -142,4 +142,117 @@ export async function buildMonthReport(month: PulseMonth, rules: PulseRules): Pr
     hours: Math.round(rows.reduce((s, r) => s + r.hours, 0) * 10) / 10,
     rate: expectedTotal > 0 ? Math.round((present / expectedTotal) * 100) : null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Daily log — every day, newest first, grouped by Ethiopian month
+// ---------------------------------------------------------------------------
+
+export type LogStatus = "ontime" | "late" | "leave" | "absent" | "pending" | "extra";
+
+export interface LogRow {
+  employeeId: string;
+  name: string;
+  checkIn: string;
+  checkOut: string;
+  hours: string;
+  status: LogStatus;
+  early: boolean;
+  corrected: boolean;
+  note: string | null;
+}
+
+export interface LogDay {
+  key: string;
+  day: number;
+  weekday: string;
+  date: string;
+  note: string | null; // "Holiday: …" or "Day off"
+  rows: LogRow[];
+}
+
+export interface LogMonth {
+  key: string;
+  label: string;
+  days: LogDay[];
+}
+
+export interface DailyLog {
+  months: LogMonth[];
+  hasEarlier: boolean;
+}
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function hoursLabel(inAt: Date | null, outAt: Date | null): string {
+  if (!inAt || !outAt) return "—";
+  const m = Math.round((outAt.getTime() - inAt.getTime()) / 60000);
+  return `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
+}
+
+/** The last `monthCount` Ethiopian months up to today (optionally one employee). */
+export async function buildDailyLog(rules: PulseRules, monthCount: number, employeeId: string | null): Promise<DailyLog> {
+  const today = addisWorkDate();
+  const first = shiftPulseMonth(currentPulseMonth(), -(monthCount - 1));
+  const start = toGregorian({ ...first, day: 1 });
+  const end = new Date(today.getTime() + DAY_MS);
+  const empWhere = employeeId ? { employeeId } : {};
+
+  const [employees, records, leave, holidays, earliest] = await Promise.all([
+    prisma.pulseEmployee.findMany({ where: employeeId ? { id: employeeId } : {}, orderBy: { name: "asc" } }),
+    prisma.pulseAttendance.findMany({ where: { ...empWhere, workDate: { gte: start, lt: end } } }),
+    prisma.pulseLeave.findMany({ where: { ...empWhere, date: { gte: start, lt: end } } }),
+    prisma.pulseHoliday.findMany({ where: { date: { gte: start, lt: end } } }),
+    prisma.pulseAttendance.findFirst({ where: { ...empWhere, workDate: { lt: start } }, select: { id: true } }),
+  ]);
+
+  const recordAt = new Map(records.map((r) => [`${r.employeeId}|${r.workDate.getTime()}`, r]));
+  const leaveAt = new Map(leave.map((l) => [`${l.employeeId}|${l.date.getTime()}`, l]));
+  const holidayAt = new Map(holidays.map((h) => [h.date.getTime(), h]));
+  const firstDay = employees.length ? Math.min(...employees.map((e) => addisWorkDate(e.createdAt).getTime())) : today.getTime();
+
+  const months: LogMonth[] = [];
+  for (let t = today.getTime(); t >= start.getTime() && t >= firstDay; t -= DAY_MS) {
+    const d = new Date(t);
+    const et = toEthiopian(d);
+    const holiday = holidayAt.get(t);
+    const workDay = rules.workDays.includes(d.getUTCDay()) && !holiday;
+    const rows: LogRow[] = [];
+    for (const e of employees) {
+      const r = recordAt.get(`${e.id}|${t}`);
+      const l = leaveAt.get(`${e.id}|${t}`);
+      if (!r && (t < addisWorkDate(e.createdAt).getTime() || !e.active || !workDay)) continue;
+      let status: LogStatus;
+      if (r?.checkInAt) status = !workDay ? "extra" : r.late ? "late" : "ontime";
+      else if (l) status = "leave";
+      else if (t === today.getTime()) status = "pending";
+      else status = "absent";
+      rows.push({
+        employeeId: e.id,
+        name: e.name,
+        checkIn: addisTimeLabel(r?.checkInAt),
+        checkOut: addisTimeLabel(r?.checkOutAt),
+        hours: hoursLabel(r?.checkInAt ?? null, r?.checkOutAt ?? null),
+        status,
+        early: !!r?.early,
+        corrected: r?.source === "admin-correction",
+        note: l?.reason ?? null,
+      });
+    }
+    const key = pulseMonthKey(et);
+    let month = months[months.length - 1];
+    if (!month || month.key !== key) {
+      month = { key, label: pulseMonthLabel(et), days: [] };
+      months.push(month);
+    }
+    month.days.push({
+      key: String(t),
+      day: et.day,
+      weekday: WEEKDAYS[d.getUTCDay()],
+      date: ethiopianDateLabel(d),
+      note: holiday ? `Holiday: ${holiday.reason}` : workDay ? null : "Day off",
+      rows,
+    });
+  }
+  return { months, hasEarlier: !!earliest || firstDay < start.getTime() };
 }

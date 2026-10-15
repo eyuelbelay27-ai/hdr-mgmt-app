@@ -1,10 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { setAdminPinAction, unlockAdminAction, type PulseState } from "./actions";
+import { markUnlocked } from "./AdminGuard";
 
 const INITIAL: PulseState = { error: null };
+
+// Mark this page load as unlocked before the action runs: the server only
+// renders the admin side if the PIN was actually right.
+async function unlock(prev: PulseState, fd: FormData) {
+  markUnlocked();
+  return unlockAdminAction(prev, fd);
+}
+
+async function createPin(prev: PulseState, fd: FormData) {
+  markUnlocked();
+  return setAdminPinAction(prev, fd);
+}
 
 function Submit({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
@@ -16,7 +28,7 @@ function Submit({ children }: { children: React.ReactNode }) {
 }
 
 function PinForm({ title }: { title: string }) {
-  const [state, action] = useFormState(setAdminPinAction, INITIAL);
+  const [state, action] = useFormState(createPin, INITIAL);
   return (
     <form action={action}>
       <label className="pc-field">
@@ -34,8 +46,7 @@ function PinForm({ title }: { title: string }) {
 }
 
 export function AdminLogin({ pinSet, isAppAdmin }: { pinSet: boolean; isAppAdmin: boolean }) {
-  const [state, action] = useFormState(unlockAdminAction, INITIAL);
-  const [resetting, setResetting] = useState(false);
+  const [state, action] = useFormState(unlock, INITIAL);
 
   return (
     <div className="pc-loginwrap">
@@ -53,14 +64,6 @@ export function AdminLogin({ pinSet, isAppAdmin }: { pinSet: boolean; isAppAdmin
           ) : (
             <p>No admin PIN has been set yet. Ask an app admin to open this page and create one.</p>
           )
-        ) : resetting ? (
-          <>
-            <p>Set a new PIN. The old one stops working right away.</p>
-            <PinForm title="Reset PIN" />
-            <button type="button" className="pc-button pc-ghost pc-full" onClick={() => setResetting(false)}>
-              Back
-            </button>
-          </>
         ) : (
           <>
             <p>Enter the admin PIN to manage employees, records and reports.</p>
@@ -72,11 +75,6 @@ export function AdminLogin({ pinSet, isAppAdmin }: { pinSet: boolean; isAppAdmin
               {state.error && <p className="pc-error">{state.error}</p>}
               <Submit>Unlock</Submit>
             </form>
-            {isAppAdmin && (
-              <button type="button" className="pc-button pc-ghost pc-full" style={{ marginTop: 8 }} onClick={() => setResetting(true)}>
-                Forgot PIN? Reset it
-              </button>
-            )}
           </>
         )}
       </div>

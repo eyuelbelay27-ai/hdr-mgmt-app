@@ -2082,6 +2082,25 @@ button.tab {
 .pc-monthnav a { padding: 6px 10px; border-radius: 9px; font-weight: 900; color: var(--pc-green); }
 .pc-monthnav b { font: 500 16px var(--pc-serif); padding: 0 6px; }
 .pc-datefields { display: grid; grid-template-columns: 70px 1fr 84px; gap: 6px; }
+.pc input[type="radio"] { width: 18px; height: 18px; padding: 0; flex-shrink: 0; accent-color: var(--pc-green); }
+.pc-line-item > span { min-width: 0; overflow-wrap: anywhere; }
+.pc-line-item b { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pc-logmonth-title { font: 500 18px var(--pc-serif); margin: 18px 0 6px; padding: 8px 0; position: sticky; top: 0; background: var(--pc-paper); z-index: 1; border-bottom: 2px solid var(--pc-green); }
+.pc-logmonth:first-of-type .pc-logmonth-title { margin-top: 0; }
+.pc-logday { display: grid; grid-template-columns: 54px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--pc-line); }
+.pc-logday-off { opacity: .6; padding: 4px 0; }
+.pc-logdate { display: grid; justify-items: center; align-content: start; background: #f2f4ee; border-radius: 12px; padding: 7px 0; }
+.pc-logday-off .pc-logdate { background: transparent; padding: 2px 0; }
+.pc-logdate b { font: 500 22px/1 var(--pc-serif); }
+.pc-logdate small { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--pc-muted); font-weight: 800; margin-top: 3px; }
+.pc-logrows { min-width: 0; }
+.pc-logrow { display: grid; grid-template-columns: minmax(110px, 1.2fr) 2fr minmax(120px, 1.2fr); gap: 10px; align-items: center; padding: 6px 0; font-size: 13px; }
+.pc-logrow + .pc-logrow { border-top: 1px dashed var(--pc-line); }
+.pc-logname { overflow-wrap: anywhere; }
+.pc-logtimes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-variant-numeric: tabular-nums; }
+.pc-logtimes span { display: grid; }
+.pc-logtimes small { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--pc-muted); font-weight: 800; }
+.pc-logstatus { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
 @media (max-width: 850px) {
   .pc-admin { grid-template-columns: 1fr; }
   .pc-side { padding: 10px; overflow-x: auto; }
@@ -2102,6 +2121,12 @@ button.tab {
   .pc-employee { grid-template-columns: auto 1fr; }
   .pc-employee .pc-pill, .pc-employee .pc-rowbtns { grid-column: 2; justify-self: start; }
   .pc-modal { padding: 20px; }
+  .pc-logrow { grid-template-columns: 1fr; gap: 4px; }
+  .pc-line-item { grid-template-columns: 1fr; }
+  .pc-line-item > button { justify-self: start; }
+  .pc-days label { flex: 1 1 auto; }
+  .pc-panel { padding: 16px; }
+  .pc-scroll { margin: 0 -16px -16px; }
 }
 @media (max-width: 410px) {
   .pc-action { grid-template-columns: auto 1fr; }
