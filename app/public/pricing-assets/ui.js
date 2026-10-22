@@ -53,7 +53,7 @@
         var col = 0;
         Array.prototype.forEach.call(tr.children, function (td) {
           var span = td.colSpan || 1;
-          if (span === 1 && heads[col] && td.getAttribute('data-label') !== heads[col]) td.setAttribute('data-label', heads[col]);
+          if (span === 1 && heads[col] && !td.hasAttribute('data-label')) td.setAttribute('data-label', heads[col]);
           col += span;
         });
       });
@@ -90,6 +90,16 @@
     });
   }
   document.addEventListener('click', function (e) {
+    var tip = e.target && e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (tip) {
+      var open = tip.parentElement.querySelector('.pt-tip');
+      if (open) { open.remove(); return; }
+      var box = document.createElement('div');
+      box.className = 'pt-tip';
+      box.textContent = tip.getAttribute('data-tip');
+      tip.parentElement.appendChild(box);
+      return;
+    }
     var h = e.target && e.target.closest ? e.target.closest('.hint.pt-fold') : null;
     if (h) h.classList.toggle('pt-open');
   });
@@ -98,35 +108,58 @@
   var bar = document.createElement('div');
   bar.className = 'pt-bar';
   bar.hidden = true;
-  bar.innerHTML = '<div class="pt-bar-total"><small></small><b></b></div><button type="button"></button>';
-  var barLabel = bar.querySelector('small'), barValue = bar.querySelector('b'), barBtn = bar.querySelector('button');
-  var barTarget = null;
-  barBtn.addEventListener('click', function () { if (barTarget && !barTarget.disabled) barTarget.click(); });
+  bar.innerHTML =
+    '<span class="pt-bar-ico"></span>' +
+    '<div class="pt-bar-total"><small></small><b></b></div>' +
+    '<button type="button" class="pt-bar-2nd"></button>' +
+    '<button type="button" class="pt-bar-1st"></button>';
+  var barIco = bar.querySelector('.pt-bar-ico'), barLabel = bar.querySelector('small'), barValue = bar.querySelector('b');
+  var btn1 = bar.querySelector('.pt-bar-1st'), btn2 = bar.querySelector('.pt-bar-2nd');
+  var target1 = null, target2 = null;
+  btn1.addEventListener('click', function () { if (target1 && !target1.disabled) target1.click(); });
+  btn2.addEventListener('click', function () { if (target2 && !target2.disabled) target2.click(); });
   document.body.appendChild(bar);
 
   function barState() {
     if (tool === 'lightbox') {
       if (visible($('tab-cost'))) {
-        return { label: 'Client price', value: text('totalWithProfitDisplay'), btn: '⬇ Invoice', target: $('exportPdfBtn') };
+        return {
+          icon: 'calculator', label: 'Total amount', value: text('totalWithProfitDisplay'),
+          primary: { text: 'Download Invoice', icon: 'download', target: $('exportPdfBtn') },
+          secondary: { text: 'Clear all', icon: 'trash', target: $('resetQtyBtn') }
+        };
       }
       if (visible($('tab-lightbox'))) {
         var area = $('lbAreaSummary');
         var hasArea = area && area.style.display !== 'none' && area.textContent.trim();
-        return { label: 'Next step', value: hasArea ? 'Review materials' : 'Enter the sign size', btn: 'Material Cost →', target: $('applyLightboxBtn') };
+        return {
+          icon: 'clipboard', label: 'Next step', value: hasArea ? 'Review materials' : 'Enter the sign size',
+          primary: { text: 'Material Cost', iconAfter: 'arrow', target: $('applyLightboxBtn') }
+        };
       }
       return null;
     }
     if (visible($('quote-tab'))) {
-      return { label: 'Grand total', value: text('dispGrandTotal'), btn: '⬇ Invoice', target: $('generateInvoiceBtn') };
+      return { icon: 'calculator', label: 'Grand total', value: text('dispGrandTotal'), primary: { text: 'Invoice', icon: 'download', target: $('generateInvoiceBtn') } };
     }
     return null;
+  }
+
+  function paintButton(btn, def) {
+    if (!def) { btn.hidden = true; return null; }
+    btn.hidden = false;
+    var icon = window.ptIcon || function () { return ''; };
+    var html = (def.icon ? icon(def.icon) : '') + '<span>' + def.text + '</span>' + (def.iconAfter ? icon(def.iconAfter) : '');
+    if (btn.innerHTML !== html) btn.innerHTML = html;
+    btn.disabled = !def.target || !!def.target.disabled;
+    return def.target;
   }
 
   function paintBar() {
     var s = barState();
     var modalOpen = ['invoiceModal', 'negotiationModal', 'settingsPwModal'].some(function (id) {
       var m = $(id); return m && m.style.display && m.style.display !== 'none';
-    }) || !!document.querySelector('.pricing-pin-scrim');
+    }) || !!document.querySelector('.pricing-pin-scrim, .lbx-sheet-scrim');
     if (!s || modalOpen) {
       bar.hidden = true;
       document.body.classList.remove('pt-has-bar');
@@ -134,14 +167,16 @@
       return;
     }
     bar.hidden = false;
-    var blocked = s.target && s.target.disabled && s.target.title;
-    barLabel.textContent = blocked ? s.target.title.replace(/^Before exporting the PDF, please fix:\s*/i, 'Missing: ') : s.label;
+    var icoHtml = window.ptIcon ? window.ptIcon(s.icon) : '';
+    if (barIco.innerHTML !== icoHtml) barIco.innerHTML = icoHtml;
+    var t = s.primary.target;
+    var blocked = t && t.disabled && t.title;
+    barLabel.textContent = blocked ? t.title.replace(/^Before exporting the PDF, please fix:\s*/i, 'Missing: ') : s.label;
     barLabel.classList.toggle('pt-warn', !!blocked);
     barValue.textContent = s.value || '—';
-    barBtn.textContent = s.btn;
-    barTarget = s.target;
-    barBtn.disabled = !s.target || !!s.target.disabled;
-    if (s.target && s.target.title) barBtn.title = s.target.title; else barBtn.removeAttribute('title');
+    target1 = paintButton(btn1, s.primary);
+    target2 = paintButton(btn2, s.secondary);
+    bar.classList.toggle('pt-bar-has2', !!s.secondary);
     document.body.classList.add('pt-has-bar');
     root.style.setProperty('--pt-bar-h', (bar.offsetHeight + (window.innerWidth > 700 ? 28 : 0)) + 'px');
   }
@@ -154,6 +189,7 @@
     requestAnimationFrame(function () {
       queued = false;
       labelTables();
+      if (window.ptFillIcons) window.ptFillIcons();
       compact();
       paintBar();
       paintStatus();

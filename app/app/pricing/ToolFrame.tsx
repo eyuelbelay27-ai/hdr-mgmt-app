@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, RotateCw } from "lucide-react";
+import { ArrowLeft, RotateCw } from "lucide-react";
 
 /** One pricing tool, full height, in an iframe (the tools are self-contained pages). */
 export function ToolFrame({ id, title }: { id: string; title: string }) {
@@ -37,17 +37,18 @@ export function ToolFrame({ id, title }: { id: string; title: string }) {
   return (
     <div className="prc-tool">
       <div className="prc-toolbar">
-        <Link href="/pricing" className="btn btn-ghost btn-sm prc-back" aria-label="All pricing tools">
-          <ChevronLeft size={18} strokeWidth={2} /> <span className="prc-long">Pricing</span>
+        <Link href="/pricing" className="prc-tbtn" aria-label="All pricing tools">
+          <ArrowLeft size={20} strokeWidth={2} />
         </Link>
-        <div className="prc-title font-display">{title}</div>
+        <div className="prc-title font-display">{armed ? "Tap reload again to confirm" : title}</div>
         <button
           type="button"
-          className={`btn btn-sm ${armed ? "btn-primary" : "btn-ghost"}`}
+          className={`prc-tbtn${armed ? " armed" : ""}`}
           onClick={reload}
-          title="Reload this tool (clears nothing that's saved)"
+          aria-label="Reload this tool"
+          title="Reload this tool (nothing saved is lost)"
         >
-          <RotateCw size={15} strokeWidth={2} /> <span className={armed ? "" : "prc-long"}>{armed ? "Tap again" : "Reload"}</span>
+          <RotateCw size={19} strokeWidth={2} />
         </button>
       </div>
       <div className="prc-frame-wrap">
