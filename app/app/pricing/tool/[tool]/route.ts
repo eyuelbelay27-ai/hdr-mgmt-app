@@ -9,6 +9,8 @@ import { findTool } from "@/lib/pricing/tools";
 export const dynamic = "force-dynamic";
 
 const files = new Map<string, string>();
+/** Bumped with the shared tool assets so browsers don't keep stale copies. */
+const ASSET_VERSION = "7";
 
 async function toolHtml(id: string): Promise<string> {
   let html = files.get(id);
@@ -39,10 +41,12 @@ export async function GET(req: Request, { params }: { params: { tool: string } }
   const config = JSON.stringify({ tool: tool.id, sharedKeys: tool.sharedKeys, shared }).replace(/</g, "\\u003c");
   const bootstrap =
     `<link rel="icon" type="image/svg+xml" href="/pricing-assets/icon.svg">` +
-    `<link rel="stylesheet" href="/pricing-assets/tools.css">` +
     `<script>window.__PRICING__=${config};</script>` +
-    `<script src="/pricing-assets/bootstrap.js"></script>`;
-  const html = (await toolHtml(tool.id)).replace("<!--PRICING_BOOTSTRAP-->", bootstrap);
+    `<script src="/pricing-assets/bootstrap.js?v=${ASSET_VERSION}"></script>` +
+    `<script src="/pricing-assets/ui.js?v=${ASSET_VERSION}" defer></script>`;
+  // The app theme goes last in <head> so it layers over each tool's own styles.
+  const theme = `<link rel="stylesheet" href="/pricing-assets/tools.css?v=${ASSET_VERSION}"></head>`;
+  const html = (await toolHtml(tool.id)).replace("<!--PRICING_BOOTSTRAP-->", bootstrap).replace("</head>", theme);
 
   return new NextResponse(html, {
     headers: {

@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, RotateCw } from "lucide-react";
+import { ChevronLeft, RotateCw } from "lucide-react";
 
 /** One pricing tool, full height, in an iframe (the tools are self-contained pages). */
 export function ToolFrame({ id, title }: { id: string; title: string }) {
   const router = useRouter();
   const frame = useRef<HTMLIFrameElement>(null);
   const [armed, setArmed] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // The tools' own "Back to Menu" button posts this.
@@ -29,21 +30,30 @@ export function ToolFrame({ id, title }: { id: string; title: string }) {
   function reload() {
     if (!armed) return setArmed(true);
     setArmed(false);
+    setLoading(true);
     frame.current?.contentWindow?.location.reload();
   }
 
   return (
     <div className="prc-tool">
       <div className="prc-toolbar">
-        <Link href="/pricing" className="prc-tb-btn">
-          <ArrowLeft size={15} /> <span className="prc-long">All tools</span>
+        <Link href="/pricing" className="btn btn-ghost btn-sm prc-back" aria-label="All pricing tools">
+          <ChevronLeft size={18} strokeWidth={2} /> <span className="prc-long">Pricing</span>
         </Link>
-        <div className="prc-title">{title}</div>
-        <button type="button" className={`prc-tb-btn${armed ? " armed" : ""}`} onClick={reload} title="Reload this tool">
-          <RotateCw size={14} /> <span className="prc-long">{armed ? "Click again to reload" : "Reload"}</span>
+        <div className="prc-title font-display">{title}</div>
+        <button
+          type="button"
+          className={`btn btn-sm ${armed ? "btn-primary" : "btn-ghost"}`}
+          onClick={reload}
+          title="Reload this tool (clears nothing that's saved)"
+        >
+          <RotateCw size={15} strokeWidth={2} /> <span className={armed ? "" : "prc-long"}>{armed ? "Tap again" : "Reload"}</span>
         </button>
       </div>
-      <iframe ref={frame} src={`/pricing/tool/${id}`} title={title} className="prc-frame" />
+      <div className="prc-frame-wrap">
+        {loading && <div className="prc-loading">Loading {title}…</div>}
+        <iframe ref={frame} src={`/pricing/tool/${id}`} title={title} className="prc-frame" onLoad={() => setLoading(false)} />
+      </div>
     </div>
   );
 }
