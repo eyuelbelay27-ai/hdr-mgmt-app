@@ -2137,40 +2137,51 @@ button.tab {
 
 
 /* ===================================================================
-   Pricing — home screen and tool frame (the tools keep their own look)
+   Pricing — home (dashboard style) and the tool frame
    =================================================================== */
-.prc-home { --prc: #a3123a; --prc-dark: #8a0f30; --prc-light: #fdf0f2; --prc-border: #eddade; --prc-muted: #6b5b5f; max-width: 1020px; margin: 0 auto; padding: 12px 0 40px; color: #2a2422; }
-.prc-home h1 { font-size: 26px; margin: 0 0 6px; color: var(--prc-dark); }
-.prc-lead { color: var(--prc-muted); font-size: 14.5px; margin: 0 0 26px; }
-.prc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
-.prc-card { background: #fff; border: 1px solid var(--prc-border); border-radius: 14px; padding: 24px 22px; display: flex; flex-direction: column; color: inherit; text-decoration: none; transition: border-color .15s, transform .15s, box-shadow .15s; }
-.prc-card:hover { border-color: var(--prc); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(138, 15, 48, .08); }
-.prc-icon { width: 50px; height: 50px; border-radius: 12px; background: var(--prc-light); display: grid; place-items: center; font-size: 25px; margin-bottom: 16px; }
-.prc-card h3 { margin: 0 0 8px; font-size: 17px; color: var(--prc-dark); }
-.prc-card p { margin: 0; font-size: 13.5px; color: var(--prc-muted); line-height: 1.5; flex: 1; }
-.prc-go { margin-top: 18px; font-size: 13px; font-weight: 600; color: var(--prc); }
-.prc-pin { margin-top: 30px; background: #fff; border: 1px solid var(--prc-border); border-radius: 14px; padding: 20px 22px; }
-.prc-pinhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
-.prc-pin h2 { margin: 0 0 4px; font-size: 16px; color: var(--prc-dark); }
-.prc-pin p { margin: 0; font-size: 13px; color: var(--prc-muted); line-height: 1.5; }
-.prc-pinform { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-top: 16px; }
-.prc-pinform label { display: grid; gap: 5px; font-size: 12px; font-weight: 600; color: var(--prc-muted); flex: 1 1 160px; }
-.prc-pinform input { border: 1px solid var(--prc-border); border-radius: 8px; padding: 9px 11px; font-size: 15px; background: #fffdfc; color: #2a2422; }
-.prc-btn { border: 0; border-radius: 8px; background: var(--prc); color: #fff; padding: 10px 18px; font-weight: 700; font-size: 13px; cursor: pointer; min-height: 40px; }
-.prc-btn:disabled { opacity: .5; }
-.prc-btn-ghost { background: #fff; color: var(--prc); border: 1.5px solid var(--prc); }
-.prc-ok { color: #1f6f3c !important; font-weight: 600; margin-top: 12px !important; }
-.prc-err { color: #c0392b !important; font-weight: 600; margin-top: 12px !important; }
-.prc-tool { margin: -24px; height: 100vh; display: flex; flex-direction: column; background: #fdfaf9; }
-.prc-toolbar { height: 52px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: linear-gradient(90deg, #a3123a 0%, #8a0f30 100%); color: #fff; }
+.prc-hero { gap: 12px; }
+.prc-hero h1 { margin: 0; font-size: 24px; }
+.prc-hero-stats { display: flex; flex-wrap: wrap; gap: 8px; position: relative; }
+.prc-hero-stats > span { font-size: 12px; color: var(--text-dim); background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: 999px; padding: 5px 11px; }
+.prc-hero-stats b { color: var(--text); margin-right: 2px; }
+.prc-hero-stats .prc-pin-on { color: var(--success); background: var(--success-soft); border-color: transparent; font-weight: 600; }
+.prc-hero-stats .prc-pin-off { color: var(--warn); background: var(--warn-soft); border-color: transparent; font-weight: 600; }
+.prc-tools { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 14px; }
+@media (min-width: 760px) { .prc-tools { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+.prc-tool-card { display: flex; align-items: center; gap: 14px; padding: 16px; color: inherit; text-decoration: none; position: relative; min-width: 0; transition: border-color .12s, box-shadow .12s; }
+.prc-tool-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(196, 22, 67, .08); }
+.prc-tool-icon { width: 46px; height: 46px; }
+.prc-tool-body { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.prc-tool-name { font-size: 16px; font-weight: 600; }
+.prc-tool-desc { font-size: 12.5px; color: var(--text-dim); }
+.prc-tool-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 4px; }
+.prc-badge { background: var(--accent-soft); color: var(--accent-text); }
+.prc-tool-edit { font-size: 11px; color: var(--text-faint); }
+.prc-tool-chevron { color: var(--text-faint); flex-shrink: 0; }
+.prc-pin { margin-top: 14px; padding: 14px 16px; }
+.prc-pinhead { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.prc-pin-icon { width: 36px; height: 36px; border-radius: 999px; background: var(--surface-2); color: var(--text-dim); display: grid; place-items: center; flex-shrink: 0; }
+.prc-pin-title { font-size: 14px; font-weight: 600; }
+.prc-pin p { margin: 2px 0 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+.prc-pinform { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; align-items: end; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
+.prc-pinform label { display: grid; }
+.prc-pinbtns { display: flex; gap: 8px; }
+.prc-pinbtns .btn { flex: 1; }
+.prc-ok { color: var(--success) !important; font-weight: 600; font-size: 13px; margin: 10px 0 0 !important; }
+.prc-err { color: var(--danger) !important; font-weight: 600; font-size: 13px; margin: 10px 0 0 !important; }
+
+.prc-tool { margin: -24px; height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.prc-toolbar { height: 50px; flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 0 10px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.prc-back { padding-left: 4px !important; }
 .prc-title { flex: 1; min-width: 0; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.prc-tb-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 255, 255, .45); background: rgba(255, 255, 255, .12); color: #fff; padding: 6px 12px; border-radius: 7px; font-size: 12.5px; cursor: pointer; white-space: nowrap; text-decoration: none; font-family: inherit; }
-.prc-tb-btn:hover { background: rgba(255, 255, 255, .22); }
-.prc-tb-btn.armed { background: #fff; color: #8a0f30; }
-.prc-frame { flex: 1; width: 100%; border: 0; display: block; background: #fff; }
+.prc-frame-wrap { flex: 1; position: relative; min-height: 0; }
+.prc-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: var(--bg); }
+.prc-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-dim); font-size: 13px; }
 @media (max-width: 860px) {
   .prc-tool { margin: -16px; height: calc(100vh - 61px); height: calc(100dvh - 61px); }
+  .prc-toolbar { height: 46px; }
   .prc-long { display: none; }
-  .prc-tb-btn.armed .prc-long { display: inline; }
-  .prc-home h1 { font-size: 22px; }
+  .prc-hero h1 { font-size: 20px; }
+  .prc-tool-card { padding: 14px; gap: 12px; }
+  .prc-tool-icon { width: 42px; height: 42px; }
 }

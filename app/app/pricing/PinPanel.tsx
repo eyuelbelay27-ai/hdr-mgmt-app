@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { KeyRound } from "lucide-react";
 
 async function savePin(body: Record<string, string>): Promise<{ ok: boolean; error?: string }> {
   try {
@@ -47,39 +48,45 @@ export function PinPanel({ pinSet, isAppAdmin }: { pinSet: boolean; isAppAdmin: 
     <form className="prc-pinform" onSubmit={submit} autoComplete="off">
       {withCurrent && (
         <label>
-          Current PIN
-          <input name="current" type="password" inputMode="numeric" required />
+          <span className="label">Current PIN</span>
+          <input className="input" name="current" type="password" inputMode="numeric" required />
         </label>
       )}
       <label>
-        New PIN (4–8 digits)
-        <input name="pin" type="password" inputMode="numeric" pattern="\d{4,8}" required />
+        <span className="label">New PIN (4–8 digits)</span>
+        <input className="input" name="pin" type="password" inputMode="numeric" pattern="\d{4,8}" required />
       </label>
       <label>
-        Repeat new PIN
-        <input name="confirm" type="password" inputMode="numeric" pattern="\d{4,8}" required />
+        <span className="label">Repeat new PIN</span>
+        <input className="input" name="confirm" type="password" inputMode="numeric" pattern="\d{4,8}" required />
       </label>
-      <button type="submit" className="prc-btn" disabled={busy}>
-        {busy ? "Saving…" : withCurrent ? "Change PIN" : "Create PIN"}
-      </button>
+      <div className="prc-pinbtns">
+        {withCurrent && (
+          <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+        )}
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          {busy ? "Saving…" : withCurrent ? "Change PIN" : "Create PIN"}
+        </button>
+      </div>
     </form>
   );
 
   return (
-    <section className="prc-pin">
+    <section className="card prc-pin">
       <div className="prc-pinhead">
-        <div>
-          <h2>🔒 Pricing PIN</h2>
+        <span className="prc-pin-icon"><KeyRound size={17} strokeWidth={2} /></span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="font-display prc-pin-title">Settings PIN</div>
           <p>
             {hasPin
-              ? "Protects the Settings tab of every pricing tool. It's asked every time Settings is opened."
+              ? "Protects every tool's Settings tab. Asked each time Settings is opened."
               : isAppAdmin
-                ? "No PIN yet — until one is set, nobody can change prices or catalogs. Create it below."
-                : "No PIN has been set yet. Ask an app admin to open Pricing and create one."}
+                ? "No PIN yet — until one is set, nobody can change prices or catalogs."
+                : "No PIN yet. Ask an app admin to open Pricing and create one."}
           </p>
         </div>
         {hasPin && !open && (
-          <button type="button" className="prc-btn prc-btn-ghost" onClick={() => { setOpen(true); setMsg(null); }}>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setOpen(true); setMsg(null); }}>
             Change PIN
           </button>
         )}
