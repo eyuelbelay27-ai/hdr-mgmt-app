@@ -470,96 +470,129 @@
 <div class="amber-rule"></div>
 
 <div class="tabs">
-  <button class="tab-btn active" data-tab="lightbox">Lightbox Quote</button>
-  <button class="tab-btn" data-tab="cost">Material Cost</button>
-  <button class="tab-btn" data-tab="settings">Settings</button>
+  <button class="tab-btn active" data-tab="lightbox"><i data-ic="quote"></i>Lightbox Quote</button>
+  <button class="tab-btn" data-tab="cost"><i data-ic="layers"></i>Material Cost</button>
+  <button class="tab-btn" data-tab="settings"><i data-ic="settings"></i>Settings</button>
 </div>
 
 <div class="container">
 
   <!-- ===================== LIGHTBOX QUOTE TAB ===================== -->
   <div class="tab-panel active" id="tab-lightbox">
-    <div class="hint" style="margin-bottom:14px;">Enter the signage dimensions and job costs once — they'll automatically flow into every material in the catalog that needs them. No need to re-type m² on each row.</div>
-
-    <div class="settings-wrap" style="padding:20px 22px 22px;">
-      <div style="display:flex; flex-wrap:wrap; gap:18px;">
-        <div class="info-field">
-          <label>Signage Width (m) <span class="required-star">*</span></label>
-          <input type="number" min="0" step="any" inputmode="decimal" id="lbWidth" placeholder="e.g. 2.5" style="min-width:140px;">
+    <section class="lbx-card">
+      <div class="lbx-head">
+        <span class="lbx-ico" data-ic="ruler"></span>
+        <div class="lbx-head-text">
+          <h3>Signage Size</h3>
+          <p>Enter the total outside size of the lightbox.</p>
         </div>
-        <div class="info-field">
-          <label>Signage Height (m) <span class="required-star">*</span></label>
-          <input type="number" min="0" step="any" inputmode="decimal" id="lbHeight" placeholder="e.g. 1.2" style="min-width:140px;">
-        </div>
-        <div class="info-field">
-          <label>Profit Percentage (%)</label>
-          <input type="number" min="0" step="any" inputmode="decimal" id="lbProfitPercentage" placeholder="e.g. 40" style="min-width:140px;">
-        </div>
-        <div class="info-field">
-          <label style="display:flex; align-items:center; gap:6px;">
-            <input type="checkbox" id="lbCommissionEnabled" style="width:auto;">
-            Apply Commission (%)
-          </label>
-          <input type="number" min="0" step="any" inputmode="decimal" id="lbCommissionPercentage" placeholder="e.g. 7" style="min-width:140px;">
-        </div>
+        <button type="button" class="lbx-info" data-ic="info" aria-label="How this works"
+          data-tip="Width and height flow automatically into every material in the catalog that needs them — no need to re-type m² on each row."></button>
       </div>
-
-      <div class="hint" style="margin:0 0 0;">Mica Area is calculated automatically from Signage Area using the Mica Formula ranges set in Settings ("Formula Settings" → "Mica Formula") — no manual size selection needed.</div>
-
-      <div style="margin-top:18px;">
-        <label style="font-size:.72rem; font-weight:700; color:var(--grey-text); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:6px;">Quick-Fill Items</label>
-        <div class="hint" style="margin:0 0 10px;">Tick an item to include it in this quote, then fill its value right here — it flows into the Material Cost tab automatically. Which items show up here is controlled in Settings ("Lightbox Quick-Fill Items"). Leave unticked to keep it out of this job entirely.</div>
-        <div id="lbQuickFillWrap" style="display:flex; flex-direction:column; gap:10px;"></div>
+      <div class="lbx-grid2">
+        <label class="lbx-field">
+          <span class="lbx-label"><i data-ic="width"></i>Width (m) <span class="required-star">*</span></span>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbWidth" placeholder="e.g. 2.5">
+        </label>
+        <label class="lbx-field">
+          <span class="lbx-label"><i data-ic="height"></i>Height (m) <span class="required-star">*</span></span>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbHeight" placeholder="e.g. 1.2">
+        </label>
       </div>
+    </section>
 
-      <div id="lbAreaSummary" style="margin-top:18px; display:none; background:var(--amber-light); border:1px solid var(--border); border-radius:6px; padding:10px 14px; font-size:.85rem;"></div>
-      <div id="lbValidationMsg" style="display:none; margin-top:14px; padding:8px 12px; background:#fdecea; border:1px solid var(--red); border-radius:6px; color:var(--red); font-size:.82rem; font-weight:600;"></div>
+    <div class="lbx-grid2 lbx-pair">
+      <section class="lbx-card lbx-mini">
+        <label class="lbx-field">
+          <span class="lbx-label"><i data-ic="percent"></i>Profit Percentage (%)</span>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbProfitPercentage" placeholder="e.g. 40">
+        </label>
+      </section>
+      <section class="lbx-card lbx-mini">
+        <label class="lbx-field">
+          <span class="lbx-label lbx-check"><input type="checkbox" id="lbCommissionEnabled">Apply Commission (%)</span>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbCommissionPercentage" placeholder="e.g. 7">
+        </label>
+      </section>
+    </div>
 
-      <div style="margin-top:18px;">
-        <button class="btn btn-amber" id="applyLightboxBtn">Apply &amp; Go to Material Cost →</button>
+    <div class="lbx-note">
+      <span data-ic="info"></span>
+      <div>
+        <b>Mica Area is calculated automatically from Signage Area</b>
+        <span>using the Mica Formula ranges set in Settings ("Formula Settings" → "Mica Formula").</span>
       </div>
     </div>
 
-    <div class="settings-wrap" style="margin-top:18px; padding:16px 22px 20px;">
-      <label style="font-size:.72rem; font-weight:700; color:var(--grey-text); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:10px;">Include in This Quote</label>
-      <div class="hint" style="margin:0 0 12px;">Untick anything that doesn't apply to this job — it'll be hidden from the Material Cost tab (the catalog itself is untouched, so it's still there for next time). Which items show up in this list is controlled per-item in Settings ("Show in Lightbox"). Quick-Fill items (above) are excluded from this list since they're already handled up there.</div>
-      <div id="lbItemPicker" style="display:flex; flex-wrap:wrap; gap:10px 20px;"></div>
-    </div>
+    <section class="lbx-card">
+      <div class="lbx-head">
+        <span class="lbx-ico" data-ic="clipboard"></span>
+        <div class="lbx-head-text">
+          <h3>Quick-Fill Items</h3>
+          <p>Tick an item to include it in this quote. Fill its value if needed — it will flow into the Material Cost tab automatically.</p>
+        </div>
+      </div>
+      <div id="lbQuickFillWrap" class="lbx-qf-list"></div>
+    </section>
 
-    <div class="hint" style="margin-top:14px;">Signage Width/Height and any ticked Quick-Fill item update the Material Cost catalog automatically as you change them — no button needed. This button just jumps you over to the Material Cost tab once you're ready to review it (using Signage Area, or Mica Area for items flagged "Mica" in Settings, for every auto-calc material). Required fields (Width, Height, and any ticked Quick-Fill item) must be filled before it'll let you through.</div>
+    <div id="lbAreaSummary" class="lbx-area" style="display:none;"></div>
+    <div id="lbValidationMsg" class="lbx-error" style="display:none;"></div>
+
+    <section class="lbx-card">
+      <div class="lbx-head">
+        <span class="lbx-ico" data-ic="list"></span>
+        <div class="lbx-head-text">
+          <h3>Include in This Quote</h3>
+          <p>Untick anything that doesn't apply to this job — it's hidden from Material Cost (the catalog is untouched). Which items appear here, and which start ticked, is set in Settings.</p>
+        </div>
+      </div>
+      <div id="lbItemPicker" class="lbx-chips"></div>
+    </section>
+
+    <div class="lbx-apply-row">
+      <button class="btn btn-amber" id="applyLightboxBtn">Apply &amp; Go to Material Cost →</button>
+    </div>
   </div>
 
 
   <!-- ===================== MATERIAL COST TAB ===================== -->
   <div class="tab-panel" id="tab-cost">
-    <div class="toolbar">
-      <div class="info-fields">
-        <div class="info-field">
-          <label>Project / Client <span class="required-star">*</span></label>
-          <input type="text" id="projClient" placeholder="e.g. Star Cafe sign">
-        </div>
-        <div class="info-field">
-          <label>Date <span class="required-star">*</span></label>
-          <div class="date-field-wrap">
-            <input type="text" id="projDate" placeholder="dd/mm/yyyy" readonly>
-            <input type="date" id="projDatePicker" class="date-picker-native" tabindex="-1">
-          </div>
-        </div>
-        <div class="info-field">
-          <label>Prepared by <span class="required-star">*</span></label>
-          <input type="text" id="projPrep" placeholder="Name">
-        </div>
-        <div class="info-field">
-          <label>Client Contact (optional)</label>
-          <input type="text" id="projClientContact" placeholder="Phone / email">
-        </div>
+    <section class="lbx-card lbx-project">
+      <label class="lbx-pf">
+        <span data-ic="building"></span>
+        <span class="lbx-pf-body"><span class="lbx-pf-label">Project / Client <span class="required-star">*</span></span>
+        <input type="text" id="projClient" placeholder="e.g. Star Cafe sign"></span>
+      </label>
+      <div class="lbx-pf">
+        <span data-ic="calendar"></span>
+        <span class="lbx-pf-body"><span class="lbx-pf-label">Date <span class="required-star">*</span></span>
+        <span class="date-field-wrap">
+          <input type="text" id="projDate" placeholder="dd/mm/yyyy" readonly>
+          <input type="date" id="projDatePicker" class="date-picker-native" tabindex="-1">
+        </span></span>
       </div>
-      <div style="display:flex; gap:10px;">
+      <label class="lbx-pf">
+        <span data-ic="user"></span>
+        <span class="lbx-pf-body"><span class="lbx-pf-label">Prepared by <span class="required-star">*</span></span>
+        <input type="text" id="projPrep" placeholder="Name"></span>
+      </label>
+      <label class="lbx-pf">
+        <span data-ic="phone"></span>
+        <span class="lbx-pf-body"><span class="lbx-pf-label">Client Contact (optional)</span>
+        <input type="text" id="projClientContact" placeholder="Phone / email"></span>
+      </label>
+      <div class="lbx-hidden-actions">
         <button class="btn btn-secondary" id="resetQtyBtn">Clear Quantities</button>
         <button class="btn btn-amber" id="exportPdfBtn">⬇ Download Invoice</button>
       </div>
-    </div>
-    <div id="validationMsg" style="display:none; margin:-8px 0 14px; padding:8px 12px; background:#fdecea; border:1px solid var(--red); border-radius:6px; color:var(--red); font-size:.82rem; font-weight:600;"></div>
+    </section>
+    <div id="validationMsg" class="lbx-error" style="display:none;"></div>
+
+    <section class="lbx-card lbx-searchbar">
+      <label class="lbx-search"><span data-ic="search"></span><input type="search" id="lbxSearch" placeholder="Search material (e.g. mica, led, color board…)" autocomplete="off"></label>
+      <button type="button" class="lbx-add" id="lbxAddItem"><span data-ic="plus"></span>Add Item</button>
+    </section>
+    <div id="lbxSearchEmpty" class="lbx-empty" style="display:none;">No materials match your search.</div>
 
     <table id="costTable">
       <thead>
@@ -722,6 +755,20 @@
         <div class="hint" style="margin:0;">Tick items here (like Transport, Footing, Scaffolding) to give them their own instant-fill field right on the Lightbox Quote tab. Ticking "Include in this quote" there fills a value directly into the Material Cost tab — no need to visit it separately. Untick here to go back to plain Material Cost entry for that item.</div>
       </div>
       <div id="quickFillPicker" style="display:flex; flex-wrap:wrap; gap:10px 20px; padding:10px 16px 18px;"></div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:22px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">"Include in This Quote" list</h3>
+        <div class="hint" style="margin:0;">Choose which items appear in the "Include in This Quote" list on the Lightbox Quote tab, and which of them start ticked on a new quote. Items that start unticked stay out of Material Cost until someone ticks them (or adds them with "Add Item"). Quick-Fill items have their own section above.</div>
+      </div>
+      <div class="inc-tools">
+        <input type="search" id="incDefaultsSearch" placeholder="Find an item…" autocomplete="off">
+        <button type="button" class="btn btn-secondary btn-small" data-inc-all="show">Show all</button>
+        <button type="button" class="btn btn-secondary btn-small" data-inc-all="tick">Tick all by default</button>
+        <button type="button" class="btn btn-secondary btn-small" data-inc-all="untick">Untick all by default</button>
+      </div>
+      <div id="includeDefaultsList" class="inc-list"></div>
     </div>
 
     <div class="settings-wrap" style="margin-top:22px;">
@@ -956,6 +1003,7 @@ function loadItems(){
       quickFillLightbox: /transport|footing|scaffolding/i.test(d[0]),
       areaSource: d[5] || 'signage',
       showInLightbox: true,
+      includeByDefault: true,
       excludedFromJob: false
     }));
     return enforceFormulaKeyItems(list);
@@ -966,6 +1014,7 @@ function loadItems(){
     if(it.minQty === undefined) it.minQty = null;
     if(it.maxQty === undefined) it.maxQty = null;
     if(it.showInLightbox === undefined) it.showInLightbox = true;
+    if(it.includeByDefault === undefined) it.includeByDefault = true;
     if(it.excludedFromJob === undefined) it.excludedFromJob = false;
     if(it.defaultValue === undefined) it.defaultValue = null;
     if(it.quickFillLightbox === undefined){
@@ -1482,15 +1531,20 @@ function renderLightboxQuickFill(){
       ? (it.price!==null && it.price!==undefined ? it.price : '')
       : (it.qty!==null && it.qty!==undefined ? it.qty : '');
     const unitLabel = transport ? 'ETB' : (it.unit || '');
+    const lname = (it.name||'').toLowerCase();
+    const icon = transport ? 'truck' : /footing/.test(lname) ? 'footing' : /scaffold/.test(lname) ? 'scaffold' : 'package';
     return `
-      <div class="quickfill-row">
+      <div class="quickfill-row${included?' is-on':''}">
         <label class="quickfill-check">
           <input type="checkbox" data-qf-include="${it.id}" ${included?'checked':''}>
-          ${escapeHtml(it.name)}
+          <span class="lbx-qf-ico">${ptIcon(icon)}</span>
+          <span class="lbx-qf-name">${escapeHtml(it.name)}</span>
         </label>
         ${included ? `
-          <input type="number" min="0" step="any" inputmode="decimal" class="quickfill-input" data-qf-value="${it.id}" placeholder="0" value="${currentVal}">
-          <span class="quickfill-unit">${escapeHtml(unitLabel)}</span>
+          <span class="lbx-qf-input">
+            <input type="number" min="0" step="any" inputmode="decimal" class="quickfill-input" data-qf-value="${it.id}" placeholder="0" value="${currentVal}">
+            <span class="quickfill-unit">${escapeHtml(unitLabel)}</span>
+          </span>
         ` : ''}
       </div>`;
   }).join('');
@@ -1544,7 +1598,7 @@ function renderLightboxItemPicker(){
     return;
   }
   wrap.innerHTML = pickable.map(it=>`
-    <label style="display:flex; align-items:center; gap:6px; font-size:.85rem; cursor:pointer;">
+    <label class="lbx-chip">
       <input type="checkbox" data-lb-include-id="${it.id}" ${it.excludedFromJob?'':'checked'}>
       ${escapeHtml(it.name)}
     </label>
@@ -1566,9 +1620,10 @@ function renderLightboxSummary(){
     box.style.display = 'none';
     return;
   }
-  box.style.display = 'block';
-  box.innerHTML = `<strong>Signage Area:</strong> ${fmtArea(lightboxState.signageArea)}
-    &nbsp;•&nbsp; <strong>Mica Area:</strong> ${fmtArea(lightboxState.micaArea)}`;
+  box.style.display = 'flex';
+  box.innerHTML = `<span class="lbx-area-ico">${ptIcon('calculator')}</span>
+    <span class="lbx-area-stat"><small>Signage Area</small><b>${fmtArea(lightboxState.signageArea)}</b></span>
+    <span class="lbx-area-stat"><small>Mica Area</small><b>${fmtArea(lightboxState.micaArea)}</b></span>`;
 }
 
 // Re-applies the currently saved lightbox values (used when the Mica Formula
@@ -2008,20 +2063,21 @@ function renderCostTable(){
         const computedLabel = effectiveQty!==null ? `= ${effectiveQty} ${escapeHtml(it.unit||'pc')}` : '';
         qtyCellHtml = `
           <div class="autocalc-wrap">
-            <input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="m2" placeholder="m²" value="${it.m2!==null && it.m2!==undefined ? it.m2 : ''}">
+            <span class="lbx-step"><button type="button" class="lbx-step-btn" data-step="-1" aria-label="Less">${ptIcon('minus')}</button><input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="m2" placeholder="m²" value="${it.m2!==null && it.m2!==undefined ? it.m2 : ''}"><button type="button" class="lbx-step-btn" data-step="1" aria-label="More">${ptIcon('plus')}</button></span>
             <span class="autocalc-badge">${computedLabel}</span>
           </div>`;
       } else {
-        qtyCellHtml = `<input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="qty" value="${it.qty!==null && it.qty!==undefined ? it.qty : ''}">`;
+        qtyCellHtml = `<span class="lbx-step"><button type="button" class="lbx-step-btn" data-step="-1" aria-label="Less">${ptIcon('minus')}</button><input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="qty" value="${it.qty!==null && it.qty!==undefined ? it.qty : ''}"><button type="button" class="lbx-step-btn" data-step="1" aria-label="More">${ptIcon('plus')}</button></span>`;
       }
 
+      const qtyLabel = (it.autoCalc && it.autoCalc.enabled && it.autoCalc.formulaKey !== 'metal') ? 'Qty (m²)' : `Qty (${it.unit||'pc'})`;
       tr.innerHTML = `
         <td class="row-no">${idx+1}</td>
-        <td class="col-item">${escapeHtml(it.name)}</td>
-        <td>${escapeHtml(it.unit||'')}</td>
-        <td>${qtyCellHtml}</td>
-        <td>${fmt(it.price)}</td>
-        <td class="row-total">${total!==null ? fmt(total) : '-'}</td>
+        <td class="col-item"><span class="lbx-item-name">${escapeHtml(it.name)}</span><button type="button" class="lbx-more" data-more="${it.id}" aria-label="More options">${ptIcon('more')}</button></td>
+        <td data-label="Unit">${escapeHtml(it.unit||'')}</td>
+        <td data-label="${qtyLabel}">${qtyCellHtml}</td>
+        <td data-label="Price">${fmt(it.price)}</td>
+        <td class="row-total" data-label="Total">${total!==null ? fmt(total) : '-'}</td>
       `;
       body.appendChild(tr);
     });
@@ -2098,6 +2154,7 @@ function renderCostTable(){
   });
 
   applyDependencyWarnings();
+  applyCostSearch();
 }
 
 // Recomputes every row's total + the grand total in place, without a full
@@ -2193,7 +2250,7 @@ function applyDependencyWarnings(){
 
 document.getElementById('resetQtyBtn').addEventListener('click', ()=>{
   if(!confirm('Clear all entered quantities? This also clears the Lightbox Quote tab.')) return;
-  items.forEach(it=>{ it.qty=null; it.m2=null; it.excludedFromJob=false; });
+  items.forEach(it=>{ it.qty=null; it.m2=null; it.excludedFromJob = it.includeByDefault===false; });
   lightboxState = null;
   hadarStore.removeItem('hadar_lightbox_v1');
   ['lbWidth','lbHeight'].forEach(id=>{ document.getElementById(id).value=''; });
@@ -2277,6 +2334,7 @@ function escapeAttr(str){
 // Settings tab checklist controlling which items get their own instant-fill
 // row on the Lightbox Quote tab (see renderLightboxQuickFill()).
 function renderQuickFillSettingsPicker(){
+  renderIncludeDefaults();
   const wrap = document.getElementById('quickFillPicker');
   if(!wrap) return;
   if(items.length === 0){
@@ -2401,6 +2459,7 @@ function onSettingsFieldChange(e){
     item.defaultValue = e.target.value === '' ? null : parseFloat(e.target.value);
   } else if(field === 'showInLightbox'){
     item.showInLightbox = e.target.checked;
+    setTimeout(renderIncludeDefaults, 0);
     saveItems();
     renderLightboxItemPicker();
     return;
@@ -2447,6 +2506,7 @@ document.getElementById('addItemBtn').addEventListener('click', ()=>{
     quickFillLightbox: false,
     areaSource: 'signage',
     showInLightbox: true,
+    includeByDefault: true,
     excludedFromJob: false
   };
   items.push(newItem);
@@ -2804,6 +2864,160 @@ function validateRequiredFields(){
 document.getElementById('projClient').addEventListener('input', validateRequiredFields);
 document.getElementById('projPrep').addEventListener('input', validateRequiredFields);
 
+/* ============================ MATERIAL COST: SEARCH, ADD ITEM, STEPPERS, ITEM MENU ============================ */
+function applyCostSearch(){
+  const inp = document.getElementById('lbxSearch');
+  const q = inp ? inp.value.trim().toLowerCase() : '';
+  let shown = 0;
+  let section = null, sectionHasRows = false;
+  document.querySelectorAll('#costTableBody tr').forEach(tr=>{
+    if(tr.classList.contains('section-row')){
+      if(section) section.classList.toggle('lbx-hide', !!q && !sectionHasRows);
+      section = tr; sectionHasRows = false;
+      return;
+    }
+    const it = items.find(i=>i.id===tr.dataset.id);
+    const match = !q || (it && (it.name||'').toLowerCase().includes(q));
+    tr.classList.toggle('lbx-hide', !match);
+    if(match){ shown++; sectionHasRows = true; }
+  });
+  if(section) section.classList.toggle('lbx-hide', !!q && !sectionHasRows);
+  const empty = document.getElementById('lbxSearchEmpty');
+  if(empty) empty.style.display = (q && shown===0) ? 'block' : 'none';
+}
+document.getElementById('lbxSearch').addEventListener('input', applyCostSearch);
+
+function setIncluded(id, included){
+  const it = items.find(i=>i.id===id);
+  if(!it) return;
+  it.excludedFromJob = !included;
+  saveItems();
+  renderCostTable();
+  renderLightboxItemPicker();
+  renderLightboxQuickFill();
+}
+
+// Bottom sheet listing catalog items that aren't in this quote yet.
+function openAddItemSheet(){
+  closeSheets();
+  const hidden = items.filter(it=>it.excludedFromJob);
+  const sheet = document.createElement('div');
+  sheet.className = 'lbx-sheet-scrim';
+  sheet.innerHTML = `
+    <div class="lbx-sheet" role="dialog" aria-label="Add item">
+      <div class="lbx-sheet-head"><h3>Add item to this quote</h3><button type="button" class="lbx-sheet-x" aria-label="Close">${ptIcon('x')}</button></div>
+      ${hidden.length ? `
+        <input type="search" class="lbx-sheet-search" placeholder="Search…" autocomplete="off">
+        <div class="lbx-sheet-list">${hidden.map(it=>`
+          <button type="button" class="lbx-sheet-row" data-add-id="${it.id}">
+            <span><b>${escapeHtml(it.name)}</b><small>${escapeHtml(it.unit||'')} · ${fmt(it.price)} ETB · ${escapeHtml(it.category||'')}</small></span>
+            <span class="lbx-sheet-plus">${ptIcon('plus')}</span>
+          </button>`).join('')}</div>`
+      : `<p class="lbx-sheet-note">Every catalog item is already in this quote. To create a brand-new material, add it in Settings.</p>`}
+    </div>`;
+  document.body.appendChild(sheet);
+  sheet.addEventListener('click', e=>{
+    if(e.target===sheet || e.target.closest('.lbx-sheet-x')) return sheet.remove();
+    const row = e.target.closest('[data-add-id]');
+    if(row){ setIncluded(row.dataset.addId, true); row.remove(); if(!sheet.querySelector('[data-add-id]')) sheet.remove(); }
+  });
+  const s = sheet.querySelector('.lbx-sheet-search');
+  if(s) s.addEventListener('input', ()=>{
+    const q = s.value.trim().toLowerCase();
+    sheet.querySelectorAll('[data-add-id]').forEach(r=>{ r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+  });
+}
+document.getElementById('lbxAddItem').addEventListener('click', openAddItemSheet);
+
+function closeSheets(){ document.querySelectorAll('.lbx-sheet-scrim, .lbx-menu').forEach(el=>el.remove()); }
+
+document.getElementById('costTableBody').addEventListener('click', e=>{
+  const step = e.target.closest('.lbx-step-btn');
+  if(step){
+    const inp = step.parentElement.querySelector('.qty-input');
+    if(!inp || inp.readOnly) return;
+    const cur = parseFloat(inp.value) || 0;
+    const inc = (String(inp.value).includes('.') ? 0.1 : 1) * Number(step.dataset.step);
+    const next = Math.max(0, Math.round((cur + inc) * 1000) / 1000);
+    inp.value = next === 0 ? '' : String(next);
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+    return;
+  }
+  const more = e.target.closest('.lbx-more');
+  if(more){
+    closeSheets();
+    const id = more.dataset.more;
+    const menu = document.createElement('div');
+    menu.className = 'lbx-menu';
+    menu.innerHTML = `<button type="button" data-act="clear">${ptIcon('minus')}Clear quantity</button>
+      <button type="button" data-act="remove" class="lbx-menu-danger">${ptIcon('trash')}Remove from this quote</button>`;
+    const r = more.getBoundingClientRect();
+    menu.style.right = Math.max(8, document.documentElement.clientWidth - r.right) + 'px';
+    document.body.appendChild(menu);
+    // Open upwards when there's no room above the bottom bar.
+    const bar = document.querySelector('.pt-bar:not([hidden])');
+    const limit = window.innerHeight - (bar ? bar.offsetHeight : 0) - 8;
+    menu.style.top = (r.bottom + 4 + menu.offsetHeight > limit
+      ? window.scrollY + r.top - menu.offsetHeight - 4
+      : window.scrollY + r.bottom + 4) + 'px';
+    menu.addEventListener('click', ev=>{
+      const b = ev.target.closest('[data-act]');
+      if(!b) return;
+      menu.remove();
+      const it = items.find(i=>i.id===id);
+      if(!it) return;
+      if(b.dataset.act === 'remove') return setIncluded(id, false);
+      it.qty = null; it.m2 = null;
+      saveItems(); renderCostTable();
+    });
+  }
+});
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.lbx-menu') && !e.target.closest('.lbx-more')) document.querySelectorAll('.lbx-menu').forEach(m=>m.remove());
+});
+
+/* ============================ SETTINGS: "INCLUDE IN THIS QUOTE" DEFAULTS ============================ */
+function renderIncludeDefaults(){
+  const wrap = document.getElementById('includeDefaultsList');
+  if(!wrap) return;
+  const q = (document.getElementById('incDefaultsSearch').value || '').trim().toLowerCase();
+  const list = items.filter(it=>!it.quickFillLightbox && (!q || (it.name||'').toLowerCase().includes(q)));
+  if(!list.length){ wrap.innerHTML = `<div class="hint" style="margin:0; padding:8px 0;">No items match.</div>`; return; }
+  wrap.innerHTML = list.map(it=>`
+    <div class="inc-row${it.showInLightbox===false?' is-off':''}">
+      <span class="inc-name">${escapeHtml(it.name)}<small>${escapeHtml(it.category||'')}</small></span>
+      <label class="inc-toggle"><input type="checkbox" data-inc-show="${it.id}" ${it.showInLightbox!==false?'checked':''}><span>In list</span></label>
+      <label class="inc-toggle"><input type="checkbox" data-inc-default="${it.id}" ${it.includeByDefault!==false?'checked':''}><span>Ticked by default</span></label>
+    </div>`).join('');
+}
+function afterIncludeDefaultsChange(){
+  saveItems();
+  renderIncludeDefaults();
+  renderSettingsTable();
+  renderLightboxItemPicker();
+}
+document.getElementById('includeDefaultsList').addEventListener('change', e=>{
+  const show = e.target.dataset.incShow, def = e.target.dataset.incDefault;
+  const it = items.find(i=>i.id===(show||def));
+  if(!it) return;
+  if(show) it.showInLightbox = e.target.checked;
+  if(def) it.includeByDefault = e.target.checked;
+  afterIncludeDefaultsChange();
+});
+document.getElementById('incDefaultsSearch').addEventListener('input', renderIncludeDefaults);
+document.querySelectorAll('[data-inc-all]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const mode = btn.dataset.incAll;
+    items.forEach(it=>{
+      if(it.quickFillLightbox) return;
+      if(mode==='show') it.showInLightbox = true;
+      if(mode==='tick') it.includeByDefault = true;
+      if(mode==='untick') it.includeByDefault = false;
+    });
+    afterIncludeDefaultsChange();
+  });
+});
+
 /* ============================ INIT ============================ */
 renderCostTable();
 renderSettingsTable();
@@ -2811,6 +3025,7 @@ renderLightboxItemPicker();
 renderQuickFillSettingsPicker();
 renderLightboxQuickFill();
 renderConditionalRulesTable();
+renderIncludeDefaults();
 renderMicaFormulaTable();
 renderLedFormulaTable();
 initReliefFormulaInputs();
