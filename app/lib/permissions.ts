@@ -67,6 +67,7 @@ export const PAGE_KEYS = [
   { key: "overtime", label: "Overtime Control" },
   { key: "crm", label: "CRM" },
   { key: "pulseclock", label: "PulseClock" },
+  { key: "pricing", label: "Pricing" },
   { key: "payroll", label: "Payroll" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
@@ -129,7 +130,7 @@ export const DEFAULT_PAGES_BY_ROLE: Record<Role, PageKey[]> = {
   Supervisor: ["dashboard", "jobs"],
   Manager: ["dashboard", "jobs", "calculator"],
   OwnerFinance: ["dashboard", "jobs", "calculator", "inventory", "reconciliation"],
-  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "payroll", "users", "settings"],
+  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "pricing", "payroll", "users", "settings"],
 };
 
 export const DEFAULT_TABS_BY_ROLE: Record<Role, TabKey[]> = {

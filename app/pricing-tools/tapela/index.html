@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--PRICING_BOOTSTRAP-->
+<title>Hadar Tapela Sign Pricing</title>
+<script src="/pricing-assets/jspdf.umd.min.js"></script>
+<script>
+// Standalone fallback: if Claude's window.storage API isn't present (i.e. running as a
+// plain local/hosted web page, not inside a Claude artifact), use the browser's own
+// localStorage instead, so settings still save and reload automatically.
+if (!window.storage) {
+  window.storage = {
+    get: async (key) => {
+      const v = localStorage.getItem(key);
+      return v !== null ? { key, value: v, shared: false } : null;
+    },
+    set: async (key, value) => {
+      localStorage.setItem(key, value);
+      return { key, value, shared: false };
+    },
+    delete: async (key) => {
+      localStorage.removeItem(key);
+      return { key, deleted: true, shared: false };
+    },
+    list: async (prefix) => {
+      const keys = Object.keys(localStorage).filter(k => !prefix || k.startsWith(prefix));
+      return { keys, prefix, shared: false };
+    }
+  };
+}
+</script>
+<style>
+  :root{
+    --maroon:#7a1f2b;
+    --maroon-dark:#5c1620;
+    --bg:#f6f4f1;
+    --card:#ffffff;
+    --border:#e2dedb;
+    --text:#2a2422;
+    --muted:#8a817c;
+    --accent:#c9a24b;
+    --ok:#2f6b3f;
+    --err:#a33;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg);color:var(--text);
+  }
+  header{
+    background:var(--maroon);color:#fff;padding:18px 20px;
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+  header h1{font-size:18px;margin:0;font-weight:600;}
+  header .sub{font-size:12px;opacity:.8;margin-top:2px;}
+  .tabs{
+    display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--border);
+    padding:0 16px;overflow-x:auto;
+    position:sticky;top:0;z-index:50;
+  }
+  .tab{
+    padding:12px 18px;cursor:pointer;font-size:14px;font-weight:500;
+    color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;
+  }
+  .tab.active{color:var(--maroon);border-bottom-color:var(--maroon);}
+  main{max-width:920px;margin:0 auto;padding:20px 16px 80px;}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:18px;margin-bottom:16px;
+  }
+  .card h2{font-size:14px;margin:0 0 14px;color:var(--maroon-dark);text-transform:uppercase;letter-spacing:.04em;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .field{flex:1;min-width:140px;}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  input[type=text],input[type=number]{
+    width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;
+    font-size:14px;background:#fdfcfb;
+  }
+  input:disabled{background:#f0ede9;color:var(--muted);}
+  input:focus{outline:2px solid var(--accent);border-color:var(--accent);}
+  select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:#fdfcfb;}
+  .checkline{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .checkline input[type=checkbox]{width:16px;height:16px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--border);}
+  th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;}
+  .tier-row input{padding:6px 8px;font-size:13px;}
+  .btn{
+    background:var(--maroon);color:#fff;border:none;padding:9px 16px;border-radius:6px;
+    font-size:13px;cursor:pointer;font-weight:500;
+  }
+  .btn:hover{background:var(--maroon-dark);}
+  .btn.ghost{background:transparent;color:var(--maroon);border:1px solid var(--maroon);}
+  .btn.small{padding:5px 10px;font-size:12px;}
+  .btn.danger{background:#a33;}
+  .summary-line{display:flex;justify-content:space-between;padding:7px 0;font-size:14px;border-bottom:1px dashed var(--border);}
+  .summary-line.total{font-size:17px;font-weight:700;color:var(--maroon-dark);border-bottom:none;border-top:2px solid var(--maroon);margin-top:6px;padding-top:12px;}
+  .summary-line .muted{color:var(--muted);font-size:12px;}
+  .badge{
+    display:inline-block;background:#f1e6c8;color:#7a5b12;font-size:11px;
+    padding:3px 8px;border-radius:12px;margin-left:6px;
+  }
+  .actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;}
+  .status{font-size:12px;color:var(--muted);margin-top:8px;}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px;}
+  .err{font-size:12px;color:var(--err);margin-top:6px;font-weight:600;}
+
+  .design-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .design-card{
+    border:2px solid var(--border);border-radius:8px;padding:10px;cursor:pointer;
+    text-align:center;background:#fdfcfb;
+  }
+  .design-card.selected{border-color:var(--maroon);background:#fdf3f0;}
+  .design-card img{width:100%;height:70px;object-fit:contain;margin-bottom:6px;background:#f0ede9;border-radius:4px;}
+  .design-card .noimg{width:100%;height:70px;display:flex;align-items:center;justify-content:center;background:#f0ede9;border-radius:4px;margin-bottom:6px;color:var(--muted);font-size:11px;}
+  .design-card .dname{font-size:12px;font-weight:600;}
+  .design-card .drange{font-size:10px;color:var(--muted);}
+  #customSizeCard{border-width:2px;}
+  #customSizeCard.active-mode{border-color:var(--maroon);background:#fdf3f0;}
+
+  .size-option{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 12px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;cursor:pointer;
+  }
+  .size-option.selected{border-color:var(--maroon);background:#fdf3f0;}
+  .size-option .l{font-size:13px;}
+  .size-option .p{font-size:13px;font-weight:600;color:var(--maroon-dark);}
+  .custom-size-block{cursor:default;display:block;}
+  .custom-size-block.selected{border-color:var(--maroon);background:#fdf3f0;}
+
+  .settings-design-block{border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px;}
+  .settings-design-block h3{font-size:13px;margin:0 0 10px;}
+  .thumb-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .thumb-row img{width:60px;height:60px;object-fit:contain;background:#f0ede9;border-radius:6px;}
+  .thumb-placeholder{width:60px;height:60px;background:#f0ede9;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:9px;text-align:center;}
+  .lock-screen{
+    max-width:360px;margin:60px auto;text-align:center;
+  }
+  .lock-screen .icon{font-size:36px;margin-bottom:14px;}
+  .lock-screen h2{font-size:16px;margin:0 0 6px;color:var(--maroon-dark);}
+  .lock-screen p{font-size:12px;color:var(--muted);margin:0 0 18px;}
+  .lock-screen input{text-align:center;letter-spacing:2px;}
+  .lock-err{color:var(--err);font-size:12px;margin-top:8px;min-height:16px;}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="/pricing" target="_top" onclick="if(window.parent!==window){window.parent.postMessage({hadar:'home'},'*');return false;}" style="color:#fff;text-decoration:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);padding:8px 14px;border-radius:6px;font-size:13px;margin-right:6px;white-space:nowrap;">&larr; Back to Menu</a>
+  <div>
+    <h1>Tapela Sign Pricing</h1>
+    <div class="sub">Hadar Advertising — Quote Tool</div>
+  </div>
+  <div class="sub" id="saveStatus">Loading...</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="quote">Quote</div>
+  <div class="tab" data-tab="settings">Settings</div>
+</div>
+
+<main>
+
+  <!-- QUOTE TAB -->
+  <div id="quote-tab">
+    <div class="card">
+      <h2>Job Details</h2>
+      <div class="row">
+        <div class="field">
+          <label>Client / Job Name</label>
+          <input type="text" id="clientName" placeholder="e.g. Convex Cafe">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Readymade Signs</h2>
+      <div class="hint" style="margin-bottom:12px;">Each sign below is a fixed size and price. Click to select it; click it again to deselect.</div>
+      <div class="design-grid" id="designGrid"></div>
+    </div>
+
+    <div class="card" id="customSizeCard">
+      <h2>Custom Size</h2>
+      <div class="hint" style="margin-bottom:12px;">Enter your own size to get an approximated price, interpolated between the two nearest readymade signs above. Selecting this clears any readymade sign selection, and vice versa.</div>
+      <div class="row" style="margin-bottom:0;">
+        <div class="field">
+          <label>Height (cm)</label>
+          <input type="number" id="customHeight" step="0.5" min="0" value="0">
+        </div>
+        <div class="field">
+          <label>Width (cm)</label>
+          <input type="number" id="customWidth" step="0.5" min="0" value="0">
+        </div>
+      </div>
+      <div class="err" id="rangeError"></div>
+      <div class="hint" id="rangeHint"></div>
+    </div>
+
+    <div class="card" id="priceCard" style="display:none;">
+      <h2>Sign Price</h2>
+      <div class="summary-line"><span id="signPriceLabel">Selected sign</span><span id="signPriceValue">0 ETB</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Additional Costs</h2>
+      <div class="row">
+        <div class="field">
+          <label>Transport (ETB) — entered per job</label>
+          <input type="number" id="transport" step="1" min="0" value="0">
+        </div>
+        <div class="field">
+          <label>Workshop Services (fixed)</label>
+          <input type="text" id="workshopDisplay" disabled>
+        </div>
+      </div>
+      <div class="hint">Workshop services fee is fixed — edit it in Settings.</div>
+    </div>
+
+    <div class="card">
+      <h2>Profit &amp; Commission</h2>
+      <div class="checkline">
+        <input type="checkbox" id="profitEnabled" checked>
+        <label style="margin:0;" for="profitEnabled">Apply Profit %</label>
+        <input type="number" id="profitPercent" style="width:70px;margin-left:auto;" step="0.5">
+      </div>
+      <div class="checkline">
+        <input type="checkbox" id="commissionEnabled" checked>
+        <label style="margin:0;" for="commissionEnabled">Apply Commission %</label>
+        <input type="number" id="commissionPercent" style="width:70px;margin-left:auto;" step="0.5">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Cost Breakdown</h2>
+      <div class="summary-line"><span>Sign Price</span><span id="dispSignCost">0 ETB</span></div>
+      <div class="summary-line"><span>Workshop Services</span><span id="dispWorkshopCost">0 ETB</span></div>
+      <div class="summary-line"><span>Transport</span><span id="dispTransportCost">0 ETB</span></div>
+      <div class="summary-line"><span class="muted">Subtotal</span><span id="dispSubtotal" class="muted">0 ETB</span></div>
+      <div class="summary-line"><span>Profit (<span id="dispProfitPct">0</span>%)</span><span id="dispProfitAmt">0 ETB</span></div>
+      <div class="summary-line"><span>Commission (<span id="dispCommPct">0</span>%)</span><span id="dispCommAmt">0 ETB</span></div>
+      <div class="summary-line total"><span>Grand Total</span><span id="dispGrandTotal">0 ETB</span></div>
+      <div class="actions">
+        <button class="btn" id="generateInvoiceBtn">⬇ Download Invoice (A4 PDF)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="settings-tab" style="display:none;">
+    <div class="card">
+      <h2>Fixed Costs &amp; Defaults</h2>
+      <div class="row">
+        <div class="field">
+          <label>Workshop Services — fixed fee (ETB)</label>
+          <input type="number" id="rateWorkshop" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Default Profit %</label>
+          <input type="number" id="defaultProfit" step="0.5" min="0">
+        </div>
+        <div class="field">
+          <label>Default Commission %</label>
+          <input type="number" id="defaultCommission" step="0.5" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Profit Limits (ETB)</h2>
+      <div class="row">
+        <div class="field">
+          <label>Minimum Profit (ETB)</label>
+          <input type="number" id="minProfitBirr" step="1" min="0">
+        </div>
+        <div class="field">
+          <label>Maximum Profit (ETB)</label>
+          <input type="number" id="maxProfitBirr" step="1" min="0">
+        </div>
+      </div>
+      <div class="hint">Leave at 0 for no limit. If the %-based profit falls outside this range, it's automatically adjusted to stay within it — the Profit % shown on the Quote tab will update to reflect the real, clamped percentage.</div>
+    </div>
+
+    <div class="card">
+      <h2>Company Details (for Invoice)</h2>
+      <div class="row">
+        <div class="field">
+          <label>Company Name</label>
+          <input type="text" id="companyName">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Address</label>
+          <input type="text" id="companyAddress">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Phone 1</label>
+          <input type="text" id="companyPhone1">
+        </div>
+        <div class="field">
+          <label>Phone 2</label>
+          <input type="text" id="companyPhone2">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Readymade Signs <span class="badge">editable</span></h2>
+      <div class="hint" style="margin-bottom:10px;">Each sign has one fixed height, width, and price. Add or remove signs as needed.</div>
+      <div id="designsSettingsList"></div>
+      <div class="actions" style="margin-top:10px;">
+        <button class="btn ghost small" id="addDesignBtn">+ Add New Sign</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <button class="btn danger" id="resetBtn">Reset All Settings to Defaults</button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+function placeholderDesign(n, h, w, price){
+  return { id: 'design'+n, name: 'Tapela Sign ' + n, refImage: '', h, w, price };
+}
+
+const DEFAULTS = {
+  rateWorkshop: 1200,
+  defaultProfit: 40,
+  defaultCommission: 7,
+  minProfitBirr: 0,
+  maxProfitBirr: 0,
+  company: {
+    name: 'Hadar Advertising',
+    address: 'Hayahulet, Bata Complex Building, 2nd Floor, Addis Ababa',
+    phone1: '0947431247',
+    phone2: '0993649461'
+  },
+  designs: [
+    placeholderDesign(1, 40, 60, 1500),
+    placeholderDesign(2, 50, 75, 1900),
+    placeholderDesign(3, 60, 90, 2400),
+    placeholderDesign(4, 70, 105, 2900),
+    placeholderDesign(5, 80, 120, 3600),
+    placeholderDesign(6, 90, 135, 4200),
+    placeholderDesign(7, 100, 150, 4900)
+  ]
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULTS));
+let selectedDesignId = null;
+let customModeActive = false;
+let lastCalc = null;
+
+const STORAGE_KEY = 'tapela-pricing-settings';
+const INVOICE_COUNTER_KEY = 'tapela-invoice-counter';
+
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('storage timed out')), ms))
+  ]);
+}
+
+async function loadState(){
+  try{
+    // Safety timeout: never let a stuck/slow storage call leave the app hanging on
+    // "Loading..." indefinitely -- fall back to defaults after 2s no matter what.
+    const res = await withTimeout(window.storage.get(STORAGE_KEY), 2000);
+    if(res && res.value){
+      const loaded = JSON.parse(res.value);
+      state = Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), loaded);
+    }
+    document.getElementById('saveStatus').textContent = 'Settings loaded';
+  }catch(e){
+    document.getElementById('saveStatus').textContent = 'Using defaults';
+  }
+  hydrateSettingsUI();
+  renderDesignGrid();
+  calculate();
+}
+
+async function saveState(){
+  try{
+    await window.storage.set(STORAGE_KEY, JSON.stringify(state));
+    document.getElementById('saveStatus').textContent = 'Saved';
+  }catch(e){
+    document.getElementById('saveStatus').textContent = 'Save failed (settings may be too large with images)';
+  }
+}
+
+function hydrateSettingsUI(){
+  document.getElementById('rateWorkshop').value = state.rateWorkshop;
+  document.getElementById('minProfitBirr').value = state.minProfitBirr;
+  document.getElementById('maxProfitBirr').value = state.maxProfitBirr;
+  document.getElementById('defaultProfit').value = state.defaultProfit;
+  document.getElementById('defaultCommission').value = state.defaultCommission;
+  document.getElementById('workshopDisplay').value = state.rateWorkshop + ' ETB (fixed)';
+  document.getElementById('profitPercent').value = state.defaultProfit;
+  document.getElementById('commissionPercent').value = state.defaultCommission;
+  document.getElementById('companyName').value = state.company.name;
+  document.getElementById('companyAddress').value = state.company.address;
+  document.getElementById('companyPhone1').value = state.company.phone1;
+  document.getElementById('companyPhone2').value = state.company.phone2;
+  renderDesignsSettings();
+}
+
+// ---------- Design Grid (Quote tab) ----------
+function renderDesignGrid(){
+  const grid = document.getElementById('designGrid');
+  grid.innerHTML = '';
+  state.designs.forEach(d => {
+    const div = document.createElement('div');
+    div.className = 'design-card' + (selectedDesignId === d.id ? ' selected' : '');
+    div.innerHTML = `
+      ${d.refImage ? `<img src="${d.refImage}">` : `<div class="noimg">No image yet</div>`}
+      <div class="dname">${d.name}</div>
+      <div class="drange">${d.h} x ${d.w} cm — ${d.price.toLocaleString()} ETB</div>
+    `;
+    div.addEventListener('click', () => {
+      if(selectedDesignId === d.id){
+        selectedDesignId = null; // click again to deselect
+      }else{
+        selectedDesignId = d.id;
+        customModeActive = false;
+        document.getElementById('customHeight').value = '0';
+        document.getElementById('customWidth').value = '0';
+      }
+      renderDesignGrid();
+      calculate();
+    });
+    grid.appendChild(div);
+  });
+  document.getElementById('customSizeCard').className =
+    'card' + (customModeActive ? ' active-mode' : '');
+}
+
+function getSelectedDesign(){
+  return state.designs.find(d => d.id === selectedDesignId) || null;
+}
+
+// ---------- Calculation ----------
+function pickPriceForAreaGlobal(area){
+  const valid = state.designs.filter(d => d.h > 0 && d.w > 0);
+  const sorted = [...valid].sort((a,b)=>(a.h*a.w)-(b.h*b.w));
+  if(sorted.length < 2){
+    return { error: 'Need at least 2 complete readymade signs to approximate a custom size.' };
+  }
+  const minD = sorted[0], maxD = sorted[sorted.length-1];
+  const minArea = minD.h*minD.w, maxArea = maxD.h*maxD.w;
+
+  if(area < minArea || area > maxArea){
+    return { error: `Out of range. Must be between ${minD.h}x${minD.w} cm and ${maxD.h}x${maxD.w} cm.` };
+  }
+
+  let lower = sorted[0], upper = sorted[sorted.length-1];
+  for(let i=0;i<sorted.length-1;i++){
+    const a1 = sorted[i].h*sorted[i].w, a2 = sorted[i+1].h*sorted[i+1].w;
+    if(area >= a1 && area <= a2){ lower = sorted[i]; upper = sorted[i+1]; break; }
+  }
+  const lowerArea = lower.h*lower.w, upperArea = upper.h*upper.w;
+
+  let price;
+  if(lowerArea === upperArea){
+    price = lower.price;
+  }else{
+    const frac = (area - lowerArea) / (upperArea - lowerArea);
+    price = lower.price + frac * (upper.price - lower.price);
+  }
+  return { price, lower, upper };
+}
+
+function refreshCustomRangeHint(){
+  const valid = state.designs.filter(d => d.h > 0 && d.w > 0);
+  const sorted = [...valid].sort((a,b)=>(a.h*a.w)-(b.h*b.w));
+  const hintEl = document.getElementById('rangeHint');
+  if(sorted.length >= 2){
+    const minD = sorted[0], maxD = sorted[sorted.length-1];
+    hintEl.textContent = `Custom size must be between ${minD.h}x${minD.w} cm and ${maxD.h}x${maxD.w} cm (by area) to be approximated.`;
+  }else{
+    hintEl.textContent = 'Need at least 2 complete readymade signs (with height, width, and price set) before a custom size can be approximated.';
+  }
+}
+
+function calculate(){
+  const design = getSelectedDesign();
+  const priceCard = document.getElementById('priceCard');
+  const useCustom = customModeActive;
+  document.getElementById('rangeError').textContent = '';
+  refreshCustomRangeHint();
+
+  let signPrice = 0;
+  let signLabel = 'No sign selected';
+  let valid = false;
+  let sizeDesc = '';
+  let invoiceDesignName = null;
+
+  if(useCustom){
+    const h = parseFloat(document.getElementById('customHeight').value) || 0;
+    const w = parseFloat(document.getElementById('customWidth').value) || 0;
+    const area = h*w;
+    if(h>0 && w>0){
+      const result = pickPriceForAreaGlobal(area);
+      if(result.error){
+        document.getElementById('rangeError').textContent = result.error;
+        valid = false;
+      }else{
+        signPrice = result.price;
+        signLabel = `Custom Size — ${h}x${w} cm (approx.)`;
+        sizeDesc = `${h} cm x ${w} cm (custom)`;
+        valid = true;
+      }
+    }
+  }else if(design){
+    signPrice = design.price;
+    signLabel = `${design.name} — ${design.h}x${design.w} cm`;
+    sizeDesc = `${design.h} cm x ${design.w} cm`;
+    invoiceDesignName = design.name;
+    valid = true;
+  }
+
+  priceCard.style.display = (design || useCustom) ? 'block' : 'none';
+  document.getElementById('signPriceLabel').textContent = signLabel;
+  document.getElementById('signPriceValue').textContent = signPrice.toLocaleString() + ' ETB';
+
+  const transport = parseFloat(document.getElementById('transport').value) || 0;
+  const workshopCost = state.rateWorkshop;
+  const subtotal = (valid ? signPrice : 0) + workshopCost + transport;
+
+  const profitOn = document.getElementById('profitEnabled').checked;
+  const commOn = document.getElementById('commissionEnabled').checked;
+  const profitPct = parseFloat(document.getElementById('profitPercent').value) || 0;
+  const commPct = parseFloat(document.getElementById('commissionPercent').value) || 0;
+  let profitAmt = profitOn ? subtotal * (profitPct/100) : 0;
+  if(profitOn){
+    if(state.minProfitBirr > 0 && profitAmt < state.minProfitBirr) profitAmt = state.minProfitBirr;
+    if(state.maxProfitBirr > 0 && profitAmt > state.maxProfitBirr) profitAmt = state.maxProfitBirr;
+  }
+  const effectiveProfitPct = (profitOn && subtotal > 0) ? (profitAmt/subtotal*100) : profitPct;
+  const commAmt = commOn ? subtotal * (commPct/100) : 0;
+  const grandTotal = subtotal + profitAmt + commAmt;
+
+  document.getElementById('dispSignCost').textContent = (valid ? signPrice : 0).toLocaleString() + ' ETB';
+  document.getElementById('dispWorkshopCost').textContent = workshopCost.toLocaleString() + ' ETB';
+  document.getElementById('dispTransportCost').textContent = transport.toLocaleString() + ' ETB';
+  document.getElementById('dispSubtotal').textContent = subtotal.toLocaleString() + ' ETB';
+  document.getElementById('dispProfitPct').textContent = effectiveProfitPct.toFixed(1);
+  document.getElementById('dispProfitAmt').textContent = profitAmt.toLocaleString() + ' ETB';
+  document.getElementById('dispCommPct').textContent = commPct;
+  document.getElementById('dispCommAmt').textContent = commAmt.toLocaleString() + ' ETB';
+  document.getElementById('dispGrandTotal').textContent = grandTotal.toLocaleString() + ' ETB';
+
+  lastCalc = { valid, design, invoiceDesignName, sizeDesc, signPrice, subtotal, grandTotal };
+}
+
+// ---------- PDF Invoice ----------
+function openInvoiceModal(){
+  if(!lastCalc || !lastCalc.valid){
+    alert('Select a readymade sign or enter a valid custom size before generating an invoice.');
+    return;
+  }
+  document.getElementById('invoiceIncludeVat').checked = false;
+  document.getElementById('negotiationAmountInput').value = '';
+  document.getElementById('invoiceModal').style.display = 'flex';
+}
+
+async function actuallyGenerateInvoice(){
+  document.getElementById('invoiceModal').style.display = 'none';
+  const includeVat = document.getElementById('invoiceIncludeVat').checked;
+  const negotiationAmount = parseFloat(document.getElementById('negotiationAmountInput').value) || 0;
+  const clientName = document.getElementById('clientName').value || 'Client';
+
+  // Team-wide invoice number from the app's shared counter.
+  let counter;
+  try{ counter = (await hadarNextInvoiceNumber()).next; }
+  catch(e){
+    alert('Could not get an invoice number from the server. Check the connection and try again.');
+    return;
+  }
+
+  const invoiceNo = 'TAPELA-' + String(counter).padStart(4,'0');
+  const dateStr = new Date().toLocaleDateString('en-GB');
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const maroon = [122, 31, 43];
+  const gray = [138, 129, 124];
+
+  doc.setFillColor(...maroon);
+  doc.rect(0, 0, 210, 28, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(18);
+  doc.setFont(undefined, 'bold');
+  doc.text(state.company.name.toUpperCase(), 15, 14);
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'normal');
+  doc.text(state.company.address, 15, 20);
+  doc.text(`${state.company.phone1}  /  ${state.company.phone2}`, 15, 25);
+
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(20);
+  doc.setFont(undefined, 'bold');
+  doc.text('INVOICE', 150, 42);
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...gray);
+  doc.text(`Invoice No: ${invoiceNo}`, 150, 49);
+  doc.text(`Date: ${dateStr}`, 150, 54);
+
+  doc.setTextColor(0,0,0);
+  doc.setFontSize(11);
+  doc.setFont(undefined, 'bold');
+  doc.text('Bill To:', 15, 45);
+  doc.setFont(undefined, 'normal');
+  doc.text(clientName, 15, 51);
+
+  doc.setDrawColor(...maroon);
+  doc.setLineWidth(0.5);
+  doc.line(15, 65, 195, 65);
+
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'bold');
+  doc.text('Description', 15, 72);
+  doc.text('Qty', 150, 72);
+  doc.text('Unit', 170, 72);
+  doc.setFont(undefined, 'normal');
+
+  const desc = lastCalc.invoiceDesignName
+    ? `${lastCalc.invoiceDesignName} Tapela Sign — ${lastCalc.sizeDesc}`
+    : `Custom Tapela Sign — ${lastCalc.sizeDesc}`;
+  doc.text(desc, 15, 80);
+  doc.text('1', 150, 80);
+  doc.text('pc', 170, 80);
+
+  doc.setDrawColor(...gray);
+  doc.line(15, 90, 195, 90);
+
+  let y = 100;
+  // The invoice's "Subtotal" is the final quoted price (profit/commission already
+  // folded in and intentionally not itemized for the client) -- VAT and Total Due
+  // must calculate from this exact same number, not from the pre-markup internal cost.
+  const subtotal = lastCalc.grandTotal;
+  let vatAmt = 0;
+  let total = subtotal;
+
+  doc.setFontSize(10);
+  doc.text('Subtotal', 140, y);
+  doc.text(`${subtotal.toLocaleString(undefined,{maximumFractionDigits:0})} ETB`, 195, y, { align: 'right' });
+  y += 7;
+
+  if(includeVat){
+    vatAmt = subtotal * 0.15;
+    doc.text('VAT (15%)', 140, y);
+    doc.text(`${vatAmt.toLocaleString(undefined,{maximumFractionDigits:0})} ETB`, 195, y, { align: 'right' });
+    y += 7;
+    total = subtotal + vatAmt;
+  }
+
+  // Negotiation top-up: silently folded into the final Total Due figure only --
+  // intentionally never itemized, labeled, or otherwise mentioned anywhere on the PDF.
+  total = total + negotiationAmount;
+
+  doc.setDrawColor(...maroon);
+  doc.line(140, y, 195, y);
+  y += 7;
+  doc.setFontSize(13);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(...maroon);
+  doc.text('Total Due', 140, y);
+  doc.text(`${total.toLocaleString(undefined,{maximumFractionDigits:0})} ETB`, 195, y, { align: 'right' });
+
+  doc.setTextColor(...gray);
+  doc.setFontSize(8);
+  doc.setFont(undefined, 'normal');
+  doc.text(includeVat ? 'Price is VAT inclusive.' : 'Price does not include VAT unless stated above.', 15, 270);
+
+  doc.setDrawColor(...gray);
+  doc.line(15, 250, 70, 250);
+  doc.text('Authorized Signature', 15, 255);
+  doc.line(140, 250, 195, 250);
+  doc.text('Company Stamp', 140, 255);
+
+  doc.save(`${invoiceNo}_${clientName.replace(/\s+/g,'_')}.pdf`);
+
+}
+
+// ---------- Settings: Designs management ----------
+function renderDesignsSettings(){
+  const wrap = document.getElementById('designsSettingsList');
+  wrap.innerHTML = '';
+  state.designs.forEach((d, di) => {
+    const block = document.createElement('div');
+    block.className = 'settings-design-block';
+    block.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3>Sign ${di+1}</h3>
+        <button class="btn small danger" data-remove-design="${di}">Remove Sign</button>
+      </div>
+      <div class="thumb-row">
+        ${d.refImage ? `<img src="${d.refImage}">` : `<div class="thumb-placeholder">No image</div>`}
+        <div style="flex:1;">
+          <label>Sign Name</label>
+          <input type="text" data-design="${di}" data-f="name" value="${d.name}">
+        </div>
+        <div>
+          <label>Reference Image</label>
+          <input type="file" accept="image/*" data-design-img="${di}">
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Height (cm)</label>
+          <input type="number" value="${d.h}" data-hwp="${di}" data-f="h" step="0.5" min="0">
+        </div>
+        <div class="field">
+          <label>Width (cm)</label>
+          <input type="number" value="${d.w}" data-hwp="${di}" data-f="w" step="0.5" min="0">
+        </div>
+        <div class="field">
+          <label>Price (ETB)</label>
+          <input type="number" value="${d.price}" data-hwp="${di}" data-f="price" step="1" min="0">
+        </div>
+      </div>
+    `;
+    wrap.appendChild(block);
+  });
+
+  wrap.querySelectorAll('[data-hwp]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const di = +e.target.dataset.hwp, f = e.target.dataset.f;
+      state.designs[di][f] = parseFloat(e.target.value) || 0;
+      saveState();
+      renderDesignGrid();
+      calculate();
+    });
+  });
+
+  // remove design buttons
+  wrap.querySelectorAll('[data-remove-design]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const di = +e.target.dataset.removeDesign;
+      if(state.designs.length <= 1){
+        alert('At least one design must remain.');
+        return;
+      }
+      if(!confirm(`Remove "${state.designs[di].name}"? This cannot be undone.`)) return;
+      const removedId = state.designs[di].id;
+      state.designs.splice(di, 1);
+      if(selectedDesignId === removedId){
+        selectedDesignId = null;
+        customModeActive = false;
+        document.getElementById('customHeight').value = '0';
+        document.getElementById('customWidth').value = '0';
+        document.getElementById('priceCard').style.display = 'none';
+      }
+      renderDesignsSettings();
+      renderDesignGrid();
+      saveState();
+      calculate();
+    });
+  });
+
+  // name inputs
+  wrap.querySelectorAll('[data-design][data-f="name"]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      state.designs[+e.target.dataset.design].name = e.target.value;
+      saveState();
+      renderDesignGrid();
+    });
+  });
+
+  // image uploads
+  wrap.querySelectorAll('[data-design-img]').forEach(inp => {
+    inp.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        state.designs[+e.target.dataset.designImg].refImage = ev.target.result;
+        renderDesignsSettings();
+        renderDesignGrid();
+        saveState();
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+}
+
+// ---------- Wiring ----------
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('quote-tab').style.display = tab.dataset.tab === 'quote' ? 'block' : 'none';
+    document.getElementById('settings-tab').style.display = tab.dataset.tab === 'settings' ? 'block' : 'none';
+  });
+});
+
+['transport','profitEnabled','profitPercent','commissionEnabled','commissionPercent']
+  .forEach(id => {
+    document.getElementById(id).addEventListener('input', calculate);
+    document.getElementById(id).addEventListener('change', calculate);
+  });
+
+['customHeight','customWidth'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    customModeActive = true;
+    selectedDesignId = null;
+    renderDesignGrid();
+    calculate();
+  });
+});
+
+['rateWorkshop','defaultProfit','defaultCommission'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    if(id === 'rateWorkshop') state.rateWorkshop = parseFloat(e.target.value) || 0;
+    if(id === 'defaultProfit') state.defaultProfit = parseFloat(e.target.value) || 0;
+    if(id === 'defaultCommission') state.defaultCommission = parseFloat(e.target.value) || 0;
+    document.getElementById('workshopDisplay').value = state.rateWorkshop + ' ETB (fixed)';
+    saveState();
+    calculate();
+  });
+});
+
+['companyName','companyAddress','companyPhone1','companyPhone2'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    const key = id.replace('company','').toLowerCase();
+    state.company[key] = e.target.value;
+    saveState();
+  });
+});
+
+document.getElementById('addDesignBtn').addEventListener('click', () => {
+  const n = state.designs.length + 1;
+  state.designs.push({
+    id: 'design_' + Date.now(),
+    name: 'New Tapela Sign ' + n,
+    refImage: '',
+    h: 0, w: 0, price: 0
+  });
+  renderDesignsSettings();
+  renderDesignGrid();
+  saveState();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if(confirm('Reset ALL settings including all readymade signs, prices and images to placeholder defaults?')){
+    state = JSON.parse(JSON.stringify(DEFAULTS));
+    selectedDesignId = null;
+    customModeActive = false;
+    document.getElementById('customHeight').value = '0';
+    document.getElementById('customWidth').value = '0';
+    hydrateSettingsUI();
+    renderDesignGrid();
+    document.getElementById('priceCard').style.display = 'none';
+    calculate();
+    saveState();
+  }
+});
+
+document.getElementById('generateInvoiceBtn').addEventListener('click', openInvoiceModal);
+// The invoice modal markup sits below this script, so wire it up (and load
+// saved settings) once the whole page has been parsed.
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('invoiceContinueBtn').addEventListener('click', actuallyGenerateInvoice);
+  document.getElementById('invoiceCancelBtn').addEventListener('click', () => {
+    document.getElementById('invoiceModal').style.display = 'none';
+  });
+
+  loadState();
+});
+</script>
+
+<div id="invoiceModal" style="display:none; position:fixed; inset:0; background:rgba(42,36,34,.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:360px; max-width:90vw; border-radius:10px; padding:22px 24px 20px; box-shadow:0 10px 40px rgba(0,0,0,.25);">
+    <h3 style="margin:0 0 4px; font-size:16px; color:var(--maroon-dark);">Print Invoice</h3>
+    <div class="hint" style="margin:0 0 16px;">Set invoice options before generating the PDF.</div>
+
+    <div class="checkline" style="margin-bottom:16px;">
+      <input type="checkbox" id="invoiceIncludeVat">
+      <label style="margin:0;" for="invoiceIncludeVat">Include 15% VAT</label>
+    </div>
+
+    <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px;">Negotiation top-up (ETB, optional)</label>
+    <input type="number" min="0" step="any" id="negotiationAmountInput" style="width:100%; box-sizing:border-box; font-size:14px; padding:9px 10px; border:1px solid var(--border); border-radius:6px;" placeholder="Amount in ETB (optional)">
+
+    <div style="display:flex; gap:10px; margin-top:18px;">
+      <button class="btn" id="invoiceContinueBtn" style="flex:1;">Continue &rarr; Print</button>
+      <button class="btn ghost" id="invoiceCancelBtn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
