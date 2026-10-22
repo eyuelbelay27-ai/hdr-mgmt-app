@@ -558,29 +558,30 @@
   <!-- ===================== MATERIAL COST TAB ===================== -->
   <div class="tab-panel" id="tab-cost">
     <section class="lbx-card lbx-project">
-      <label class="lbx-pf">
-        <span data-ic="building"></span>
-        <span class="lbx-pf-body"><span class="lbx-pf-label">Project / Client <span class="required-star">*</span></span>
-        <input type="text" id="projClient" placeholder="e.g. Star Cafe sign"></span>
-      </label>
       <div class="lbx-pf">
-        <span data-ic="calendar"></span>
-        <span class="lbx-pf-body"><span class="lbx-pf-label">Date <span class="required-star">*</span></span>
-        <span class="date-field-wrap">
-          <input type="text" id="projDate" placeholder="dd/mm/yyyy" readonly>
-          <input type="date" id="projDatePicker" class="date-picker-native" tabindex="-1">
-        </span></span>
+        <label class="lbx-pf-label" for="projClient"><span data-ic="building"></span>Project / Client <span class="required-star">*</span></label>
+        <input type="text" id="projClient" placeholder="e.g. Star Cafe sign">
       </div>
-      <label class="lbx-pf">
-        <span data-ic="user"></span>
-        <span class="lbx-pf-body"><span class="lbx-pf-label">Prepared by <span class="required-star">*</span></span>
-        <input type="text" id="projPrep" placeholder="Name"></span>
-      </label>
-      <label class="lbx-pf">
-        <span data-ic="phone"></span>
-        <span class="lbx-pf-body"><span class="lbx-pf-label">Client Contact (optional)</span>
-        <input type="text" id="projClientContact" placeholder="Phone / email"></span>
-      </label>
+      <div class="lbx-pf">
+        <label class="lbx-pf-label" for="projDate"><span data-ic="calendar"></span>Date <span class="required-star">*</span></label>
+        <span class="date-field-wrap lbx-date">
+          <input type="text" id="projDate" placeholder="dd/mm/yyyy" readonly>
+          <span class="lbx-date-ic" data-ic="calendar"></span>
+          <input type="date" id="projDatePicker" class="date-picker-native" tabindex="-1">
+        </span>
+      </div>
+      <div class="lbx-pf">
+        <label class="lbx-pf-label" for="projPrep"><span data-ic="user"></span>Prepared by <span class="required-star">*</span></label>
+        <input type="text" id="projPrep" placeholder="Name">
+      </div>
+      <div class="lbx-pf lbx-pf-contact">
+        <label class="lbx-pf-label" for="projClientContact"><span data-ic="phone"></span>Client Contact (optional)</label>
+        <span class="lbx-contact">
+          <input type="text" id="projClientContact" placeholder="Phone / email" inputmode="email">
+          <button type="button" class="lbx-contact-btn" data-contact="tel" aria-label="Call this number" data-ic="phone"></button>
+          <button type="button" class="lbx-contact-btn" data-contact="mail" aria-label="Email this address" data-ic="mail"></button>
+        </span>
+      </div>
       <div class="lbx-hidden-actions">
         <button class="btn btn-secondary" id="resetQtyBtn">Clear Quantities</button>
         <button class="btn btn-amber" id="exportPdfBtn">⬇ Download Invoice</button>
@@ -603,6 +604,7 @@
           <th style="width:10%">Qty</th>
           <th style="width:18%">Unit Price (ETB)</th>
           <th style="width:18%">Total (ETB)</th>
+          <th class="col-more" aria-label="Options"></th>
         </tr>
       </thead>
       <tbody id="costTableBody"></tbody>
@@ -2025,7 +2027,7 @@ function renderCostTable(){
     const sectionRow = document.createElement('tr');
     sectionRow.className = 'section-row';
     const td = document.createElement('td');
-    td.colSpan = 6;
+    td.colSpan = 7;
     td.textContent = cat === 'Cash' ? 'CASH ITEMS' : 'STOCK ITEMS';
     sectionRow.appendChild(td);
     body.appendChild(sectionRow);
@@ -2063,21 +2065,22 @@ function renderCostTable(){
         const computedLabel = effectiveQty!==null ? `= ${effectiveQty} ${escapeHtml(it.unit||'pc')}` : '';
         qtyCellHtml = `
           <div class="autocalc-wrap">
-            <span class="lbx-step"><button type="button" class="lbx-step-btn" data-step="-1" aria-label="Less">${ptIcon('minus')}</button><input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="m2" placeholder="m²" value="${it.m2!==null && it.m2!==undefined ? it.m2 : ''}"><button type="button" class="lbx-step-btn" data-step="1" aria-label="More">${ptIcon('plus')}</button></span>
+            <input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="m2" placeholder="m²" value="${it.m2!==null && it.m2!==undefined ? it.m2 : ''}">
             <span class="autocalc-badge">${computedLabel}</span>
           </div>`;
       } else {
-        qtyCellHtml = `<span class="lbx-step"><button type="button" class="lbx-step-btn" data-step="-1" aria-label="Less">${ptIcon('minus')}</button><input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="qty" value="${it.qty!==null && it.qty!==undefined ? it.qty : ''}"><button type="button" class="lbx-step-btn" data-step="1" aria-label="More">${ptIcon('plus')}</button></span>`;
+        qtyCellHtml = `<input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="qty" value="${it.qty!==null && it.qty!==undefined ? it.qty : ''}">`;
       }
 
       const qtyLabel = (it.autoCalc && it.autoCalc.enabled && it.autoCalc.formulaKey !== 'metal') ? 'Qty (m²)' : `Qty (${it.unit||'pc'})`;
       tr.innerHTML = `
         <td class="row-no">${idx+1}</td>
-        <td class="col-item"><span class="lbx-item-name">${escapeHtml(it.name)}</span><button type="button" class="lbx-more" data-more="${it.id}" aria-label="More options">${ptIcon('more')}</button></td>
-        <td data-label="Unit">${escapeHtml(it.unit||'')}</td>
-        <td data-label="${qtyLabel}">${qtyCellHtml}</td>
-        <td data-label="Price">${fmt(it.price)}</td>
-        <td class="row-total" data-label="Total">${total!==null ? fmt(total) : '-'}</td>
+        <td class="col-item"><span class="lbx-item-name">${escapeHtml(it.name)}</span></td>
+        <td class="col-unit" data-label="Unit">${escapeHtml(it.unit||'')}</td>
+        <td class="col-qty" data-label="${qtyLabel}">${qtyCellHtml}</td>
+        <td class="col-price" data-label="Price">${fmt(it.price)}</td>
+        <td class="row-total" data-label="Total"><span class="lbx-pill">${total!==null ? fmt(total) : '-'}</span></td>
+        <td class="col-more"><button type="button" class="lbx-more" data-more="${it.id}" aria-label="More options">${ptIcon('more')}</button></td>
       `;
       body.appendChild(tr);
     });
@@ -2170,7 +2173,10 @@ function recomputeVisibleTotals(){
     const total = (effectiveQty && it.price!==null && it.price!==undefined) ? (effectiveQty*it.price) : null;
     if(total!==null) grandTotal += total;
     const totalCell = tr.querySelector('.row-total');
-    if(totalCell) totalCell.textContent = total!==null ? fmt(total) : '-';
+    if(totalCell){
+      const pill = totalCell.querySelector('.lbx-pill') || totalCell;
+      pill.textContent = total!==null ? fmt(total) : '-';
+    }
     tr.classList.toggle('row-warn', !!(effectiveQty && (it.price===null || it.price===undefined)));
     const badge = tr.querySelector('.autocalc-badge');
     if(badge && it.autoCalc && it.autoCalc.enabled){
@@ -2929,20 +2935,25 @@ function openAddItemSheet(){
 }
 document.getElementById('lbxAddItem').addEventListener('click', openAddItemSheet);
 
+// Client contact: call / email straight from the field.
+document.querySelectorAll('[data-contact]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const v = document.getElementById('projClientContact').value.trim();
+    if(!v){ document.getElementById('projClientContact').focus(); return; }
+    if(btn.dataset.contact === 'mail'){
+      if(!v.includes('@')) return alert('Enter an email address to send an email.');
+      window.open('mailto:' + encodeURIComponent(v), '_top');
+    } else {
+      const num = v.replace(/[^\d+]/g, '');
+      if(num.length < 6) return alert('Enter a phone number to call.');
+      window.open('tel:' + num, '_top');
+    }
+  });
+});
+
 function closeSheets(){ document.querySelectorAll('.lbx-sheet-scrim, .lbx-menu').forEach(el=>el.remove()); }
 
 document.getElementById('costTableBody').addEventListener('click', e=>{
-  const step = e.target.closest('.lbx-step-btn');
-  if(step){
-    const inp = step.parentElement.querySelector('.qty-input');
-    if(!inp || inp.readOnly) return;
-    const cur = parseFloat(inp.value) || 0;
-    const inc = (String(inp.value).includes('.') ? 0.1 : 1) * Number(step.dataset.step);
-    const next = Math.max(0, Math.round((cur + inc) * 1000) / 1000);
-    inp.value = next === 0 ? '' : String(next);
-    inp.dispatchEvent(new Event('input', { bubbles: true }));
-    return;
-  }
   const more = e.target.closest('.lbx-more');
   if(more){
     closeSheets();

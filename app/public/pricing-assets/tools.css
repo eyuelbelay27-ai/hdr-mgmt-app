@@ -606,3 +606,115 @@ input:disabled, input[readonly]:not(#projDate) { background: var(--pt-surface-2)
   .pt-bar.pt-bar-has2 .pt-bar-1st { padding: 0 11px; font-size: 13px; gap: 6px; }
   .pt-bar.pt-bar-has2 .pt-bar-2nd { padding: 0 7px !important; }
 }
+
+/* =====================================================================
+   v3 — Material Cost as a compact table (owner's picture) and the new
+   customer information card.
+   ===================================================================== */
+/* customer card */
+.lbx-project { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 0 !important; padding: 16px 14px !important; }
+.lbx-pf { display: grid !important; gap: 8px; padding: 0 12px !important; min-width: 0; align-content: start; border: 0 !important; }
+.lbx-pf + .lbx-pf:not(.lbx-pf-contact) { border-left: 1px solid #f0e4e7 !important; }
+.lbx-pf-label { display: flex !important; align-items: center; gap: 8px; font-size: 13.5px !important; font-weight: 600 !important; color: #3a3330 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.lbx-pf-label > span[data-ic] { color: var(--pt-accent); font-size: 21px; display: inline-flex; flex-shrink: 0; }
+.lbx-pf input[type=text] {
+  width: 100%; background: #fdf6f7 !important; border: 1px solid #f1dfe3 !important; border-radius: 12px !important;
+  min-height: 46px !important; padding: 10px 12px !important; font-size: 16px !important; color: var(--pt-text) !important; box-shadow: none !important;
+}
+.lbx-pf input[type=text]:focus { border-color: var(--pt-accent) !important; background: #fff !important; box-shadow: 0 0 0 3px rgba(196, 22, 67, .1) !important; }
+.lbx-pf input.field-invalid { border-color: rgba(185, 28, 28, .55) !important; }
+.lbx-date { position: relative; display: block !important; }
+.lbx-date #projDate { padding-right: 40px !important; }
+.lbx-date-ic { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--pt-dim); font-size: 20px; display: inline-flex; pointer-events: none; }
+.lbx-pf-contact { grid-column: 1 / -1; border-top: 1px solid #f0e4e7 !important; padding-top: 14px !important; }
+.lbx-contact { display: flex; align-items: stretch; background: #fdf6f7; border: 1px solid #f1dfe3; border-radius: 12px; overflow: hidden; }
+.lbx-contact:focus-within { border-color: var(--pt-accent); box-shadow: 0 0 0 3px rgba(196, 22, 67, .1); background: #fff; }
+.lbx-contact input[type=text] { border: 0 !important; background: transparent !important; box-shadow: none !important; border-radius: 0 !important; flex: 1; min-width: 0; }
+.lbx-contact-btn { width: 50px; border: 0; border-left: 1px solid #f0d0d8; background: transparent; color: var(--pt-accent); font-size: 21px; display: inline-grid; place-items: center; cursor: pointer; flex-shrink: 0; }
+.lbx-contact-btn:hover { background: var(--pt-pink); }
+
+/* material table: total as a pink pill, own column for the menu */
+#costTable td.row-total { color: var(--pt-accent) !important; font-weight: 700; }
+#costTable td.row-total { position: relative; }
+.col-more { width: 36px; text-align: center !important; }
+#costTable .lbx-more { margin: 0; }
+@media (min-width: 701px) {
+  #costTable .lbx-pill { display: inline-block; min-width: 110px; padding: 7px 12px; border-radius: 10px; background: var(--pt-pink); text-align: center; }
+}
+
+@media (max-width: 700px) {
+  /* header row + one compact row per material */
+  #costTable { display: block; }
+  #costTable thead { display: block !important; }
+  #costTable thead tr, #costTable tbody tr[data-id] {
+    display: grid !important;
+    grid-template-columns: 16px minmax(0, 1fr) 30px 62px 50px 80px 18px !important;
+    grid-template-areas: none !important;
+    align-items: center !important; gap: 0 5px !important;
+  }
+  #costTable thead tr { background: var(--pt-surface-2); border-radius: 12px; padding: 10px 8px; margin-bottom: 6px; }
+  #costTable thead th { display: block; position: static; background: none !important; border: 0 !important; padding: 0 !important; font-size: 9.5px !important; letter-spacing: .02em; color: var(--pt-dim) !important; text-align: left; white-space: nowrap; overflow: hidden; }
+  #costTable thead th:nth-child(1) { font-size: 0 !important; }
+  #costTable thead th:nth-child(1)::before { content: "#"; font-size: 10px; }
+  #costTable thead th:nth-child(3) { grid-column: 3; }
+  /* header order matches the row's visual order: # item unit price qty total */
+  #costTable thead th:nth-child(4) { grid-column: 5; grid-row: 1; text-align: center; }
+  #costTable thead th:nth-child(5) { grid-column: 4; grid-row: 1; }
+  #costTable thead th:nth-child(6) { grid-column: 6; grid-row: 1; text-align: center; }
+  #costTable thead th:nth-child(7) { grid-column: 7; grid-row: 1; }
+  #costTable tbody tr[data-id] {
+    background: #fff !important; border: 1px solid #f0e4e7 !important; border-radius: 12px !important;
+    padding: 8px 6px 8px 8px !important; margin-bottom: 6px !important; box-shadow: 0 1px 6px rgba(138, 15, 48, .04) !important; min-height: 58px;
+  }
+  #costTable tbody tr[data-id] td { padding: 0 !important; font-size: 12.5px !important; border: 0 !important; background: none; }
+  #costTable tbody tr[data-id] td::before { display: none !important; }
+  #costTable tbody tr[data-id] td.row-no { display: block !important; grid-column: 1; grid-row: 1; color: var(--pt-dim); font-size: 12px !important; font-weight: 600; }
+  #costTable tbody tr[data-id] td.col-item { grid-column: 2; grid-row: 1; display: block !important; font-size: 13.5px !important; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+  #costTable tbody tr[data-id] td.col-unit { grid-column: 3; grid-row: 1; color: var(--pt-dim); font-size: 12px !important; overflow-wrap: anywhere; }
+  #costTable tbody tr[data-id] td.col-price { grid-column: 4; grid-row: 1; border: 0 !important; padding: 0 !important; font-variant-numeric: tabular-nums; font-size: 12px !important; }
+  #costTable tbody tr[data-id] td.col-qty { grid-column: 5; grid-row: 1; }
+  #costTable tbody tr[data-id] td.row-total {
+    grid-column: 6; grid-row: 1; display: block !important; text-align: center !important;
+    background: var(--pt-pink) !important; border-radius: 10px !important; padding: 9px 2px !important;
+    font-family: var(--pt-sans); font-size: 12.5px !important; font-weight: 700; color: var(--pt-accent) !important; font-variant-numeric: tabular-nums;
+  }
+  #costTable tbody tr[data-id] td.col-more { grid-column: 7; grid-row: 1; width: auto; }
+  #costTable .lbx-more { font-size: 18px; padding: 4px 0; }
+  #costTable .qty-input { width: 100% !important; min-height: 38px !important; padding: 4px 2px !important; text-align: center !important; font-size: 14px !important; border-radius: 9px !important; }
+  #costTable .autocalc-wrap { display: grid !important; gap: 1px !important; justify-items: center; }
+  #costTable .autocalc-badge { font-size: 9px !important; line-height: 1.1; white-space: normal !important; text-align: center; }
+  #costTable .required-badge { display: block; margin: 3px 0 0 !important; font-size: 9px !important; }
+  #costTable .section-row { display: block !important; margin: 10px 0 6px !important; padding: 0 4px !important; }
+  #costTable .section-row td { display: block; font-size: 10.5px !important; }
+}
+@media (max-width: 700px) {
+  #costTable thead th:nth-child(5), #costTable thead th:nth-child(6), #costTable thead th:nth-child(2), #costTable thead th:nth-child(3), #costTable thead th:nth-child(4) { font-size: 0 !important; }
+  #costTable thead th:nth-child(2)::before { content: "ITEM"; font-size: 9.5px; }
+  #costTable thead th:nth-child(3)::before { content: "UNIT"; font-size: 9.5px; }
+  #costTable thead th:nth-child(4)::before { content: "QTY"; font-size: 9.5px; }
+  #costTable thead th:nth-child(5)::before { content: "PRICE"; font-size: 9.5px; }
+  #costTable thead th:nth-child(6)::before { content: "TOTAL"; font-size: 9.5px; }
+  .lbx-project { gap: 12px 0 !important; padding: 14px 6px !important; }
+  .lbx-pf { padding: 0 8px !important; gap: 6px; }
+  .lbx-pf-label { font-size: 12px !important; gap: 5px; }
+  .lbx-pf-label > span[data-ic] { font-size: 18px; }
+  .lbx-pf input[type=text] { padding: 9px 9px !important; font-size: 15px !important; }
+  .lbx-date #projDate { padding-right: 30px !important; }
+  .lbx-date-ic { right: 8px; font-size: 17px; }
+}
+@media (max-width: 700px) {
+  #costTable thead th { width: auto !important; overflow: visible !important; }
+  #costTable thead tr, #costTable tbody tr[data-id] { grid-template-columns: 14px minmax(0, 1fr) 28px 58px 46px 74px 14px !important; gap: 0 4px !important; }
+  #costTable tbody tr[data-id] td.col-item { font-size: 13px !important; overflow-wrap: break-word; word-break: normal; hyphens: auto; }
+  #costTable tbody tr[data-id] td.col-unit { overflow-wrap: normal; font-size: 11.5px !important; }
+  #costTable tbody tr[data-id] td.col-price { font-size: 11.5px !important; }
+  #costTable tbody tr[data-id] td.row-total { font-size: 12px !important; }
+  #costTable .qty-input { font-size: 14px !important; }
+
+  .lbx-project { grid-template-columns: 1fr 1fr; gap: 12px 0 !important; }
+  .lbx-pf:first-child { grid-column: 1 / -1; }
+  .lbx-pf:nth-child(2) { border-left: 0 !important; }
+  .lbx-pf-label { font-size: 13px !important; }
+}
+
+@media (max-width: 700px) { #costTable .lbx-pill { display: inline; } }
