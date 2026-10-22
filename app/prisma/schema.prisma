@@ -978,3 +978,28 @@ model PulseSettings {
   updatedAt     DateTime @updatedAt
 }
 
+
+// ---------------------------------------------------------------------------
+// Pricing — standalone quote tools (Lightbox, Neon, Tapela, Hanger). Each
+// tool's saved settings are opaque JSON strings keyed "<tool>:<key>", the
+// same keys the original browser tools used. Shared by every user/device.
+// ---------------------------------------------------------------------------
+
+model PricingStore {
+  key       String   @id
+  value     String
+  updatedBy String
+  updatedAt DateTime @updatedAt
+}
+
+/// Team-wide invoice numbers, one row per tool (and year for Lightbox).
+model PricingCounter {
+  key   String @id
+  value Int    @default(0)
+}
+
+model PricingSettings {
+  id        String   @id @default("singleton")
+  pinHash   String?
+  updatedAt DateTime @updatedAt
+}

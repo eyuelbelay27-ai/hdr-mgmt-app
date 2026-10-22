@@ -1,0 +1,2826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--PRICING_BOOTSTRAP-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hadar Lightbox Sign Pricing</title>
+<script src="/pricing-assets/html2canvas.min.js"></script>
+<script src="/pricing-assets/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --charcoal:#a3123a;
+    --charcoal-2:#c41643;
+    --amber:#c41643;
+    --amber-light:#fdf0f2;
+    --amber-dark:#8a0f30;
+    --row-alt:#faf3f4;
+    --cream:#fdfaf9;
+    --grey-text:#6b5b5f;
+    --green:#1f6f3c;
+    --red:#c0392b;
+    --white:#ffffff;
+    --border:#eddade;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI',Calibri,Arial,sans-serif;
+    background:var(--cream);
+    color:#262626;
+  }
+  .app-header{
+    background:var(--charcoal);
+    color:#fff;
+    padding:20px 28px 16px;
+    position:sticky;
+    top:0;
+    z-index:50;
+    box-shadow:0 2px 10px rgba(0,0,0,.2);
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .app-header .logo-mark{
+    width:46px;
+    height:46px;
+    flex-shrink:0;
+  }
+  .app-header .header-text h1{
+    margin:0;
+    font-size:1.5rem;
+    font-weight:800;
+    letter-spacing:.4px;
+  }
+  .app-header .header-text p{
+    margin:3px 0 0;
+    font-size:.8rem;
+    color:#f4d3dc;
+    font-style:italic;
+  }
+  .amber-rule{height:4px;background:linear-gradient(90deg,var(--amber-dark),var(--amber));}
+
+  .tabs{
+    display:flex;
+    gap:4px;
+    padding:0 28px;
+    background:var(--charcoal-2);
+  }
+  .tab-btn{
+    background:transparent;
+    border:none;
+    color:#c9cdd6;
+    padding:12px 20px;
+    font-size:.92rem;
+    font-weight:600;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    transition:.15s;
+  }
+  .tab-btn:hover{color:#fff;}
+  .tab-btn.active{
+    color:#fff;
+    border-bottom-color:var(--amber);
+  }
+
+  .container{
+    max-width:1100px;
+    margin:0 auto;
+    padding:24px 20px 80px;
+  }
+
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+  }
+  .toolbar .info-fields{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    flex:1;
+  }
+  .info-field{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+  }
+  .info-field label{
+    font-size:.72rem;
+    font-weight:700;
+    color:var(--grey-text);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .required-star{
+    color:var(--amber);
+    font-weight:800;
+  }
+  .info-field input.field-invalid{
+    border-color:var(--red);
+    box-shadow:0 0 0 1px var(--red);
+  }
+  .date-field-wrap{
+    position:relative;
+    display:inline-block;
+  }
+  .date-field-wrap input#projDate{
+    cursor:pointer;
+    padding-right:32px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b5b5f' stroke-width='2'><rect x='3' y='4' width='18' height='18' rx='2'/><path d='M16 2v4M8 2v4M3 10h18'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 8px center;
+    background-size:15px;
+  }
+  .date-picker-native{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    opacity:0;
+    cursor:pointer;
+    border:none;
+    padding:0;
+    margin:0;
+  }
+  .info-field input{
+    border:1px solid var(--border);
+    background:var(--amber-light);
+    border-radius:5px;
+    padding:6px 10px;
+    font-size:.88rem;
+    min-width:160px;
+    font-family:inherit;
+  }
+  .btn{
+    border:none;
+    border-radius:7px;
+    padding:10px 18px;
+    font-size:.88rem;
+    font-weight:700;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition:.15s;
+    white-space:nowrap;
+  }
+  .btn-primary{
+    background:var(--charcoal);
+    color:#fff;
+  }
+  .btn-primary:hover{background:var(--charcoal-2);}
+  .btn-secondary{
+    background:#fff;
+    color:var(--charcoal);
+    border:1.5px solid var(--charcoal);
+  }
+  .btn-secondary:hover{background:var(--row-alt);}
+  .btn-amber{
+    background:var(--amber);
+    color:#fff;
+  }
+  .btn-amber:hover{background:var(--amber-dark);}
+  .btn:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+    filter:grayscale(.3);
+  }
+  .btn-amber:disabled:hover{background:var(--amber);}
+  .btn-danger{
+    background:#fff;
+    color:var(--red);
+    border:1.5px solid var(--red);
+    padding:5px 10px;
+    font-size:.78rem;
+  }
+  .btn-danger:hover{background:#fdecea;}
+  .btn-small{
+    padding:6px 12px;
+    font-size:.8rem;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+    border-radius:8px;
+    overflow:hidden;
+    box-shadow:0 1px 6px rgba(0,0,0,.06);
+  }
+  thead th{
+    background:var(--amber);
+    color:#fff;
+    font-size:.78rem;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    padding:10px 8px;
+    text-align:center;
+    font-weight:700;
+  }
+  thead th.col-item{text-align:left;padding-left:14px;}
+  tbody td{
+    padding:8px;
+    font-size:.88rem;
+    border-bottom:1px solid var(--border);
+    text-align:center;
+  }
+  tbody td.col-item{
+    text-align:left;
+    padding-left:14px;
+  }
+  tbody tr:nth-child(even){background:var(--row-alt);}
+  tbody tr:hover{background:var(--amber-light);}
+  .section-row td{
+    background:var(--charcoal-2) !important;
+    color:#fff;
+    font-weight:700;
+    text-align:left;
+    padding:9px 14px;
+    font-size:.85rem;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+  }
+  .qty-input{
+    width:64px;
+    text-align:center;
+    border:1px solid var(--border);
+    background:var(--amber-light);
+    border-radius:5px;
+    padding:5px 4px;
+    font-size:.88rem;
+    font-family:inherit;
+  }
+  .qty-input:focus{outline:2px solid var(--amber);}
+  .row-no{color:var(--grey-text);font-weight:700;}
+  .row-total{font-weight:700;}
+  .row-warn{background:#fbd8d8 !important;}
+  .row-required-missing{background:#ffe9c2 !important;}
+  .row-out-of-range{background:#e6d9f7 !important;}
+  .autocalc-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .autocalc-badge{font-size:.68rem;color:var(--grey-text);font-style:italic;white-space:nowrap;}
+  .required-badge{
+    display:inline-block;
+    margin-left:6px;
+    font-size:.66rem;
+    font-weight:800;
+    text-transform:uppercase;
+    color:#8a5a00;
+    background:#ffe9c2;
+    border-radius:4px;
+    padding:1px 5px;
+    letter-spacing:.03em;
+  }
+  .qty-input[readonly]{background:#eee;color:#777;cursor:not-allowed;}
+
+  .grand-total-bar{
+    margin-top:16px;
+    background:var(--charcoal);
+    border-radius:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:18px 24px;
+    box-shadow:0 1px 6px rgba(0,0,0,.1);
+  }
+  .grand-total-bar .label{
+    color:#fff;
+    font-weight:700;
+    font-size:1.1rem;
+    letter-spacing:.03em;
+  }
+  .grand-total-bar .value{
+    color:var(--cream);
+    font-weight:800;
+    font-size:1.5rem;
+  }
+
+  .profit-bar{
+    margin-top:10px;
+    background:var(--amber-light);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 20px;
+  }
+  .profit-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:4px 0;
+  }
+  .profit-row + .profit-row{
+    border-top:1px dashed var(--border);
+  }
+  .profit-label{
+    font-size:.82rem;
+    font-weight:700;
+    color:var(--grey-text);
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }
+  .profit-value{
+    font-size:.95rem;
+    font-weight:700;
+    color:var(--charcoal);
+  }
+  .profit-row-amount .profit-value{ color:#1a7a3d; }
+  .profit-row-total{
+    margin-top:4px;
+    padding-top:8px;
+    border-top:2px solid var(--charcoal) !important;
+  }
+  .profit-row-total .profit-label, .profit-row-total .profit-value{
+    font-size:1.05rem;
+    color:var(--charcoal);
+  }
+
+  .hint{
+    margin-top:10px;
+    font-size:.8rem;
+    color:var(--grey-text);
+    font-style:italic;
+  }
+
+  /* Settings tab */
+  .settings-wrap{
+    background:#fff;
+    border-radius:8px;
+    box-shadow:0 1px 6px rgba(0,0,0,.06);
+    overflow:hidden;
+  }
+  .settings-table th{
+    background:var(--amber);
+  }
+  .settings-table input[type="text"], .settings-table input[type="number"]{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:5px;
+    padding:6px 8px;
+    font-size:.85rem;
+    font-family:inherit;
+  }
+  .settings-table input[type="number"]{
+    background:var(--amber-light);
+    text-align:right;
+  }
+  .settings-table select{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:5px;
+    padding:6px 6px;
+    font-size:.85rem;
+    font-family:inherit;
+    background:#fff;
+  }
+  .settings-table td{text-align:left;}
+  .add-row-bar{
+    padding:14px;
+    display:flex;
+    justify-content:flex-start;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .mica-size-group{display:flex; gap:8px;}
+  .mica-size-btn{
+    border:1.5px solid var(--charcoal);
+    background:#fff;
+    color:var(--charcoal);
+    border-radius:7px;
+    padding:10px 22px;
+    font-size:.88rem;
+    font-weight:700;
+    cursor:pointer;
+    transition:.15s;
+  }
+  .mica-size-btn:hover{background:var(--row-alt);}
+  .mica-size-btn.active{background:var(--charcoal); color:#fff;}
+  .quickfill-row{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+    background:var(--row-alt);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:8px 12px;
+  }
+  .quickfill-check{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-size:.88rem;
+    font-weight:600;
+    cursor:pointer;
+    min-width:170px;
+  }
+  .quickfill-input{
+    border:1px solid var(--border);
+    background:var(--white);
+    border-radius:5px;
+    padding:6px 10px;
+    font-size:.88rem;
+    width:130px;
+    font-family:inherit;
+  }
+  .quickfill-unit{font-size:.78rem; color:var(--grey-text); font-weight:600;}
+  .quickfill-empty{font-size:.82rem; color:var(--grey-text); font-style:italic;}
+  .mica-multiplier-grid{display:flex; gap:18px; flex-wrap:wrap; padding:14px 16px 18px;}
+  .mica-multiplier-field{display:flex; flex-direction:column; gap:4px;}
+  .mica-multiplier-field label{font-size:.78rem; font-weight:700; color:var(--grey-text);}
+  .mica-multiplier-field input{
+    border:1px solid var(--border);
+    background:var(--amber-light);
+    border-radius:5px;
+    padding:7px 10px;
+    font-size:.9rem;
+    width:110px;
+    font-family:inherit;
+  }
+
+  @media (max-width:700px){
+    .app-header{padding:16px 16px 12px;}
+    .tabs{padding:0 16px;}
+    .container{padding:16px 10px 60px;}
+    thead th, tbody td{padding:6px 4px;font-size:.78rem;}
+    .qty-input{width:48px;}
+    .grand-total-bar .value{font-size:1.2rem;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <svg class="logo-mark" viewBox="0 0 25.65 25.24" xmlns="http://www.w3.org/2000/svg">
+    <path fill="#fdfaf9" d="M19,23.46,18.23,23,18,22.79l-.53-.35-.78-.52-.33-.22-.45-.3-.8-.53-.41-.28-.4-.26-.83-.56L13,19.46l-.17-.11-.75.5-1,.66-1.7,1.13L8,22.59l-.91.6-.35.24h0L6,23.89l.91.37c.44.16.89.3,1.35.43s.76.2,1.15.28q.91.18,1.86.27l.44-.64.7-1h0l.15-.21.25-.36.14.21.12.18.49.71.4.57.09.14.29.42c.52,0,1-.12,1.55-.21a17.51,17.51,0,0,0,3.48-1l.24-.1,0,0Z"/>
+    <path fill="#fdfaf9" d="M25.65,12.49a.2.2,0,0,0,0-.07,11.1,11.1,0,0,0-.15-1.63c0-.23-.08-.46-.13-.68s-.12-.55-.2-.81a12.1,12.1,0,0,0-.41-1.2A.69.69,0,0,0,24.7,8a11.61,11.61,0,0,0-.56-1.18l-.24-.44c-.12-.21-.25-.42-.39-.62a9.67,9.67,0,0,0-.65-.89l0,0c-.23-.29-.48-.57-.74-.84s-.27-.28-.42-.42l-.35-.32a10.29,10.29,0,0,0-.8-.65l-.22-.16L19.7,2c-.27-.16-.54-.32-.82-.47l-.06,0h0c-.22-.12-.45-.24-.68-.34s-.51-.22-.77-.32L17.19.76l-.6-.2-.8-.22L15.43.26,15,.18a7.86,7.86,0,0,0-.83-.11c-.23,0-.46,0-.69-.06h-1a8.27,8.27,0,0,0-.86,0L11,.12l-.32.05c-.29,0-.58.11-.86.18A8.37,8.37,0,0,0,9,.58c-.29.09-.58.19-.85.3s-.57.24-.85.37a12.63,12.63,0,0,0-1.75,1l-.49.36A12.7,12.7,0,0,0,4,3.5a10.32,10.32,0,0,0-.91,1L3,4.6a10.45,10.45,0,0,0-.7.91,11.68,11.68,0,0,0-.66,1.06l0,0A11.91,11.91,0,0,0,1,7.81c-.08.19-.16.38-.23.58s-.16.45-.23.69-.2.71-.28,1.07a2.33,2.33,0,0,0-.05.28A11.66,11.66,0,0,0,0,11.89v0H0c0,.29,0,.59,0,.89s0,.53,0,.79c0,.05,0,.1,0,.15a11.77,11.77,0,0,0,.21,1.58,12.34,12.34,0,0,0,.47,1.71,12.13,12.13,0,0,0,.73,1.69c.2.38.42.76.65,1.11.12.19.25.37.38.54l.36.47.55-.36.37-.25.54-.36,1-.7h0l1.11-.74h0l1.09-.73.14-.1,1.44-1,2-1.33h0l1.69-1.12.32.21.76.51.18.12.58.38,1,.69.44.3.74.49.41.27.31.21.73.48.53.36.19.12.71.48.66.44.77.51.71.48.06,0,.64.42.21.14a12.38,12.38,0,0,0,.86-1.19,12.18,12.18,0,0,0,.68-1.22,13.15,13.15,0,0,0,.69-1.7,14.56,14.56,0,0,0,.41-1.64c0-.22.07-.44.1-.67a12.47,12.47,0,0,0,.1-1.62ZM20.11,7.86l-1.46.42a2.18,2.18,0,0,0-1.48,1.48l-.43,1.47a.12.12,0,0,1-.23,0l-.42-1.47a2.2,2.2,0,0,0-1.48-1.48l-1.47-.42a.12.12,0,0,1,0-.23l1.47-.43a2.18,2.18,0,0,0,1.48-1.48l.42-1.46a.12.12,0,0,1,.23,0l.43,1.46A2.16,2.16,0,0,0,18.65,7.2l1.46.43A.12.12,0,0,1,20.11,7.86Z"/>
+  </svg>
+  <div class="header-text">
+    <h1>HADAR ADVERTISING</h1>
+    <p>Lightbox Sign Pricing — Hayahulet, Bata Complex Building, 2nd Floor</p>
+  </div>
+</div>
+<div class="amber-rule"></div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="lightbox">Lightbox Quote</button>
+  <button class="tab-btn" data-tab="cost">Material Cost</button>
+  <button class="tab-btn" data-tab="settings">Settings</button>
+</div>
+
+<div class="container">
+
+  <!-- ===================== LIGHTBOX QUOTE TAB ===================== -->
+  <div class="tab-panel active" id="tab-lightbox">
+    <div class="hint" style="margin-bottom:14px;">Enter the signage dimensions and job costs once — they'll automatically flow into every material in the catalog that needs them. No need to re-type m² on each row.</div>
+
+    <div class="settings-wrap" style="padding:20px 22px 22px;">
+      <div style="display:flex; flex-wrap:wrap; gap:18px;">
+        <div class="info-field">
+          <label>Signage Width (m) <span class="required-star">*</span></label>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbWidth" placeholder="e.g. 2.5" style="min-width:140px;">
+        </div>
+        <div class="info-field">
+          <label>Signage Height (m) <span class="required-star">*</span></label>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbHeight" placeholder="e.g. 1.2" style="min-width:140px;">
+        </div>
+        <div class="info-field">
+          <label>Profit Percentage (%)</label>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbProfitPercentage" placeholder="e.g. 40" style="min-width:140px;">
+        </div>
+        <div class="info-field">
+          <label style="display:flex; align-items:center; gap:6px;">
+            <input type="checkbox" id="lbCommissionEnabled" style="width:auto;">
+            Apply Commission (%)
+          </label>
+          <input type="number" min="0" step="any" inputmode="decimal" id="lbCommissionPercentage" placeholder="e.g. 7" style="min-width:140px;">
+        </div>
+      </div>
+
+      <div class="hint" style="margin:0 0 0;">Mica Area is calculated automatically from Signage Area using the Mica Formula ranges set in Settings ("Formula Settings" → "Mica Formula") — no manual size selection needed.</div>
+
+      <div style="margin-top:18px;">
+        <label style="font-size:.72rem; font-weight:700; color:var(--grey-text); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:6px;">Quick-Fill Items</label>
+        <div class="hint" style="margin:0 0 10px;">Tick an item to include it in this quote, then fill its value right here — it flows into the Material Cost tab automatically. Which items show up here is controlled in Settings ("Lightbox Quick-Fill Items"). Leave unticked to keep it out of this job entirely.</div>
+        <div id="lbQuickFillWrap" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+
+      <div id="lbAreaSummary" style="margin-top:18px; display:none; background:var(--amber-light); border:1px solid var(--border); border-radius:6px; padding:10px 14px; font-size:.85rem;"></div>
+      <div id="lbValidationMsg" style="display:none; margin-top:14px; padding:8px 12px; background:#fdecea; border:1px solid var(--red); border-radius:6px; color:var(--red); font-size:.82rem; font-weight:600;"></div>
+
+      <div style="margin-top:18px;">
+        <button class="btn btn-amber" id="applyLightboxBtn">Apply &amp; Go to Material Cost →</button>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:18px; padding:16px 22px 20px;">
+      <label style="font-size:.72rem; font-weight:700; color:var(--grey-text); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:10px;">Include in This Quote</label>
+      <div class="hint" style="margin:0 0 12px;">Untick anything that doesn't apply to this job — it'll be hidden from the Material Cost tab (the catalog itself is untouched, so it's still there for next time). Which items show up in this list is controlled per-item in Settings ("Show in Lightbox"). Quick-Fill items (above) are excluded from this list since they're already handled up there.</div>
+      <div id="lbItemPicker" style="display:flex; flex-wrap:wrap; gap:10px 20px;"></div>
+    </div>
+
+    <div class="hint" style="margin-top:14px;">Signage Width/Height and any ticked Quick-Fill item update the Material Cost catalog automatically as you change them — no button needed. This button just jumps you over to the Material Cost tab once you're ready to review it (using Signage Area, or Mica Area for items flagged "Mica" in Settings, for every auto-calc material). Required fields (Width, Height, and any ticked Quick-Fill item) must be filled before it'll let you through.</div>
+  </div>
+
+
+  <!-- ===================== MATERIAL COST TAB ===================== -->
+  <div class="tab-panel" id="tab-cost">
+    <div class="toolbar">
+      <div class="info-fields">
+        <div class="info-field">
+          <label>Project / Client <span class="required-star">*</span></label>
+          <input type="text" id="projClient" placeholder="e.g. Star Cafe sign">
+        </div>
+        <div class="info-field">
+          <label>Date <span class="required-star">*</span></label>
+          <div class="date-field-wrap">
+            <input type="text" id="projDate" placeholder="dd/mm/yyyy" readonly>
+            <input type="date" id="projDatePicker" class="date-picker-native" tabindex="-1">
+          </div>
+        </div>
+        <div class="info-field">
+          <label>Prepared by <span class="required-star">*</span></label>
+          <input type="text" id="projPrep" placeholder="Name">
+        </div>
+        <div class="info-field">
+          <label>Client Contact (optional)</label>
+          <input type="text" id="projClientContact" placeholder="Phone / email">
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary" id="resetQtyBtn">Clear Quantities</button>
+        <button class="btn btn-amber" id="exportPdfBtn">⬇ Download Invoice</button>
+      </div>
+    </div>
+    <div id="validationMsg" style="display:none; margin:-8px 0 14px; padding:8px 12px; background:#fdecea; border:1px solid var(--red); border-radius:6px; color:var(--red); font-size:.82rem; font-weight:600;"></div>
+
+    <table id="costTable">
+      <thead>
+        <tr>
+          <th style="width:5%">NO</th>
+          <th class="col-item" style="width:32%">Item</th>
+          <th style="width:11%">Unit</th>
+          <th style="width:10%">Qty</th>
+          <th style="width:18%">Unit Price (ETB)</th>
+          <th style="width:18%">Total (ETB)</th>
+        </tr>
+      </thead>
+      <tbody id="costTableBody"></tbody>
+    </table>
+
+    <div class="grand-total-bar">
+      <span class="label">GRAND TOTAL</span>
+      <span class="value" id="grandTotalDisplay">0.00 ETB</span>
+    </div>
+
+    <div class="profit-bar" id="profitBar">
+      <div class="profit-row">
+        <span class="profit-label">Profit Status</span>
+        <span class="profit-value" id="profitStatus">—</span>
+      </div>
+      <div class="profit-row profit-row-amount">
+        <span class="profit-label">Profit</span>
+        <span class="profit-value" id="profitAmountDisplay">0.00 ETB</span>
+      </div>
+      <div class="profit-row">
+        <span class="profit-label">Commission Status</span>
+        <span class="profit-value" id="commissionStatus">—</span>
+      </div>
+      <div class="profit-row profit-row-amount">
+        <span class="profit-label">Commission</span>
+        <span class="profit-value" id="commissionAmountDisplay">0.00 ETB</span>
+      </div>
+      <div class="profit-row profit-row-total">
+        <span class="profit-label">TOTAL (client price)</span>
+        <span class="profit-value" id="totalWithProfitDisplay">0.00 ETB</span>
+      </div>
+    </div>
+
+    <div class="hint">Only the Qty column is editable here. To add, remove, rename, or reprice materials, go to the Settings tab. Profit and Commission are calculated automatically from the percentages set on the Lightbox Quote tab, and both stack on top of Grand Total to form the client's final price. Commission never appears on the client-facing invoice — it's for internal tracking only.</div>
+  </div>
+
+  <!-- ===================== SETTINGS TAB ===================== -->
+  <div class="tab-panel" id="tab-settings">
+    <div class="hint" style="margin-bottom:14px;">Manage materials here: add, remove, rename, recategorize, or reprice. The Material Cost tab updates automatically.</div>
+    <div class="settings-wrap">
+      <table class="settings-table">
+        <thead>
+          <tr>
+            <th style="width:4%">NO</th>
+            <th style="width:16%">Item</th>
+            <th style="width:7%">Unit</th>
+            <th style="width:8%">Category</th>
+            <th style="width:10%">Unit Price (ETB)</th>
+            <th style="width:10%">Auto-calc from m²</th>
+            <th style="width:8%">Multiplier / Formula</th>
+            <th style="width:9%">Area Source</th>
+            <th style="width:8%">Min Qty</th>
+            <th style="width:8%">Max Qty</th>
+            <th style="width:9%">Default Value</th>
+            <th style="width:9%">Show in Lightbox</th>
+            <th style="width:9%">Remove</th>
+          </tr>
+        </thead>
+        <tbody id="settingsTableBody"></tbody>
+      </table>
+      <div class="hint" style="padding:0 14px;">Auto-calc: when checked, the Material Cost tab asks for an m² value for this item and computes its quantity automatically (m² × Multiplier). Area Source decides whether that m² is auto-filled from the Lightbox tab's Signage Area or its Mica Area. The "led module" and "Relief" items use their own dedicated formulas instead of a plain Multiplier — edit those in "Formula Settings" below. Min/Max Qty are optional limits — on the Material Cost tab, entering a value below Min automatically fills Min, and above Max automatically fills Max, shortly after typing stops (or immediately on leaving the field). Default Value: whenever this item's Qty (or m² for auto-calc items) is empty, it's pre-filled with this number on the Material Cost tab — still fully editable per job. Leave blank for no default.</div>
+      <div class="add-row-bar">
+        <button class="btn btn-primary btn-small" id="addItemBtn">+ Add New Item</button>
+        <div style="flex:1;"></div>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:22px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Formula Settings</h3>
+        <div class="hint" style="margin:0;">These formulas drive the automatic calculations across the app. Every range and constant below is editable — nothing here is hardcoded. Ranges are min-inclusive / max-exclusive (leave Max blank for "no upper limit" — the highest range automatically covers everything above its Min).</div>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:14px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Mica Formula (by Signage Area)</h3>
+        <div class="hint" style="margin:0;">Mica Area = Signage Area × the multiplier for whichever range the Signage Area falls into. Editing any value here instantly recalculates the current quote's Mica-flagged items.</div>
+      </div>
+      <table class="settings-table" style="margin-top:6px;">
+        <thead>
+          <tr>
+            <th style="width:32%">Min Signage Area (m²)</th>
+            <th style="width:32%">Max Signage Area (m²)</th>
+            <th style="width:26%">Multiplier</th>
+            <th style="width:10%">Remove</th>
+          </tr>
+        </thead>
+        <tbody id="micaFormulaTableBody"></tbody>
+      </table>
+      <div class="add-row-bar">
+        <button class="btn btn-primary btn-small" id="addMicaTierBtn">+ Add Range</button>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:14px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">LED Module Formula (by Signage Area)</h3>
+        <div class="hint" style="margin:0;">LED Module quantity = Signage Area × the multiplier for whichever range the Signage Area falls into. Applies automatically to the "led module" catalog item — no manual qty entry needed.</div>
+      </div>
+      <table class="settings-table" style="margin-top:6px;">
+        <thead>
+          <tr>
+            <th style="width:32%">Min Signage Area (m²)</th>
+            <th style="width:32%">Max Signage Area (m²)</th>
+            <th style="width:26%">Multiplier</th>
+            <th style="width:10%">Remove</th>
+          </tr>
+        </thead>
+        <tbody id="ledFormulaTableBody"></tbody>
+      </table>
+      <div class="add-row-bar">
+        <button class="btn btn-primary btn-small" id="addLedTierBtn">+ Add Range</button>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:14px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Relief Formula (by Mica Area)</h3>
+        <div class="hint" style="margin:0;">Relief quantity = (Multiplier × Mica Area) + Constant. Applies automatically to the "Relief" catalog item — no manual qty entry needed.</div>
+      </div>
+      <div class="mica-multiplier-grid">
+        <div class="mica-multiplier-field">
+          <label>Multiplier (× Mica Area)</label>
+          <input type="number" step="any" id="reliefMultiplierInput">
+        </div>
+        <div class="mica-multiplier-field">
+          <label>Constant (+)</label>
+          <input type="number" step="any" id="reliefConstantInput">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:14px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Metal Formula (by Signage Width &amp; Height)</h3>
+        <div class="hint" style="margin:0;">Metal (linear meters) = (2 × Width) + (2 × Height) + (MAX(0, FLOOR(Width) − 1) × Height) — outer frame plus one internal vertical support per full meter of width. That result is then converted to "berga" (rounded UP to the nearest whole berga) using the conversion below. Applies automatically to the "metal" catalog item, driven by the Signage Width/Height on the Lightbox Quote tab — no manual qty entry needed.</div>
+      </div>
+      <div class="mica-multiplier-grid">
+        <div class="mica-multiplier-field">
+          <label>Meters per Berga</label>
+          <input type="number" step="any" min="0.0001" id="metalMetersPerBergaInput">
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:22px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Lightbox Quick-Fill Items</h3>
+        <div class="hint" style="margin:0;">Tick items here (like Transport, Footing, Scaffolding) to give them their own instant-fill field right on the Lightbox Quote tab. Ticking "Include in this quote" there fills a value directly into the Material Cost tab — no need to visit it separately. Untick here to go back to plain Material Cost entry for that item.</div>
+      </div>
+      <div id="quickFillPicker" style="display:flex; flex-wrap:wrap; gap:10px 20px; padding:10px 16px 18px;"></div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:22px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Conditional Rules</h3>
+        <div class="hint" style="margin:0;">Set a rule so one item's value automatically fills another — e.g. "if Signage Area ≥ 10, set Footing to 3". The condition checks the trigger item's current quantity (m² × multiplier for auto-calc items) on the Material Cost tab; whenever it's met, the target item is filled with the given value.</div>
+      </div>
+      <table class="settings-table" style="margin-top:6px;">
+        <thead>
+          <tr>
+            <th style="width:26%">If this item</th>
+            <th style="width:14%">Condition</th>
+            <th style="width:14%">Threshold</th>
+            <th style="width:26%">...then fill this item</th>
+            <th style="width:14%">With value</th>
+            <th style="width:6%">Remove</th>
+          </tr>
+        </thead>
+        <tbody id="rulesTableBody"></tbody>
+      </table>
+      <div class="add-row-bar">
+        <button class="btn btn-primary btn-small" id="addRuleBtn">+ Add Rule</button>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:22px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Company &amp; Invoice Details</h3>
+        <div class="hint" style="margin:0;">Used on the invoice PDF (Download Invoice, on the Material Cost tab). Leave a field blank to leave it off the invoice entirely.</div>
+      </div>
+      <div class="mica-multiplier-grid">
+        <div class="mica-multiplier-field" style="flex:1 1 220px;">
+          <label>Phone</label>
+          <input type="text" id="companyPhoneInput" placeholder="e.g. +251 9xx xxx xxx" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div class="mica-multiplier-field" style="flex:1 1 220px;">
+          <label>Email</label>
+          <input type="text" id="companyEmailInput" placeholder="e.g. info@hadaradvertising.com" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div class="mica-multiplier-field" style="flex:1 1 220px;">
+          <label>TIN / VAT Reg. No.</label>
+          <input type="text" id="companyTinInput" placeholder="e.g. 0012345678" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div class="mica-multiplier-field" style="flex:1 1 220px;">
+          <label>Bank Account (optional)</label>
+          <input type="text" id="companyBankInput" placeholder="e.g. CBE 1000xxxxxxxx" style="width:100%; box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="padding:14px 16px 4px;">
+        <label style="font-size:.72rem; font-weight:700; color:var(--grey-text); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:6px;">Payment Terms</label>
+        <textarea id="invoicePaymentTermsInput" rows="2" style="width:100%; box-sizing:border-box; font-family:inherit; font-size:.85rem; padding:8px 10px; border:1px solid var(--border); border-radius:6px; resize:vertical;" placeholder="e.g. 50% advance payment upon order confirmation, balance due by cheque upon completion."></textarea>
+      </div>
+      <div style="padding:14px 16px 18px;">
+        <label style="font-size:.72rem; font-weight:700; color:var(--grey-text); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:6px;">Invoice Notes (optional)</label>
+        <textarea id="invoiceNotesInput" rows="3" style="width:100%; box-sizing:border-box; font-family:inherit; font-size:.85rem; padding:8px 10px; border:1px solid var(--border); border-radius:6px; resize:vertical;" placeholder="e.g. Includes 1-year warranty. Thank you for your business."></textarea>
+      </div>
+    </div>
+
+    <div class="settings-wrap" style="margin-top:22px;">
+      <div style="padding:16px 16px 4px;">
+        <h3 style="margin:0 0 6px; font-size:1rem; color:var(--charcoal);">Settings Security</h3>
+        <div class="hint" style="margin:0;">The Pricing PIN protects the Settings of every pricing tool (Lightbox, Neon, Tapela, Hanger). Change it here — you need the current PIN to set a new one (4–8 digits).</div>
+      </div>
+      <div class="mica-multiplier-grid">
+        <div class="mica-multiplier-field" style="flex:1 1 180px;">
+          <label>Current PIN</label>
+          <input type="password" id="settingsPwCurrentInput" autocomplete="off" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div class="mica-multiplier-field" style="flex:1 1 180px;">
+          <label>New PIN</label>
+          <input type="password" id="settingsPwNewInput" autocomplete="off" style="width:100%; box-sizing:border-box;">
+        </div>
+        <div class="mica-multiplier-field" style="flex:1 1 180px;">
+          <label>Confirm New PIN</label>
+          <input type="password" id="settingsPwConfirmInput" autocomplete="off" style="width:100%; box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; padding:12px 16px 18px;">
+        <button class="btn btn-primary btn-small" id="updateSettingsPwBtn">Update PIN</button>
+        <button class="btn btn-secondary btn-small" id="lockSettingsNowBtn">Lock Settings Now</button>
+      </div>
+      <div id="settingsPwMsg" style="display:none; margin:0 16px 16px; padding:8px 12px; border-radius:6px; font-size:.82rem; font-weight:600;"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Settings password lock modal -->
+<div id="settingsPwModal" style="display:none; position:fixed; inset:0; background:rgba(38,26,29,.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:340px; max-width:90vw; border-radius:10px; padding:22px 24px 20px; box-shadow:0 10px 40px rgba(0,0,0,.25);">
+    <h3 style="margin:0 0 4px; font-size:1.05rem; color:var(--charcoal);">🔒 Settings Locked</h3>
+    <div class="hint" style="margin:0 0 14px;">Enter the Pricing PIN to continue.</div>
+    <input type="password" id="settingsPwModalInput" inputmode="numeric" autocomplete="off" style="width:100%; box-sizing:border-box; font-size:.9rem; padding:9px 11px; border:1px solid var(--border); border-radius:6px;" placeholder="PIN">
+    <div id="settingsPwModalHint" style="display:none; margin-top:8px; font-size:.76rem; color:var(--grey-text); font-style:italic;"></div>
+    <div id="settingsPwModalError" style="display:none; margin-top:8px; font-size:.8rem; color:var(--red); font-weight:600;"></div>
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-amber" id="settingsPwModalUnlockBtn" style="flex:1;">Unlock</button>
+      <button class="btn btn-secondary" id="settingsPwModalCancelBtn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Negotiation top-up modal — shown before every invoice print -->
+<div id="negotiationModal" style="display:none; position:fixed; inset:0; background:rgba(38,26,29,.55); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:360px; max-width:90vw; border-radius:10px; padding:22px 24px 20px; box-shadow:0 10px 40px rgba(0,0,0,.25);">
+    <h3 style="margin:0 0 4px; font-size:1.05rem; color:var(--charcoal);">Print Invoice</h3>
+    <div class="hint" style="margin:0 0 14px;">Add a negotiation top-up to this invoice? Enter an amount in ETB, or leave blank for none.</div>
+    <input type="number" min="0" step="any" inputmode="decimal" id="negotiationAmountInput" autocomplete="off" style="width:100%; box-sizing:border-box; font-size:.9rem; padding:9px 11px; border:1px solid var(--border); border-radius:6px;" placeholder="Amount in ETB (optional)">
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button class="btn btn-amber" id="negotiationContinueBtn" style="flex:1;">Continue → Print</button>
+      <button class="btn btn-secondary" id="negotiationCancelBtn" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden print-ready template used for PDF generation -->
+<div id="printTemplate" style="position:absolute; left:-9999px; top:0; width:794px; background:#fff;"></div>
+
+<script>
+/* ============================ DATA ============================ */
+const DEFAULT_ITEMS = [
+  ["Mica","kare","Cash",5000,1,"mica"],
+  ["Transparent mica (8mm)","kare","Cash",15000,1,"mica"],
+  ["color board","kare","Cash",8000],
+  ["led module","pc","Cash",27],
+  ["led strip","m","Cash",500],
+  ["foam 20mm","kare","Cash",4500],
+  ["foam 10mm","kare","Cash",3500],
+  ["foam 5mm","kare","Cash",3000],
+  ["aluminum service","kare","Cash",600],
+  ["metal","berga","Cash",1650],
+  ["aluminum panel 3.50","pc","Cash",14000],
+  ["aluminum panel 2.44","pc","Cash",12000],
+  ["power supply 60w","pc","Cash",1800],
+  ["power supply 150w","pc","Cash",2700],
+  ["power supply 200w","pc","Cash",2700],
+  ["power supply 400w","pc","Cash",3800],
+  ["uv print","kare","Cash",1800],
+  ["uv board / kare","kare","Cash",2000],
+  ["clad (uvboard sheet)","sheet","Cash",4875],
+  ["transparent sticker","kare","Cash",550],
+  ["Amir (use 1.3 pc per signage kare)","pc","Stock",18,1.3],
+  ["MEBEYEJA electrode  (use 5 pc per signage kare)","pc","Stock",9.59,5],
+  ["socket (use 1 pc per work)","pc","Stock",150],
+  ["NEON transparent wire","meter","Stock",200],
+  ["chain (small)  usually use 2 meter","meter","Stock",150],
+  ["chain (bigger) usually use 2 meter","meter","Stock",250],
+  ["screw (use 13 pc per signage kare)","pc","Stock",2,13],
+  ["fisher (use 6 pc per work)","pc","Stock",1.75],
+  ["Jumper","pc","Stock",5],
+  ["Angle bar (L bret)   ","pc","Stock",40],
+  ["anchor bolt","pc","Stock",55],
+  ["hook","pc","Stock",13.33],
+  ["Wire (designer estimation)","meter","Stock",58.46],
+  ["Paint (yemikemem)  1 pc per work","pc","Stock",2200],
+  ["cleaner tinner (use 0.5 Liter per work)","liter","Stock",750],
+  ["Relief","meter","Stock",48],
+  ["zecolo 8 cm ( use perimeter)","meter","Stock",200],
+  ["Transport","trip","Cash",1],
+  ["Footing (use 1 pc per foot)","pc","Cash",1500],
+  ["scaffolding  (consider transport)","pc","Cash",460],
+  ["Workshop services (Include 1 pc in all works)","pc","Stock",800],
+  ["Normal paint ( use 0.1 liter per kare ) ","liter","Stock",1275,0.1],
+  ["Tinner (use 0.4 liter per kare)","liter","Stock",750,0.4],
+  ["SPACER","pc","Cash",250],
+];
+
+// Keyword -> default multiplier, used only to migrate catalogs saved before
+// auto-calc existed. Matching is a simple case-insensitive "includes" check
+// against the item name.
+const AUTOCALC_MIGRATION_HINTS = [
+  ['amir', 1.3],
+  ['mebeyeja', 5],
+  ['screw', 13],
+  ['normal paint', 0.1],
+  ['tinner', 0.4], // note: "cleaner tinner" is excluded below
+  ['mica', 1], // covers "Mica" and "Transparent mica (8mm)"
+];
+
+// LED module and Relief each use their own dedicated formula (Settings >
+// Formula Settings) instead of a plain flat Multiplier — this stamps that
+// onto any catalog by keyword match, regardless of where the catalog came
+// from (fresh install, older save, or an imported file), so those two
+// items are never left running on a stale flat multiplier.
+function enforceFormulaKeyItems(list){
+  list.forEach(it=>{
+    const lname = (it.name||'').toLowerCase();
+    if(lname.includes('led module')){
+      if(!it.autoCalc) it.autoCalc = {enabled:true, multiplier:null};
+      it.autoCalc.enabled = true;
+      it.autoCalc.formulaKey = 'led';
+      it.areaSource = 'signage';
+    }
+    if(lname.includes('relief') || lname.includes('relife')){
+      if(!it.autoCalc) it.autoCalc = {enabled:true, multiplier:null};
+      it.autoCalc.enabled = true;
+      it.autoCalc.formulaKey = 'relief';
+      it.areaSource = 'mica';
+      // One-time cosmetic fix for catalogs saved before the rename.
+      if(/relife/i.test(it.name) && !/relief/i.test(it.name)) it.name = 'Relief';
+    }
+    // "metal" runs off Signage Width/Height directly (not an area at all),
+    // via its own formula below — never a plain area × multiplier.
+    if(lname === 'metal' || lname.includes('metal')){
+      if(!it.autoCalc) it.autoCalc = {enabled:true, multiplier:null};
+      it.autoCalc.enabled = true;
+      it.autoCalc.formulaKey = 'metal';
+    }
+  });
+  return list;
+}
+
+function loadItems(){
+  const raw = hadarStore.getItem('hadar_items_v1');
+  let list;
+  if(raw){
+    try{ list = JSON.parse(raw); }catch(e){}
+  }
+  if(!list){
+    list = DEFAULT_ITEMS.map((d,i)=>({
+      id: 'item_'+i,
+      name: d[0],
+      unit: d[1],
+      category: d[2],
+      price: d[3],
+      qty: null,
+      m2: null,
+      autoCalc: d[4] ? {enabled:true, multiplier:d[4]} : {enabled:false, multiplier:null},
+      minQty: null,
+      maxQty: null,
+      defaultValue: null,
+      quickFillLightbox: /transport|footing|scaffolding/i.test(d[0]),
+      areaSource: d[5] || 'signage',
+      showInLightbox: true,
+      excludedFromJob: false
+    }));
+    return enforceFormulaKeyItems(list);
+  }
+  // Migrate any catalog (imported or previously saved) that predates these fields.
+  list.forEach(it=>{
+    if(it.m2 === undefined) it.m2 = null;
+    if(it.minQty === undefined) it.minQty = null;
+    if(it.maxQty === undefined) it.maxQty = null;
+    if(it.showInLightbox === undefined) it.showInLightbox = true;
+    if(it.excludedFromJob === undefined) it.excludedFromJob = false;
+    if(it.defaultValue === undefined) it.defaultValue = null;
+    if(it.quickFillLightbox === undefined){
+      it.quickFillLightbox = /transport|footing|scaffolding/i.test(it.name||'');
+    }
+    // One-time migration: Scaffolding's unit used to default to "per box";
+    // it should match Footing's "pc" instead. Only touches the untouched
+    // default so a deliberately customized unit is left alone.
+    if((it.name||'').toLowerCase().includes('scaffolding') && it.unit === 'per box'){
+      it.unit = 'pc';
+    }
+    if(it.areaSource === undefined){
+      it.areaSource = (it.name||'').toLowerCase().includes('mica') ? 'mica' : 'signage';
+    }
+    if(!it.autoCalc){
+      const lname = (it.name||'').toLowerCase();
+      let hintMult = null;
+      if(lname.includes('tinner') && !lname.includes('cleaner')){
+        hintMult = 0.4;
+      } else {
+        for(const [kw,mult] of AUTOCALC_MIGRATION_HINTS){
+          if(kw==='tinner') continue;
+          if(lname.includes(kw)){ hintMult = mult; break; }
+        }
+      }
+      it.autoCalc = hintMult!==null ? {enabled:true, multiplier:hintMult} : {enabled:false, multiplier:null};
+    }
+    // Mica-flagged items must always auto-fill from Mica Area, the same way
+    // Transport/Scaffolding always take the Lightbox value directly — this
+    // isn't left as a togglable option some saved catalogs may have missed.
+    if(it.areaSource === 'mica'){
+      if(!it.autoCalc) it.autoCalc = {enabled:true, multiplier:1};
+      it.autoCalc.enabled = true;
+      if(it.autoCalc.multiplier===null || it.autoCalc.multiplier===undefined) it.autoCalc.multiplier = 1;
+    }
+  });
+  return enforceFormulaKeyItems(list);
+}
+
+function saveItems(){
+  hadarStore.setItem('hadar_items_v1', JSON.stringify(items));
+}
+
+/* ============================ FORMULA SETTINGS (Mica / LED / Relief) ============================ */
+// Every range, multiplier, and constant here is user-editable from the
+// Settings tab ("Formula Settings") — nothing in these three formulas is
+// hardcoded. Ranges are min-inclusive / max-exclusive; a tier with a blank
+// (null) Max is treated as open-ended, so the highest range always covers
+// everything above its Min too.
+const DEFAULT_MICA_FORMULA_TIERS = [
+  {min:0,  max:1,  multiplier:0.90},
+  {min:1,  max:2,  multiplier:0.70},
+  {min:2,  max:4,  multiplier:0.80},
+  {min:4,  max:8,  multiplier:0.55},
+  {min:8,  max:15, multiplier:0.62},
+  {min:15, max:25, multiplier:0.70},
+];
+const DEFAULT_LED_FORMULA_TIERS = [
+  {min:0,  max:2,  multiplier:220},
+  {min:2,  max:10, multiplier:180},
+  {min:10, max:null, multiplier:110},
+];
+const DEFAULT_RELIEF_FORMULA = { multiplier:11.62, constant:11.83 };
+
+function loadFormulaTiers(key, fallbackTiers){
+  const raw = hadarStore.getItem(key);
+  if(!raw) return fallbackTiers.map(t=>({...t}));
+  try{
+    const parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed) || parsed.length===0) return fallbackTiers.map(t=>({...t}));
+    return parsed.map(t=>({
+      min: (typeof t.min==='number' && !isNaN(t.min)) ? t.min : 0,
+      max: (typeof t.max==='number' && !isNaN(t.max)) ? t.max : null,
+      multiplier: (typeof t.multiplier==='number' && !isNaN(t.multiplier)) ? t.multiplier : 0
+    }));
+  }catch(e){
+    return fallbackTiers.map(t=>({...t}));
+  }
+}
+
+function saveFormulaTiers(key, tiers){
+  hadarStore.setItem(key, JSON.stringify(tiers));
+}
+
+function loadReliefFormula(){
+  const raw = hadarStore.getItem('hadar_relief_formula_v1');
+  if(!raw) return {...DEFAULT_RELIEF_FORMULA};
+  try{
+    const parsed = JSON.parse(raw);
+    return {
+      multiplier: (typeof parsed.multiplier==='number' && !isNaN(parsed.multiplier)) ? parsed.multiplier : DEFAULT_RELIEF_FORMULA.multiplier,
+      constant: (typeof parsed.constant==='number' && !isNaN(parsed.constant)) ? parsed.constant : DEFAULT_RELIEF_FORMULA.constant
+    };
+  }catch(e){
+    return {...DEFAULT_RELIEF_FORMULA};
+  }
+}
+
+function saveReliefFormula(){
+  hadarStore.setItem('hadar_relief_formula_v1', JSON.stringify(reliefFormula));
+}
+
+// Metal formula's frame/support math (2×W + 2×H + vertical supports×H) is
+// fixed engineering logic, not user-editable. The only configurable part is
+// how many linear meters make up one "berga" bar, since that's a stock/unit
+// convention that can change — default 6 meters per berga.
+const DEFAULT_METAL_FORMULA = { metersPerBerga: 6 };
+
+function loadMetalFormula(){
+  const raw = hadarStore.getItem('hadar_metal_formula_v1');
+  if(!raw) return {...DEFAULT_METAL_FORMULA};
+  try{
+    const parsed = JSON.parse(raw);
+    const mpb = parsed.metersPerBerga;
+    return { metersPerBerga: (typeof mpb==='number' && !isNaN(mpb) && mpb>0) ? mpb : DEFAULT_METAL_FORMULA.metersPerBerga };
+  }catch(e){
+    return {...DEFAULT_METAL_FORMULA};
+  }
+}
+
+function saveMetalFormula(){
+  hadarStore.setItem('hadar_metal_formula_v1', JSON.stringify(metalFormula));
+}
+
+// Metal's linear-meter formula from Signage Width/Height: outer frame
+// (2×W + 2×H) plus one internal vertical support (running the full Height)
+// for every full 1 meter of Width beyond the first — the two side frame
+// members already cover the first meter, so it's FLOOR(Width) - 1, floored
+// at 0 so narrow signs never go negative.
+function computeMetalLinearMeters(width, height){
+  if(width===null || width===undefined || height===null || height===undefined) return null;
+  if(isNaN(width) || isNaN(height) || width<=0 || height<=0) return null;
+  const verticalSupports = Math.max(0, Math.floor(width) - 1);
+  const meters = (2*width) + (2*height) + (verticalSupports * height);
+  return Math.round(meters * 10000) / 10000;
+}
+
+// Converts linear meters to whole "berga" bars, always rounding UP (you
+// can't buy a fraction of a bar) — e.g. 6.3m at 6m/berga becomes 2 berga.
+function computeMetalBergaQty(linearMeters){
+  if(linearMeters===null || linearMeters===undefined || isNaN(linearMeters)) return null;
+  const mpb = metalFormula.metersPerBerga>0 ? metalFormula.metersPerBerga : DEFAULT_METAL_FORMULA.metersPerBerga;
+  return Math.ceil((linearMeters / mpb) - 1e-9);
+}
+
+// Finds the multiplier for whichever tier `area` falls into (min-inclusive,
+// max-exclusive). If area is at or beyond every defined Max, it falls
+// through to the tier with the highest Min (open-ended extrapolation)
+// rather than returning nothing.
+function lookupTierMultiplier(tiers, area){
+  if(!tiers || tiers.length===0 || area===null || area===undefined || isNaN(area)) return null;
+  const sorted = tiers.slice().sort((a,b)=>(a.min??-Infinity)-(b.min??-Infinity));
+  for(const t of sorted){
+    const min = (t.min===null || t.min===undefined) ? -Infinity : t.min;
+    const max = (t.max===null || t.max===undefined) ? Infinity : t.max;
+    if(area>=min && area<max) return t.multiplier;
+  }
+  const last = sorted[sorted.length-1];
+  const first = sorted[0];
+  if(area < ((first.min===null||first.min===undefined)?-Infinity:first.min)) return first.multiplier;
+  return last.multiplier;
+}
+
+/* ============================ PROFIT SETTINGS ============================ */
+// A single profit percentage, set on the Lightbox Quote tab, applied on top
+// of the Grand Total on the Material Cost tab. Defaults to 40% but is
+// editable any time — changes apply live, no button needed.
+const DEFAULT_PROFIT_PERCENTAGE = 40;
+
+function loadProfitSettings(){
+  const raw = hadarStore.getItem('hadar_profit_settings_v1');
+  if(!raw) return { percentage: DEFAULT_PROFIT_PERCENTAGE };
+  try{
+    const parsed = JSON.parse(raw);
+    return { percentage: typeof parsed.percentage === 'number' ? parsed.percentage : DEFAULT_PROFIT_PERCENTAGE };
+  }catch(e){
+    return { percentage: DEFAULT_PROFIT_PERCENTAGE };
+  }
+}
+
+function saveProfitSettings(){
+  hadarStore.setItem('hadar_profit_settings_v1', JSON.stringify(profitSettings));
+}
+
+// Computes the Profit section shown on the Material Cost tab from the
+// current Grand Total and the profit percentage set on the Lightbox tab.
+function computeProfitInfo(grandTotal){
+  const percentage = profitSettings.percentage;
+  const percentageSet = percentage!==null && percentage!==undefined && !isNaN(percentage);
+  const profitAmount = percentageSet ? Math.round(grandTotal * (percentage/100) * 100) / 100 : 0;
+  return { percentage, percentageSet, profitAmount, totalWithProfit: grandTotal + profitAmount };
+}
+
+/* ============================ COMMISSION SETTINGS ============================ */
+// A tickable percentage, set on the Lightbox Quote tab right next to Profit.
+// When ticked, it's calculated from the Grand Total (same base as Profit,
+// independently) and stacks on top of Profit to raise the client's final
+// price. Defaults to 7% but is fully editable, same as Profit's 40%.
+const DEFAULT_COMMISSION_PERCENTAGE = 7;
+
+function loadCommissionSettings(){
+  const raw = hadarStore.getItem('hadar_commission_settings_v1');
+  if(!raw) return { enabled: false, percentage: DEFAULT_COMMISSION_PERCENTAGE };
+  try{
+    const parsed = JSON.parse(raw);
+    return {
+      enabled: !!parsed.enabled,
+      percentage: (typeof parsed.percentage === 'number' && !isNaN(parsed.percentage)) ? parsed.percentage : DEFAULT_COMMISSION_PERCENTAGE
+    };
+  }catch(e){
+    return { enabled: false, percentage: DEFAULT_COMMISSION_PERCENTAGE };
+  }
+}
+
+function saveCommissionSettings(){
+  hadarStore.setItem('hadar_commission_settings_v1', JSON.stringify(commissionSettings));
+}
+
+// Computes the Commission section from the current Grand Total — same base
+// Profit uses, calculated independently of Profit (not compounded on top of
+// it) — and only when the "Apply Commission" tickbox is on.
+function computeCommissionInfo(grandTotal){
+  const percentage = commissionSettings.percentage;
+  const percentageSet = commissionSettings.enabled && percentage!==null && percentage!==undefined && !isNaN(percentage);
+  const commissionAmount = percentageSet ? Math.round(grandTotal * (percentage/100) * 100) / 100 : 0;
+  return { enabled: commissionSettings.enabled, percentage, percentageSet, commissionAmount };
+}
+
+// The actual amount the client is charged: Grand Total + Profit + Commission,
+// all stacked together. This is what feeds both the Material Cost tab's
+// final total and the client-facing Invoice PDF.
+function computeClientTotal(grandTotal){
+  const profitInfo = computeProfitInfo(grandTotal);
+  const commissionInfo = computeCommissionInfo(grandTotal);
+  return grandTotal + profitInfo.profitAmount + commissionInfo.commissionAmount;
+}
+
+// Updates the Profit section on the Material Cost tab in place — cheap
+// enough to call after every total recompute, never triggers a table
+// re-render, so it never interrupts typing.
+function renderProfitBar(grandTotal){
+  const info = computeProfitInfo(grandTotal);
+  const commInfo = computeCommissionInfo(grandTotal);
+  const clientTotal = grandTotal + info.profitAmount + commInfo.commissionAmount;
+
+  document.getElementById('profitStatus').textContent = info.percentageSet
+    ? `${info.percentage}% applied on Grand Total`
+    : 'Not set (set it on the Lightbox Quote tab)';
+
+  document.getElementById('profitAmountDisplay').textContent = fmt(info.profitAmount) + ' ETB';
+
+  document.getElementById('commissionStatus').textContent = commInfo.percentageSet
+    ? `${commInfo.percentage}% applied on Grand Total`
+    : (commInfo.enabled ? 'Not set (set the % on the Lightbox Quote tab)' : 'Not applied (tick "Apply Commission" on the Lightbox Quote tab)');
+
+  document.getElementById('commissionAmountDisplay').textContent = fmt(commInfo.commissionAmount) + ' ETB';
+  document.getElementById('totalWithProfitDisplay').textContent = fmt(clientTotal) + ' ETB';
+}
+
+/* ============================ CONDITIONAL RULES ============================ */
+// A rule says: if <sourceItem>'s current quantity meets <operator> <threshold>,
+// then <targetItem> must be filled with <value>. Rules are checked every time
+// the Material Cost tab renders.
+function loadConditionalRules(){
+  const raw = hadarStore.getItem('hadar_conditional_rules_v1');
+  if(!raw) return [];
+  try{
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(e){
+    return [];
+  }
+}
+
+function saveConditionalRules(){
+  hadarStore.setItem('hadar_conditional_rules_v1', JSON.stringify(conditionalRules));
+}
+
+/* ============================ COMPANY / INVOICE DETAILS ============================ */
+// Editable in Settings > "Company & Invoice Details". Used only when
+// building the client-facing Invoice PDF (Material Cost tab).
+function loadCompanyInfo(){
+  const raw = hadarStore.getItem('hadar_company_info_v1');
+  const defaults = { phone:'', email:'', tin:'', bank:'' };
+  if(!raw) return defaults;
+  try{
+    const parsed = JSON.parse(raw);
+    return { ...defaults, ...(parsed && typeof parsed==='object' ? parsed : {}) };
+  }catch(e){
+    return defaults;
+  }
+}
+function saveCompanyInfo(){
+  hadarStore.setItem('hadar_company_info_v1', JSON.stringify(companyInfo));
+}
+
+function loadInvoiceSettings(){
+  const raw = hadarStore.getItem('hadar_invoice_settings_v1');
+  const defaults = { paymentTerms:'', notes:'' };
+  if(!raw) return defaults;
+  try{
+    const parsed = JSON.parse(raw);
+    return { ...defaults, ...(parsed && typeof parsed==='object' ? parsed : {}) };
+  }catch(e){
+    return defaults;
+  }
+}
+function saveInvoiceSettings(){
+  hadarStore.setItem('hadar_invoice_settings_v1', JSON.stringify(invoiceSettings));
+}
+
+// Simple ever-increasing invoice number, scoped per calendar year (INV-2026-0001, ...).
+function loadInvoiceCounter(){
+  const raw = hadarStore.getItem('hadar_invoice_counter_v1');
+  if(!raw) return {};
+  try{
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed==='object') ? parsed : {};
+  }catch(e){
+    return {};
+  }
+}
+function saveInvoiceCounter(){
+  hadarStore.setItem('hadar_invoice_counter_v1', JSON.stringify(invoiceCounter));
+}
+function peekNextInvoiceNumber(){
+  const year = new Date().getFullYear();
+  const next = (invoiceCounter[year] || 0) + 1;
+  return { year, next, label: `INV-${year}-${String(next).padStart(4,'0')}` };
+}
+function commitInvoiceNumber(year, next){
+  invoiceCounter[year] = next;
+  saveInvoiceCounter();
+}
+
+/* ============================ SETTINGS TAB LOCK ============================ */
+// The Settings tab is protected by the shared Pricing PIN, checked on the
+// server (see hadarUnlock in the app's bootstrap). Asked on every page load.
+let settingsUnlockedThisSession = false;
+
+/* ============================ LIGHTBOX QUOTE STATE ============================ */
+// Holds the values entered on the Lightbox Quote tab so they persist across
+// reloads and can be re-applied whenever a mica multiplier changes.
+function loadLightboxState(){
+  const raw = hadarStore.getItem('hadar_lightbox_v1');
+  if(!raw) return null;
+  try{ return JSON.parse(raw); }catch(e){ return null; }
+}
+
+function saveLightboxState(){
+  if(lightboxState){
+    hadarStore.setItem('hadar_lightbox_v1', JSON.stringify(lightboxState));
+  }
+}
+
+function debounce(fn, ms){
+  let t;
+  return function(...args){
+    clearTimeout(t);
+    t = setTimeout(()=>fn.apply(this,args), ms);
+  };
+}
+// Writing to localStorage on every single keystroke (across dozens of qty
+// inputs) is what was causing the sluggish/"frozen" feeling on slower phones.
+// Debouncing batches those writes so typing itself never blocks on disk I/O.
+const debouncedSaveItems = debounce(saveItems, 350);
+
+let items = loadItems();
+let idCounter = items.length;
+let micaFormulaTiers = loadFormulaTiers('hadar_mica_formula_v1', DEFAULT_MICA_FORMULA_TIERS);
+let ledFormulaTiers = loadFormulaTiers('hadar_led_formula_v1', DEFAULT_LED_FORMULA_TIERS);
+let reliefFormula = loadReliefFormula();
+let metalFormula = loadMetalFormula();
+let lightboxState = loadLightboxState(); // {width,height,signageArea,micaArea} | null
+let conditionalRules = loadConditionalRules();
+let ruleIdCounter = conditionalRules.length;
+let profitSettings = loadProfitSettings();
+let commissionSettings = loadCommissionSettings();
+let companyInfo = loadCompanyInfo();
+let invoiceSettings = loadInvoiceSettings();
+let invoiceCounter = loadInvoiceCounter();
+
+/* ============================ DEPENDENCY RULES ============================ */
+// Items are matched by keyword rather than fixed id, so renaming/reordering
+// in Settings doesn't silently break the rules.
+function findItemByKeyword(kw, exclude){
+  return items.find(it=>{
+    const n = (it.name||'').toLowerCase();
+    if(!n.includes(kw)) return false;
+    if(exclude && n.includes(exclude)) return false;
+    return true;
+  });
+}
+function itemHasValue(it){
+  if(!it) return false;
+  if(it.autoCalc && it.autoCalc.enabled) return !!(it.m2 && it.m2>0);
+  return !!(it.qty && it.qty>0);
+}
+
+/* ============================ LIGHTBOX QUOTE ============================ */
+function computeSignageArea(width, height){
+  if(width===null || width===undefined || height===null || height===undefined) return null;
+  if(isNaN(width) || isNaN(height) || width<=0 || height<=0) return null;
+  return Math.round(width * height * 10000) / 10000;
+}
+
+function computeMicaArea(signageArea){
+  if(signageArea===null || signageArea===undefined) return null;
+  const mult = lookupTierMultiplier(micaFormulaTiers, signageArea);
+  if(mult===null || mult===undefined || isNaN(mult)) return null;
+  return Math.round(signageArea * mult * 10000) / 10000;
+}
+
+function fmtArea(n){
+  return (n===null || n===undefined || isNaN(n)) ? '—' : (Math.round(n*10000)/10000) + ' m²';
+}
+
+// Pushes the current Lightbox values into the catalog: fills m² for every
+// auto-calc item (Mica Area for items flagged "Mica", Signage Area for the
+// rest). Quick-Fill items (Transport, Footing, Scaffolding, etc.) push their
+// own values into the catalog directly as they're typed — see
+// renderLightboxQuickFill().
+function applyLightboxToCatalog(showSuccessSwitch){
+  const widthRaw = document.getElementById('lbWidth').value;
+  const heightRaw = document.getElementById('lbHeight').value;
+
+  const width = widthRaw === '' ? null : parseFloat(widthRaw);
+  const height = heightRaw === '' ? null : parseFloat(heightRaw);
+
+  const msgBox = document.getElementById('lbValidationMsg');
+  const signageArea = computeSignageArea(width, height);
+  const areaValid = signageArea !== null;
+
+  if(!areaValid){
+    // Width/Height aren't ready yet — only show the blocking message on an
+    // explicit manual Apply click. Live edits to Quick-Fill items should
+    // never be interrupted by this, they just skip the area-based fields
+    // below and still update the catalog.
+    if(showSuccessSwitch){
+      msgBox.style.display = 'block';
+      msgBox.textContent = 'Enter a valid Signage Width and Height (both greater than 0) before applying.';
+    }
+    document.getElementById('lbAreaSummary').style.display = 'none';
+  } else {
+    msgBox.style.display = 'none';
+  }
+
+  const micaArea = areaValid ? computeMicaArea(signageArea) : null;
+
+  lightboxState = {
+    width, height,
+    signageArea: areaValid ? signageArea : null,
+    micaArea
+  };
+  saveLightboxState();
+
+  // Fill every auto-calc item's m² from the right area source (only once we
+  // actually have a signage area to work from).
+  if(areaValid){
+    items.forEach(it=>{
+      if(it.autoCalc && it.autoCalc.enabled){
+        const useMica = it.areaSource === 'mica';
+        it.m2 = useMica ? micaArea : signageArea;
+        // Snap straight into the item's configured Min/Max Qty range (if
+        // any) right away, so items auto-filled from the Lightbox tab show
+        // their corrected value immediately — no need to open the Material
+        // Cost tab and click into the field first.
+        clampItemQty(it);
+      }
+    });
+  }
+
+  saveItems();
+  renderCostTable();
+  renderLightboxSummary();
+
+  if(showSuccessSwitch){
+    document.querySelector('.tab-btn[data-tab="cost"]').click();
+  }
+}
+
+// Whether an item should be treated like Transport: the number typed becomes
+// that line's total cost directly (price = the typed amount, qty = 1),
+// rather than a plain quantity. Matched by keyword so renaming doesn't break
+// it, consistent with the rest of the app's dependency matching.
+function isTransportItem(it){
+  // Strip parenthetical notes first — e.g. Scaffolding's catalog name is
+  // "scaffolding (consider transport)", which must NOT match here, or it
+  // gets treated as a cost-based item (ETB) instead of a plain qty item.
+  const cleaned = (it.name||'').toLowerCase().replace(/\([^)]*\)/g, '');
+  return cleaned.includes('transport');
+}
+
+function getQuickFillItems(){
+  return items.filter(it=>it.quickFillLightbox);
+}
+
+// Dedicated instant-fill row per Quick-Fill item (Settings > "Lightbox
+// Quick-Fill Items") on the Lightbox tab: tick to include it in this job,
+// then fill its value right there. The value flows straight into the
+// Material Cost catalog — no separate Apply step needed.
+function renderLightboxQuickFill(){
+  const wrap = document.getElementById('lbQuickFillWrap');
+  if(!wrap) return;
+  const qfItems = getQuickFillItems();
+  if(qfItems.length === 0){
+    wrap.innerHTML = `<div class="quickfill-empty">No Quick-Fill items yet — enable some in Settings ("Lightbox Quick-Fill Items").</div>`;
+    return;
+  }
+  wrap.innerHTML = qfItems.map(it=>{
+    const included = !it.excludedFromJob;
+    const transport = isTransportItem(it);
+    const currentVal = transport
+      ? (it.price!==null && it.price!==undefined ? it.price : '')
+      : (it.qty!==null && it.qty!==undefined ? it.qty : '');
+    const unitLabel = transport ? 'ETB' : (it.unit || '');
+    return `
+      <div class="quickfill-row">
+        <label class="quickfill-check">
+          <input type="checkbox" data-qf-include="${it.id}" ${included?'checked':''}>
+          ${escapeHtml(it.name)}
+        </label>
+        ${included ? `
+          <input type="number" min="0" step="any" inputmode="decimal" class="quickfill-input" data-qf-value="${it.id}" placeholder="0" value="${currentVal}">
+          <span class="quickfill-unit">${escapeHtml(unitLabel)}</span>
+        ` : ''}
+      </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('[data-qf-include]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const it = items.find(i=>i.id===cb.dataset.qfInclude);
+      if(!it) return;
+      it.excludedFromJob = !cb.checked;
+      saveItems();
+      renderLightboxQuickFill();
+      renderCostTable();
+      renderLightboxItemPicker();
+    });
+  });
+
+  wrap.querySelectorAll('[data-qf-value]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const it = items.find(i=>i.id===inp.dataset.qfValue);
+      if(!it) return;
+      const rawVal = inp.value;
+      const val = rawVal === '' ? null : parseFloat(rawVal);
+      if(isTransportItem(it)){
+        it.price = val;
+        it.qty = val===null ? null : 1;
+      } else {
+        it.qty = val;
+        // Same instant Min/Max snap as the auto-calc items above — a
+        // Quick-Fill quantity typed here should show its corrected value
+        // right away too, without a trip to the Material Cost tab.
+        clampItemQty(it);
+      }
+      debouncedSaveItems();
+      debouncedRenderCostTable();
+    });
+  });
+}
+
+// Tick-list on the Lightbox tab: lets the user quickly exclude items that
+// don't apply to this particular job from the Material Cost tab (and PDF),
+// without touching the underlying catalog. Which items are eligible to show
+// up here at all is controlled per-item in Settings ("Show in Lightbox").
+// Quick-Fill items are excluded from this generic list since they already
+// have their own dedicated row above.
+function renderLightboxItemPicker(){
+  const wrap = document.getElementById('lbItemPicker');
+  if(!wrap) return;
+  const pickable = items.filter(it=>it.showInLightbox!==false && !it.quickFillLightbox);
+  if(pickable.length === 0){
+    wrap.innerHTML = `<div class="hint" style="margin:0;">No items are enabled for this list yet — turn on "Show in Lightbox" for items in Settings.</div>`;
+    return;
+  }
+  wrap.innerHTML = pickable.map(it=>`
+    <label style="display:flex; align-items:center; gap:6px; font-size:.85rem; cursor:pointer;">
+      <input type="checkbox" data-lb-include-id="${it.id}" ${it.excludedFromJob?'':'checked'}>
+      ${escapeHtml(it.name)}
+    </label>
+  `).join('');
+  wrap.querySelectorAll('[data-lb-include-id]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const it = items.find(i=>i.id===cb.dataset.lbIncludeId);
+      if(!it) return;
+      it.excludedFromJob = !cb.checked;
+      saveItems();
+      renderCostTable();
+    });
+  });
+}
+
+function renderLightboxSummary(){
+  const box = document.getElementById('lbAreaSummary');
+  if(!lightboxState || lightboxState.signageArea===null){
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  box.innerHTML = `<strong>Signage Area:</strong> ${fmtArea(lightboxState.signageArea)}
+    &nbsp;•&nbsp; <strong>Mica Area:</strong> ${fmtArea(lightboxState.micaArea)}`;
+}
+
+// Re-applies the currently saved lightbox values (used when the Mica Formula
+// changes in Settings, so Mica-flagged items instantly reflect the new area).
+function reapplyLightboxIfPresent(){
+  if(!lightboxState || lightboxState.signageArea===null || lightboxState.signageArea===undefined) return;
+  const micaArea = computeMicaArea(lightboxState.signageArea);
+  lightboxState.micaArea = micaArea;
+  saveLightboxState();
+  items.forEach(it=>{
+    if(it.autoCalc && it.autoCalc.enabled && it.areaSource === 'mica'){
+      it.m2 = micaArea;
+      clampItemQty(it);
+    }
+  });
+  saveItems();
+  renderCostTable();
+  renderLightboxSummary();
+}
+
+function restoreLightboxFormFromState(){
+  if(!lightboxState) return;
+  if(lightboxState.width!==null && lightboxState.width!==undefined) document.getElementById('lbWidth').value = lightboxState.width;
+  if(lightboxState.height!==null && lightboxState.height!==undefined) document.getElementById('lbHeight').value = lightboxState.height;
+  renderLightboxSummary();
+}
+
+// Width/Height push into the Material Cost catalog live as they're edited —
+// no need to press Apply for these to take effect. Quick-Fill items push
+// their own values live too, via renderLightboxQuickFill()'s own listeners.
+['lbWidth','lbHeight'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>applyLightboxToCatalog(false));
+});
+
+document.getElementById('applyLightboxBtn').addEventListener('click', ()=>applyLightboxToCatalog(true));
+
+/* ============================ FORMULA SETTINGS TABLES (Mica / LED / Relief) ============================ */
+// Shared renderer for a tiered formula's Settings table (Mica Formula and LED
+// Module Formula both use this same Min/Max/Multiplier row shape). `persistFn`
+// is called after every edit or removal — it saves to localStorage and
+// triggers whatever recompute that formula needs.
+function renderFormulaTierTable(tiers, tbodyId, persistFn){
+  const body = document.getElementById(tbodyId);
+  if(!body) return;
+  if(tiers.length === 0){
+    body.innerHTML = `<tr><td colspan="4" style="padding:10px 14px;" class="hint">No ranges yet — click "+ Add Range" to create one.</td></tr>`;
+    return;
+  }
+  body.innerHTML = tiers.map((t,idx)=>`
+    <tr>
+      <td><input type="number" step="any" data-tier-field="min" data-tier-idx="${idx}" value="${t.min!==null && t.min!==undefined ? t.min : ''}" placeholder="0"></td>
+      <td><input type="number" step="any" data-tier-field="max" data-tier-idx="${idx}" value="${t.max!==null && t.max!==undefined ? t.max : ''}" placeholder="no limit"></td>
+      <td><input type="number" step="any" data-tier-field="multiplier" data-tier-idx="${idx}" value="${t.multiplier!==null && t.multiplier!==undefined ? t.multiplier : ''}" placeholder="0"></td>
+      <td style="text-align:center;"><button class="btn-danger" data-tier-remove="${idx}">Remove</button></td>
+    </tr>`).join('');
+
+  body.querySelectorAll('[data-tier-field]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const idx = parseInt(inp.dataset.tierIdx, 10);
+      const field = inp.dataset.tierField;
+      tiers[idx][field] = inp.value === '' ? null : parseFloat(inp.value);
+      persistFn();
+    });
+  });
+  body.querySelectorAll('[data-tier-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = parseInt(btn.dataset.tierRemove, 10);
+      tiers.splice(idx, 1);
+      persistFn();
+      renderFormulaTierTable(tiers, tbodyId, persistFn);
+    });
+  });
+}
+
+function renderMicaFormulaTable(){
+  renderFormulaTierTable(micaFormulaTiers, 'micaFormulaTableBody', ()=>{
+    saveFormulaTiers('hadar_mica_formula_v1', micaFormulaTiers);
+    reapplyLightboxIfPresent();
+  });
+}
+
+function renderLedFormulaTable(){
+  renderFormulaTierTable(ledFormulaTiers, 'ledFormulaTableBody', ()=>{
+    saveFormulaTiers('hadar_led_formula_v1', ledFormulaTiers);
+    debouncedRenderCostTable();
+  });
+}
+
+document.getElementById('addMicaTierBtn').addEventListener('click', ()=>{
+  micaFormulaTiers.push({min:0, max:null, multiplier:1});
+  saveFormulaTiers('hadar_mica_formula_v1', micaFormulaTiers);
+  renderMicaFormulaTable();
+  reapplyLightboxIfPresent();
+});
+
+document.getElementById('addLedTierBtn').addEventListener('click', ()=>{
+  ledFormulaTiers.push({min:0, max:null, multiplier:1});
+  saveFormulaTiers('hadar_led_formula_v1', ledFormulaTiers);
+  renderLedFormulaTable();
+  debouncedRenderCostTable();
+});
+
+function initReliefFormulaInputs(){
+  const multInp = document.getElementById('reliefMultiplierInput');
+  const constInp = document.getElementById('reliefConstantInput');
+  multInp.value = reliefFormula.multiplier;
+  constInp.value = reliefFormula.constant;
+
+  multInp.addEventListener('input', ()=>{
+    const val = multInp.value === '' ? null : parseFloat(multInp.value);
+    reliefFormula.multiplier = (val===null || isNaN(val)) ? DEFAULT_RELIEF_FORMULA.multiplier : val;
+    saveReliefFormula();
+    debouncedRenderCostTable();
+  });
+  constInp.addEventListener('input', ()=>{
+    const val = constInp.value === '' ? null : parseFloat(constInp.value);
+    reliefFormula.constant = (val===null || isNaN(val)) ? DEFAULT_RELIEF_FORMULA.constant : val;
+    saveReliefFormula();
+    debouncedRenderCostTable();
+  });
+}
+
+function initMetalFormulaInputs(){
+  const mpbInp = document.getElementById('metalMetersPerBergaInput');
+  mpbInp.value = metalFormula.metersPerBerga;
+
+  mpbInp.addEventListener('input', ()=>{
+    const val = mpbInp.value === '' ? null : parseFloat(mpbInp.value);
+    metalFormula.metersPerBerga = (val===null || isNaN(val) || val<=0) ? DEFAULT_METAL_FORMULA.metersPerBerga : val;
+    saveMetalFormula();
+    debouncedRenderCostTable();
+  });
+}
+
+// Profit Percentage input (Lightbox Quote tab) — live-recalculates the
+// Profit section on the Material Cost tab as soon as it changes, no button
+// needed. Defaults to 40% but stays fully editable.
+function initProfitSettingsInputs(){
+  const percentageInp = document.getElementById('lbProfitPercentage');
+  percentageInp.value = profitSettings.percentage;
+
+  percentageInp.addEventListener('input', ()=>{
+    const p = percentageInp.value === '' ? null : parseFloat(percentageInp.value);
+    profitSettings.percentage = (p===null || isNaN(p)) ? null : p;
+    saveProfitSettings();
+    recomputeVisibleTotals();
+  });
+}
+
+// Commission tick + Percentage inputs (Lightbox Quote tab) — mirrors Profit's
+// behavior: live-recalculates the Commission section on the Material Cost
+// tab as soon as either changes, no button needed. Defaults to 7%, ticked off.
+function initCommissionSettingsInputs(){
+  const enabledInp = document.getElementById('lbCommissionEnabled');
+  const percentageInp = document.getElementById('lbCommissionPercentage');
+  enabledInp.checked = !!commissionSettings.enabled;
+  percentageInp.value = commissionSettings.percentage;
+
+  enabledInp.addEventListener('change', ()=>{
+    commissionSettings.enabled = enabledInp.checked;
+    saveCommissionSettings();
+    recomputeVisibleTotals();
+  });
+  percentageInp.addEventListener('input', ()=>{
+    const p = percentageInp.value === '' ? null : parseFloat(percentageInp.value);
+    commissionSettings.percentage = (p===null || isNaN(p)) ? null : p;
+    saveCommissionSettings();
+    recomputeVisibleTotals();
+  });
+}
+
+// Company & Invoice Details inputs (Settings tab) — plain text fields that
+// feed directly into the Invoice PDF. Saved on every keystroke (debounced)
+// since there's no separate "save" button anywhere else in this app.
+const debouncedSaveCompanyInfo = debounce(saveCompanyInfo, 300);
+const debouncedSaveInvoiceSettings = debounce(saveInvoiceSettings, 300);
+
+function initCompanyInvoiceInputs(){
+  const phoneInp = document.getElementById('companyPhoneInput');
+  const emailInp = document.getElementById('companyEmailInput');
+  const tinInp = document.getElementById('companyTinInput');
+  const bankInp = document.getElementById('companyBankInput');
+  const termsInp = document.getElementById('invoicePaymentTermsInput');
+  const notesInp = document.getElementById('invoiceNotesInput');
+
+  phoneInp.value = companyInfo.phone || '';
+  emailInp.value = companyInfo.email || '';
+  tinInp.value = companyInfo.tin || '';
+  bankInp.value = companyInfo.bank || '';
+  termsInp.value = invoiceSettings.paymentTerms || '';
+  notesInp.value = invoiceSettings.notes || '';
+
+  phoneInp.addEventListener('input', ()=>{ companyInfo.phone = phoneInp.value; debouncedSaveCompanyInfo(); });
+  emailInp.addEventListener('input', ()=>{ companyInfo.email = emailInp.value; debouncedSaveCompanyInfo(); });
+  tinInp.addEventListener('input', ()=>{ companyInfo.tin = tinInp.value; debouncedSaveCompanyInfo(); });
+  bankInp.addEventListener('input', ()=>{ companyInfo.bank = bankInp.value; debouncedSaveCompanyInfo(); });
+  termsInp.addEventListener('input', ()=>{ invoiceSettings.paymentTerms = termsInp.value; debouncedSaveInvoiceSettings(); });
+  notesInp.addEventListener('input', ()=>{ invoiceSettings.notes = notesInp.value; debouncedSaveInvoiceSettings(); });
+}
+
+/* ============================ TAB SWITCHING ============================ */
+// Building blocks that are required on the Lightbox tab before the Material
+// Cost tab can be opened: Signage Width/Height, plus the value of any
+// Quick-Fill item that's currently ticked "Include in this quote". The
+// Settings tab is never blocked, since it doesn't depend on any of this.
+function getLightboxValidationErrors(){
+  const errors = [];
+  const widthRaw = document.getElementById('lbWidth').value;
+  const heightRaw = document.getElementById('lbHeight').value;
+  const width = widthRaw === '' ? null : parseFloat(widthRaw);
+  const height = heightRaw === '' ? null : parseFloat(heightRaw);
+  if(width === null || isNaN(width) || width <= 0) errors.push('Signage Width');
+  if(height === null || isNaN(height) || height <= 0) errors.push('Signage Height');
+
+  getQuickFillItems().forEach(it=>{
+    if(it.excludedFromJob) return; // not ticked "Include in this quote" — not required
+    const val = isTransportItem(it) ? it.price : it.qty;
+    if(val === null || val === undefined || isNaN(val) || val <= 0) errors.push(it.name);
+  });
+
+  return errors;
+}
+
+function showLightboxValidationMessage(errors){
+  const msgBox = document.getElementById('lbValidationMsg');
+  if(errors.length === 0){
+    msgBox.style.display = 'none';
+    return;
+  }
+  msgBox.style.display = 'block';
+  msgBox.textContent = `Fill in these required fields before continuing to Material Cost: ${errors.join(', ')}.`;
+}
+
+function switchToTab(tabName){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tabName));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tabName).classList.add('active');
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(btn.dataset.tab === 'cost'){
+      const errors = getLightboxValidationErrors();
+      if(errors.length > 0){
+        showLightboxValidationMessage(errors);
+        switchToTab('lightbox'); // keep/send the user back to Lightbox to fix it
+        return;
+      }
+      document.getElementById('lbValidationMsg').style.display = 'none';
+    }
+    if(btn.dataset.tab === 'settings' && !settingsUnlockedThisSession){
+      openSettingsPasswordModal();
+      return;
+    }
+    switchToTab(btn.dataset.tab);
+    if(btn.dataset.tab === 'cost') renderCostTable();
+  });
+});
+
+/* ============================ SETTINGS PASSWORD MODAL ============================ */
+function openSettingsPasswordModal(){
+  const modal = document.getElementById('settingsPwModal');
+  const input = document.getElementById('settingsPwModalInput');
+  const errBox = document.getElementById('settingsPwModalError');
+  const hintBox = document.getElementById('settingsPwModalHint');
+  errBox.style.display = 'none';
+  input.value = '';
+  hintBox.style.display = 'none';
+  modal.style.display = 'flex';
+  setTimeout(()=>input.focus(), 30);
+}
+function closeSettingsPasswordModal(){
+  document.getElementById('settingsPwModal').style.display = 'none';
+}
+async function attemptSettingsUnlock(){
+  const input = document.getElementById('settingsPwModalInput');
+  const errBox = document.getElementById('settingsPwModalError');
+  const res = await hadarUnlock(input.value);
+  if(res.ok){
+    settingsUnlockedThisSession = true;
+    closeSettingsPasswordModal();
+    switchToTab('settings');
+  } else {
+    errBox.style.display = 'block';
+    errBox.textContent = res.error || 'Incorrect PIN. Try again.';
+    input.value = '';
+    input.focus();
+  }
+}
+document.getElementById('settingsPwModalUnlockBtn').addEventListener('click', attemptSettingsUnlock);
+document.getElementById('settingsPwModalCancelBtn').addEventListener('click', closeSettingsPasswordModal);
+document.getElementById('settingsPwModalInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') attemptSettingsUnlock();
+});
+
+function showSettingsPwMsg(text, isError){
+  const box = document.getElementById('settingsPwMsg');
+  box.style.display = 'block';
+  box.style.background = isError ? '#fdecea' : '#eaf7ef';
+  box.style.border = '1px solid ' + (isError ? 'var(--red)' : 'var(--green)');
+  box.style.color = isError ? 'var(--red)' : 'var(--green)';
+  box.textContent = text;
+  clearTimeout(showSettingsPwMsg._t);
+  showSettingsPwMsg._t = setTimeout(()=>{ box.style.display = 'none'; }, 5000);
+}
+
+document.getElementById('updateSettingsPwBtn').addEventListener('click', async ()=>{
+  const curInp = document.getElementById('settingsPwCurrentInput');
+  const newInp = document.getElementById('settingsPwNewInput');
+  const confInp = document.getElementById('settingsPwConfirmInput');
+  const res = await hadarChangePin(curInp.value, newInp.value, confInp.value);
+  if(!res.ok){
+    showSettingsPwMsg(res.error || 'Could not change the PIN.', true);
+    return;
+  }
+  curInp.value = ''; newInp.value = ''; confInp.value = '';
+  showSettingsPwMsg('PIN updated for all pricing tools.', false);
+});
+
+document.getElementById('lockSettingsNowBtn').addEventListener('click', ()=>{
+  settingsUnlockedThisSession = false;
+  hadarLock();
+  switchToTab('lightbox');
+});
+
+/* ============================ FORMATTING ============================ */
+function fmt(n){
+  if(n === null || n === undefined || isNaN(n)) return '-';
+  return Number(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+/* ============================ COST TABLE RENDER ============================ */
+function computeQtyForItem(it){
+  if(it.autoCalc && it.autoCalc.enabled){
+    const formulaKey = it.autoCalc.formulaKey;
+    // Metal runs off Signage Width/Height from the Lightbox tab directly —
+    // it has no m² concept at all, so it's handled before the m² guard below.
+    if(formulaKey === 'metal'){
+      const w = lightboxState ? lightboxState.width : null;
+      const h = lightboxState ? lightboxState.height : null;
+      const linearMeters = computeMetalLinearMeters(w, h);
+      if(linearMeters === null) return null;
+      return computeMetalBergaQty(linearMeters);
+    }
+    if(it.m2 === null || it.m2 === undefined || it.m2 === '') return null;
+    if(formulaKey === 'led'){
+      const mult = lookupTierMultiplier(ledFormulaTiers, it.m2);
+      if(mult===null || mult===undefined || isNaN(mult)) return null;
+      return Math.round(it.m2 * mult * 10000) / 10000;
+    }
+    if(formulaKey === 'relief'){
+      const a = reliefFormula.multiplier, b = reliefFormula.constant;
+      if(a===null || a===undefined || isNaN(a) || b===null || b===undefined || isNaN(b)) return null;
+      return Math.round((a * it.m2 + b) * 10000) / 10000;
+    }
+    const mult = it.autoCalc.multiplier || 0;
+    return Math.round(it.m2 * mult * 10000) / 10000;
+  }
+  return it.qty;
+}
+
+// Evaluates every Conditional Rule (Settings tab) against the source item's
+// current quantity and, when the condition holds, forces the target item's
+// value to the rule's configured value. Returns true if anything changed.
+function applyConditionalRules(){
+  let changed = false;
+  conditionalRules.forEach(rule=>{
+    const src = items.find(i=>i.id===rule.sourceItemId);
+    const tgt = items.find(i=>i.id===rule.targetItemId);
+    if(!src || !tgt) return;
+    if(rule.threshold===null || rule.threshold===undefined || rule.value===null || rule.value===undefined) return;
+    const srcVal = computeQtyForItem(src);
+    if(srcVal===null || srcVal===undefined) return;
+    let met = false;
+    switch(rule.operator){
+      case 'gte': met = srcVal >= rule.threshold; break;
+      case 'lte': met = srcVal <= rule.threshold; break;
+      case 'gt': met = srcVal > rule.threshold; break;
+      case 'lt': met = srcVal < rule.threshold; break;
+      case 'eq': met = srcVal === rule.threshold; break;
+    }
+    if(!met) return;
+    if(tgt.autoCalc && tgt.autoCalc.enabled){
+      if(tgt.m2 !== rule.value){ tgt.m2 = rule.value; changed = true; }
+    } else {
+      if(tgt.qty !== rule.value){ tgt.qty = rule.value; changed = true; }
+    }
+  });
+  return changed;
+}
+
+function renderCostTable(){
+  const body = document.getElementById('costTableBody');
+  body.innerHTML = '';
+  let grandTotal = 0;
+  let defaultsApplied = applyConditionalRules();
+
+  ['Cash','Stock'].forEach(cat=>{
+    const sectionRow = document.createElement('tr');
+    sectionRow.className = 'section-row';
+    const td = document.createElement('td');
+    td.colSpan = 6;
+    td.textContent = cat === 'Cash' ? 'CASH ITEMS' : 'STOCK ITEMS';
+    sectionRow.appendChild(td);
+    body.appendChild(sectionRow);
+
+    const catItems = items.filter(it=>it.category===cat && !it.excludedFromJob);
+    catItems.forEach((it,idx)=>{
+      // Default Value (set in Settings): whenever the relevant field is empty,
+      // pre-fill it here so it shows up — and counts toward the total — by
+      // default, without the user having to type it in for every job.
+      if(it.defaultValue!==null && it.defaultValue!==undefined){
+        if(it.autoCalc && it.autoCalc.enabled){
+          if(it.m2===null || it.m2===undefined){ it.m2 = it.defaultValue; defaultsApplied = true; }
+        } else {
+          if(it.qty===null || it.qty===undefined){ it.qty = it.defaultValue; defaultsApplied = true; }
+        }
+      }
+
+      const tr = document.createElement('tr');
+      tr.dataset.id = it.id;
+      const effectiveQty = computeQtyForItem(it);
+      const total = (effectiveQty && it.price!==null && it.price!==undefined) ? (effectiveQty*it.price) : null;
+      if(total!==null) grandTotal += total;
+
+      const warn = (effectiveQty && (it.price===null || it.price===undefined));
+      if(warn) tr.classList.add('row-warn');
+
+      let qtyCellHtml;
+      if(it.autoCalc && it.autoCalc.enabled && it.autoCalc.formulaKey === 'metal'){
+        // Fully derived from Signage Width/Height (Lightbox tab) — nothing to type here.
+        const computedLabel = effectiveQty!==null
+          ? `= ${effectiveQty} ${escapeHtml(it.unit||'berga')}`
+          : '— (enter Width &amp; Height on Lightbox tab)';
+        qtyCellHtml = `<div class="autocalc-wrap"><span class="autocalc-badge" style="font-style:normal;">${computedLabel}</span></div>`;
+      } else if(it.autoCalc && it.autoCalc.enabled){
+        const computedLabel = effectiveQty!==null ? `= ${effectiveQty} ${escapeHtml(it.unit||'pc')}` : '';
+        qtyCellHtml = `
+          <div class="autocalc-wrap">
+            <input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="m2" placeholder="m²" value="${it.m2!==null && it.m2!==undefined ? it.m2 : ''}">
+            <span class="autocalc-badge">${computedLabel}</span>
+          </div>`;
+      } else {
+        qtyCellHtml = `<input type="number" min="0" step="any" inputmode="decimal" class="qty-input" data-id="${it.id}" data-mode="qty" value="${it.qty!==null && it.qty!==undefined ? it.qty : ''}">`;
+      }
+
+      tr.innerHTML = `
+        <td class="row-no">${idx+1}</td>
+        <td class="col-item">${escapeHtml(it.name)}</td>
+        <td>${escapeHtml(it.unit||'')}</td>
+        <td>${qtyCellHtml}</td>
+        <td>${fmt(it.price)}</td>
+        <td class="row-total">${total!==null ? fmt(total) : '-'}</td>
+      `;
+      body.appendChild(tr);
+    });
+  });
+
+  document.getElementById('grandTotalDisplay').textContent = fmt(grandTotal) + ' ETB';
+  renderProfitBar(grandTotal);
+
+  if(defaultsApplied) saveItems();
+
+  body.querySelectorAll('.qty-input').forEach(inp=>{
+    // Scrolling while a number input happens to be focused silently changes
+    // its value on desktop browsers, and on mobile the focus/blur churn from
+    // that same behavior is what showed up as fields "freezing" mid-entry.
+    inp.addEventListener('wheel', e=>{ e.target.blur(); }, {passive:true});
+
+    // Auto-clamps this field into its Min Qty (Settings tab) a moment after
+    // the user stops typing — so it corrects itself without needing to
+    // click away first. Not fired on every keystroke for Min specifically,
+    // because that would snap to Min the instant someone types the first
+    // digit of a bigger number (e.g. typing "10" would jump to Min after
+    // just the "1"). Max overflow is handled instantly instead, below.
+    const debouncedClampThisField = debounce(()=>{
+      const id = inp.dataset.id;
+      const item = items.find(i=>i.id===id);
+      if(!item) return;
+      if(clampItemQty(item)){
+        saveItems();
+        const displayVal = (item.autoCalc && item.autoCalc.enabled) ? item.m2 : item.qty;
+        // Re-fetch the live input in case a full re-render happened in the
+        // meantime (e.g. the field was already blurred and clamped) — the
+        // closed-over `inp` reference could be stale by now.
+        const liveInp = document.querySelector(`.qty-input[data-id="${id}"][data-mode="${inp.dataset.mode}"]`);
+        if(liveInp) liveInp.value = (displayVal===null || displayVal===undefined) ? '' : displayVal;
+        applyDependencyWarnings();
+        recomputeVisibleTotals();
+      }
+    }, 500);
+
+    inp.addEventListener('input', e=>{
+      const id = e.target.dataset.id;
+      const mode = e.target.dataset.mode;
+      const rawVal = e.target.value;
+      const val = rawVal === '' ? null : parseFloat(rawVal);
+      const item = items.find(i=>i.id===id);
+      if(mode === 'm2'){ item.m2 = val; } else { item.qty = val; }
+
+      // Above Max is safe to correct instantly, on every keystroke — typing
+      // more digits can only make an over-max number bigger, never bring it
+      // back down, so there's no scenario where this interrupts someone
+      // still mid-entry.
+      if(clampItemQty(item, 'max')){
+        const displayVal = (item.autoCalc && item.autoCalc.enabled) ? item.m2 : item.qty;
+        e.target.value = (displayVal===null || displayVal===undefined) ? '' : displayVal;
+      }
+
+      debouncedSaveItems();
+      applyDependencyWarnings();
+      recomputeVisibleTotals();
+      debouncedClampThisField();
+    });
+
+    // Once the user finishes editing (leaves the field), snap the value
+    // into the item's configured Min/Max Qty range (Settings tab) instead
+    // of just flagging it — below Min fills Min, above Max fills Max.
+    inp.addEventListener('blur', e=>{
+      const id = e.target.dataset.id;
+      const item = items.find(i=>i.id===id);
+      if(item && clampItemQty(item)){
+        saveItems();
+        renderCostTable();
+      }
+    });
+  });
+
+  applyDependencyWarnings();
+}
+
+// Recomputes every row's total + the grand total in place, without a full
+// re-render (a full re-render mid-typing was what caused the input to lose
+// focus / appear to "stack" characters).
+function recomputeVisibleTotals(){
+  let grandTotal = 0;
+  document.querySelectorAll('#costTableBody tr[data-id]').forEach(tr=>{
+    const id = tr.dataset.id;
+    const it = items.find(i=>i.id===id);
+    if(!it) return;
+    const effectiveQty = computeQtyForItem(it);
+    const total = (effectiveQty && it.price!==null && it.price!==undefined) ? (effectiveQty*it.price) : null;
+    if(total!==null) grandTotal += total;
+    const totalCell = tr.querySelector('.row-total');
+    if(totalCell) totalCell.textContent = total!==null ? fmt(total) : '-';
+    tr.classList.toggle('row-warn', !!(effectiveQty && (it.price===null || it.price===undefined)));
+    const badge = tr.querySelector('.autocalc-badge');
+    if(badge && it.autoCalc && it.autoCalc.enabled){
+      badge.textContent = effectiveQty!==null ? `= ${effectiveQty} ${it.unit||'pc'}` : '';
+    }
+  });
+  document.getElementById('grandTotalDisplay').textContent = fmt(grandTotal) + ' ETB';
+  renderProfitBar(grandTotal);
+}
+
+/* ============================ MIN/MAX RANGE WARNINGS ============================ */
+// The only "rule" left here is the per-item Min/Max Qty configured in the
+// Settings tab. All previously hardcoded rules (e.g. Metal -> MEBEYEJA
+// electrode, Screw -> fisher, Paint -> tinner, forced Transport/Workshop)
+// and the custom Dependency Rules feature have been removed — nothing is
+// required anymore unless it's a Min/Max guide set on the item itself.
+// Snaps an item's effective quantity into its configured Min/Max Qty range
+// (Settings tab): below Min fills Min, above Max fills Max. Works for both
+// plain Qty items and auto-calc items (adjusts m² so the computed quantity
+// lands exactly on the boundary). Returns true if a value was changed.
+function clampItemQty(it, which){
+  which = which || 'both';
+  const hasMin = which!=='max' && it.minQty!==null && it.minQty!==undefined;
+  const hasMax = which!=='min' && it.maxQty!==null && it.maxQty!==undefined;
+  if(!hasMin && !hasMax) return false;
+
+  const q = computeQtyForItem(it);
+  if(q===null || q===undefined) return false;
+
+  let clamped = q;
+  if(hasMin && clamped < it.minQty) clamped = it.minQty;
+  if(hasMax && clamped > it.maxQty) clamped = it.maxQty;
+  if(clamped === q) return false;
+
+  if(it.autoCalc && it.autoCalc.enabled){
+    const mult = it.autoCalc.multiplier;
+    if(mult){ it.m2 = Math.round((clamped/mult)*10000)/10000; }
+  } else {
+    it.qty = clamped;
+  }
+  return true;
+}
+
+function applyDependencyWarnings(){
+  const outOfRange = new Set();
+
+  items.forEach(it=>{
+    const q = computeQtyForItem(it);
+    if(q!==null && q!==undefined){
+      if((it.minQty!==null && it.minQty!==undefined && q < it.minQty) ||
+         (it.maxQty!==null && it.maxQty!==undefined && q > it.maxQty)){
+        outOfRange.add(it.id);
+      }
+    }
+  });
+
+  document.querySelectorAll('#costTableBody tr[data-id]').forEach(tr=>{
+    const id = tr.dataset.id;
+    tr.classList.remove('row-required-missing');
+    tr.classList.toggle('row-out-of-range', outOfRange.has(id));
+    const nameCell = tr.querySelector('.col-item');
+    if(nameCell){
+      nameCell.querySelectorAll('.required-badge').forEach(b=>b.remove());
+      if(outOfRange.has(id)){
+        const b = document.createElement('span');
+        b.className = 'required-badge';
+        b.style.color = '#4a2d7a';
+        b.style.background = '#e6d9f7';
+        b.textContent = 'Below Min / Above Max — auto-correcting…';
+        nameCell.appendChild(b);
+      }
+    }
+  });
+
+  return [];
+}
+
+document.getElementById('resetQtyBtn').addEventListener('click', ()=>{
+  if(!confirm('Clear all entered quantities? This also clears the Lightbox Quote tab.')) return;
+  items.forEach(it=>{ it.qty=null; it.m2=null; it.excludedFromJob=false; });
+  lightboxState = null;
+  hadarStore.removeItem('hadar_lightbox_v1');
+  ['lbWidth','lbHeight'].forEach(id=>{ document.getElementById(id).value=''; });
+  saveItems();
+  renderCostTable();
+  renderLightboxSummary();
+  renderLightboxItemPicker();
+  renderLightboxQuickFill();
+});
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ============================ SETTINGS TABLE RENDER ============================ */
+function renderSettingsTable(){
+  const body = document.getElementById('settingsTableBody');
+  body.innerHTML = '';
+  items.forEach((it,idx)=>{
+    const tr = document.createElement('tr');
+    const ac = it.autoCalc || {enabled:false, multiplier:null};
+    const formulaLabel = ac.formulaKey==='led' ? 'LED Formula ↓' : (ac.formulaKey==='relief' ? 'Relief Formula ↓' : (ac.formulaKey==='metal' ? 'Metal Formula ↓ (W×H)' : null));
+    const multiplierCellHtml = formulaLabel
+      ? `<span style="font-size:.78rem; font-style:italic; color:var(--grey-text);" title="Edit ranges/constants in Formula Settings below">${formulaLabel}</span>`
+      : `<input type="number" step="any" data-field="multiplier" data-id="${it.id}" value="${ac.multiplier!==null && ac.multiplier!==undefined ? ac.multiplier : ''}" placeholder="—" ${ac.enabled?'':'disabled'}>`;
+    tr.innerHTML = `
+      <td class="row-no" style="text-align:center;">${idx+1}</td>
+      <td><input type="text" data-field="name" data-id="${it.id}" value="${escapeAttr(it.name)}"></td>
+      <td><input type="text" data-field="unit" data-id="${it.id}" value="${escapeAttr(it.unit||'')}"></td>
+      <td>
+        <select data-field="category" data-id="${it.id}">
+          <option value="Cash" ${it.category==='Cash'?'selected':''}>Cash</option>
+          <option value="Stock" ${it.category==='Stock'?'selected':''}>Stock</option>
+        </select>
+      </td>
+      <td><input type="number" step="any" min="0" data-field="price" data-id="${it.id}" value="${it.price!==null && it.price!==undefined ? it.price : ''}" placeholder="—"></td>
+      <td style="text-align:center;"><input type="checkbox" data-field="autoCalcEnabled" data-id="${it.id}" ${ac.enabled?'checked':''}></td>
+      <td>${multiplierCellHtml}</td>
+      <td>
+        <select data-field="areaSource" data-id="${it.id}" ${(ac.enabled && ac.formulaKey!=='metal')?'':'disabled'}>
+          <option value="signage" ${(it.areaSource||'signage')==='signage'?'selected':''}>Signage</option>
+          <option value="mica" ${it.areaSource==='mica'?'selected':''}>Mica</option>
+        </select>
+      </td>
+      <td><input type="number" step="any" data-field="minQty" data-id="${it.id}" value="${it.minQty!==null && it.minQty!==undefined ? it.minQty : ''}" placeholder="—"></td>
+      <td><input type="number" step="any" data-field="maxQty" data-id="${it.id}" value="${it.maxQty!==null && it.maxQty!==undefined ? it.maxQty : ''}" placeholder="—"></td>
+      <td><input type="number" step="any" min="0" data-field="defaultValue" data-id="${it.id}" value="${it.defaultValue!==null && it.defaultValue!==undefined ? it.defaultValue : ''}" placeholder="—"></td>
+      <td style="text-align:center;"><input type="checkbox" data-field="showInLightbox" data-id="${it.id}" ${it.showInLightbox!==false?'checked':''}></td>
+      <td style="text-align:center;"><button class="btn-danger" data-remove="${it.id}">Remove</button></td>
+    `;
+    body.appendChild(tr);
+  });
+
+  body.querySelectorAll('input, select').forEach(el=>{
+    el.addEventListener('input', onSettingsFieldChange);
+    el.addEventListener('change', onSettingsFieldChange);
+  });
+  body.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.remove;
+      const it = items.find(i=>i.id===id);
+      if(!confirm(`Remove "${it.name}" from the catalog?`)) return;
+      items = items.filter(i=>i.id!==id);
+      saveItems();
+      renderSettingsTable();
+      renderCostTable();
+      renderLightboxItemPicker();
+      renderQuickFillSettingsPicker();
+      renderLightboxQuickFill();
+      renderConditionalRulesTable();
+    });
+  });
+}
+
+function escapeAttr(str){
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+// Settings tab checklist controlling which items get their own instant-fill
+// row on the Lightbox Quote tab (see renderLightboxQuickFill()).
+function renderQuickFillSettingsPicker(){
+  const wrap = document.getElementById('quickFillPicker');
+  if(!wrap) return;
+  if(items.length === 0){
+    wrap.innerHTML = `<div class="hint" style="margin:0;">No items in the catalog yet.</div>`;
+    return;
+  }
+  wrap.innerHTML = items.map(it=>`
+    <label style="display:flex; align-items:center; gap:6px; font-size:.85rem; cursor:pointer;">
+      <input type="checkbox" data-qf-setting-id="${it.id}" ${it.quickFillLightbox?'checked':''}>
+      ${escapeHtml(it.name)}
+    </label>
+  `).join('');
+  wrap.querySelectorAll('[data-qf-setting-id]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const it = items.find(i=>i.id===cb.dataset.qfSettingId);
+      if(!it) return;
+      it.quickFillLightbox = cb.checked;
+      saveItems();
+      renderLightboxQuickFill();
+      renderLightboxItemPicker();
+    });
+  });
+}
+
+const debouncedRenderCostTable = debounce(renderCostTable, 250);
+const debouncedRenderLightboxPicker = debounce(()=>renderLightboxItemPicker(), 250);
+
+/* ============================ CONDITIONAL RULES TABLE ============================ */
+const RULE_OPERATORS = [
+  {value:'gte', label:'≥ (at least)'},
+  {value:'lte', label:'≤ (at most)'},
+  {value:'gt',  label:'> (greater than)'},
+  {value:'lt',  label:'< (less than)'},
+  {value:'eq',  label:'= (equal to)'}
+];
+
+function itemOptionsHtml(selectedId){
+  return items.map(it=>`<option value="${it.id}" ${selectedId===it.id?'selected':''}>${escapeHtml(it.name)}</option>`).join('');
+}
+
+function renderConditionalRulesTable(){
+  const body = document.getElementById('rulesTableBody');
+  if(!body) return;
+  if(items.length < 2){
+    body.innerHTML = `<tr><td colspan="6" style="padding:10px 14px;" class="hint">Add at least two items to the catalog before creating a rule.</td></tr>`;
+    return;
+  }
+  if(conditionalRules.length === 0){
+    body.innerHTML = `<tr><td colspan="6" style="padding:10px 14px;" class="hint">No rules yet — click "+ Add Rule" to create one.</td></tr>`;
+    return;
+  }
+  body.innerHTML = conditionalRules.map(rule=>{
+    const opOptions = RULE_OPERATORS.map(op=>`<option value="${op.value}" ${rule.operator===op.value?'selected':''}>${op.label}</option>`).join('');
+    return `
+      <tr>
+        <td><select data-rule-field="sourceItemId" data-rule-id="${rule.id}">${itemOptionsHtml(rule.sourceItemId)}</select></td>
+        <td><select data-rule-field="operator" data-rule-id="${rule.id}">${opOptions}</select></td>
+        <td><input type="number" step="any" data-rule-field="threshold" data-rule-id="${rule.id}" value="${rule.threshold!==null && rule.threshold!==undefined ? rule.threshold : ''}" placeholder="—"></td>
+        <td><select data-rule-field="targetItemId" data-rule-id="${rule.id}">${itemOptionsHtml(rule.targetItemId)}</select></td>
+        <td><input type="number" step="any" data-rule-field="value" data-rule-id="${rule.id}" value="${rule.value!==null && rule.value!==undefined ? rule.value : ''}" placeholder="—"></td>
+        <td style="text-align:center;"><button class="btn-danger" data-remove-rule="${rule.id}">Remove</button></td>
+      </tr>`;
+  }).join('');
+
+  body.querySelectorAll('[data-rule-field]').forEach(el=>{
+    el.addEventListener('input', onRuleFieldChange);
+    el.addEventListener('change', onRuleFieldChange);
+  });
+  body.querySelectorAll('[data-remove-rule]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      conditionalRules = conditionalRules.filter(r=>r.id!==btn.dataset.removeRule);
+      saveConditionalRules();
+      renderConditionalRulesTable();
+      renderCostTable();
+    });
+  });
+}
+
+function onRuleFieldChange(e){
+  const id = e.target.dataset.ruleId;
+  const field = e.target.dataset.ruleField;
+  const rule = conditionalRules.find(r=>r.id===id);
+  if(!rule) return;
+  if(field === 'threshold' || field === 'value'){
+    rule[field] = e.target.value === '' ? null : parseFloat(e.target.value);
+  } else {
+    rule[field] = e.target.value;
+  }
+  saveConditionalRules();
+  debouncedRenderCostTable();
+}
+
+document.getElementById('addRuleBtn').addEventListener('click', ()=>{
+  if(items.length < 2){
+    alert('Add at least two items to the catalog first.');
+    return;
+  }
+  const newRule = {
+    id: 'rule_' + (ruleIdCounter++) + '_' + Date.now(),
+    sourceItemId: items[0].id,
+    operator: 'gte',
+    threshold: null,
+    targetItemId: items[1] ? items[1].id : items[0].id,
+    value: null
+  };
+  conditionalRules.push(newRule);
+  saveConditionalRules();
+  renderConditionalRulesTable();
+});
+
+function onSettingsFieldChange(e){
+  const id = e.target.dataset.id;
+  const field = e.target.dataset.field;
+  const item = items.find(i=>i.id===id);
+  if(!item) return;
+
+  if(field === 'price'){
+    item.price = e.target.value === '' ? null : parseFloat(e.target.value);
+  } else if(field === 'minQty' || field === 'maxQty'){
+    item[field] = e.target.value === '' ? null : parseFloat(e.target.value);
+  } else if(field === 'defaultValue'){
+    item.defaultValue = e.target.value === '' ? null : parseFloat(e.target.value);
+  } else if(field === 'showInLightbox'){
+    item.showInLightbox = e.target.checked;
+    saveItems();
+    renderLightboxItemPicker();
+    return;
+  } else if(field === 'autoCalcEnabled'){
+    if(!item.autoCalc) item.autoCalc = {enabled:false, multiplier:null};
+    item.autoCalc.enabled = e.target.checked;
+    if(!item.autoCalc.enabled) item.m2 = null; else item.qty = null;
+    saveItems();
+    renderSettingsTable(); // enable/disable the multiplier field immediately
+    renderCostTable();
+    return;
+  } else if(field === 'multiplier'){
+    if(!item.autoCalc) item.autoCalc = {enabled:true, multiplier:null};
+    item.autoCalc.multiplier = e.target.value === '' ? null : parseFloat(e.target.value);
+  } else {
+    item[field] = e.target.value;
+  }
+  saveItems();
+  // Debounced: typing an item name or price shouldn't re-render the (possibly
+  // hidden) Material Cost table on every keystroke — that redundant work was
+  // part of what made typing feel sluggish/frozen.
+  debouncedRenderCostTable();
+  if(field === 'name'){
+    debouncedRenderLightboxPicker();
+    renderLightboxQuickFill();
+    renderQuickFillSettingsPicker();
+    renderConditionalRulesTable();
+  }
+}
+
+document.getElementById('addItemBtn').addEventListener('click', ()=>{
+  const newItem = {
+    id: 'item_new_' + (idCounter++) + '_' + Date.now(),
+    name: 'New item',
+    unit: 'pc',
+    category: 'Cash',
+    price: null,
+    qty: null,
+    m2: null,
+    autoCalc: {enabled:false, multiplier:null},
+    minQty: null,
+    maxQty: null,
+    defaultValue: null,
+    quickFillLightbox: false,
+    areaSource: 'signage',
+    showInLightbox: true,
+    excludedFromJob: false
+  };
+  items.push(newItem);
+  saveItems();
+  renderSettingsTable();
+  renderCostTable();
+  renderLightboxItemPicker();
+  renderQuickFillSettingsPicker();
+  renderLightboxQuickFill();
+  renderConditionalRulesTable();
+  setTimeout(()=>{
+    const lastInput = document.querySelector(`input[data-field="name"][data-id="${newItem.id}"]`);
+    if(lastInput){ lastInput.focus(); lastInput.select(); }
+  }, 50);
+});
+
+/* ============================ INVOICE PDF (client-facing, A4) ============================ */
+document.getElementById('exportPdfBtn').addEventListener('click', openNegotiationModal);
+
+// Always opens fresh — deliberately never prefilled/remembered between prints,
+// per how Hadar wants negotiation top-ups handled (each invoice starts blank).
+function openNegotiationModal(){
+  if(!validateRequiredFields()){
+    alert('Please fill in Project / Client, Date (dd/mm/yyyy), and Prepared by before generating the invoice.');
+    return;
+  }
+  const input = document.getElementById('negotiationAmountInput');
+  input.value = '';
+  document.getElementById('negotiationModal').style.display = 'flex';
+  setTimeout(()=>input.focus(), 0);
+}
+
+function closeNegotiationModal(){
+  document.getElementById('negotiationModal').style.display = 'none';
+}
+
+document.getElementById('negotiationCancelBtn').addEventListener('click', closeNegotiationModal);
+
+document.getElementById('negotiationContinueBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('negotiationAmountInput').value;
+  let amt = raw === '' ? 0 : parseFloat(raw);
+  if(isNaN(amt) || amt < 0) amt = 0;
+  closeNegotiationModal();
+  generatePdf(amt);
+});
+
+// Enter key in the amount field acts like clicking Continue; Escape cancels.
+document.getElementById('negotiationAmountInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('negotiationContinueBtn').click(); }
+  if(e.key === 'Escape'){ e.preventDefault(); closeNegotiationModal(); }
+});
+
+const HADAR_LOGO_SVG = `<svg width="34" height="34" viewBox="0 0 25.65 25.24" xmlns="http://www.w3.org/2000/svg">
+  <path fill="#fdfaf9" d="M19,23.46,18.23,23,18,22.79l-.53-.35-.78-.52-.33-.22-.45-.3-.8-.53-.41-.28-.4-.26-.83-.56L13,19.46l-.17-.11-.75.5-1,.66-1.7,1.13L8,22.59l-.91.6-.35.24h0L6,23.89l.91.37c.44.16.89.3,1.35.43s.76.2,1.15.28q.91.18,1.86.27l.44-.64.7-1h0l.15-.21.25-.36.14.21.12.18.49.71.4.57.09.14.29.42c.52,0,1-.12,1.55-.21a17.51,17.51,0,0,0,3.48-1l.24-.1,0,0Z"/>
+  <path fill="#fdfaf9" d="M25.65,12.49a.2.2,0,0,0,0-.07,11.1,11.1,0,0,0-.15-1.63c0-.23-.08-.46-.13-.68s-.12-.55-.2-.81a12.1,12.1,0,0,0-.41-1.2A.69.69,0,0,0,24.7,8a11.61,11.61,0,0,0-.56-1.18l-.24-.44c-.12-.21-.25-.42-.39-.62a9.67,9.67,0,0,0-.65-.89l0,0c-.23-.29-.48-.57-.74-.84s-.27-.28-.42-.42l-.35-.32a10.29,10.29,0,0,0-.8-.65l-.22-.16L19.7,2c-.27-.16-.54-.32-.82-.47l-.06,0h0c-.22-.12-.45-.24-.68-.34s-.51-.22-.77-.32L17.19.76l-.6-.2-.8-.22L15.43.26,15,.18a7.86,7.86,0,0,0-.83-.11c-.23,0-.46,0-.69-.06h-1a8.27,8.27,0,0,0-.86,0L11,.12l-.32.05c-.29,0-.58.11-.86.18A8.37,8.37,0,0,0,9,.58c-.29.09-.58.19-.85.3s-.57.24-.85.37a12.63,12.63,0,0,0-1.75,1l-.49.36A12.7,12.7,0,0,0,4,3.5a10.32,10.32,0,0,0-.91,1L3,4.6a10.45,10.45,0,0,0-.7.91,11.68,11.68,0,0,0-.66,1.06l0,0A11.91,11.91,0,0,0,1,7.81c-.08.19-.16.38-.23.58s-.16.45-.23.69-.2.71-.28,1.07a2.33,2.33,0,0,0-.05.28A11.66,11.66,0,0,0,0,11.89v0H0c0,.29,0,.59,0,.89s0,.53,0,.79c0,.05,0,.1,0,.15a11.77,11.77,0,0,0,.21,1.58,12.34,12.34,0,0,0,.47,1.71,12.13,12.13,0,0,0,.73,1.69c.2.38.42.76.65,1.11.12.19.25.37.38.54l.36.47.55-.36.37-.25.54-.36,1-.7h0l1.11-.74h0l1.09-.73.14-.1,1.44-1,2-1.33h0l1.69-1.12.32.21.76.51.18.12.58.38,1,.69.44.3.74.49.41.27.31.21.73.48.53.36.19.12.71.48.66.44.77.51.71.48.06,0,.64.42.21.14a12.38,12.38,0,0,0,.86-1.19,12.18,12.18,0,0,0,.68-1.22,13.15,13.15,0,0,0,.69-1.7,14.56,14.56,0,0,0,.41-1.64c0-.22.07-.44.1-.67a12.47,12.47,0,0,0,.1-1.62ZM20.11,7.86l-1.46.42a2.18,2.18,0,0,0-1.48,1.48l-.43,1.47a.12.12,0,0,1-.23,0l-.42-1.47a2.2,2.2,0,0,0-1.48-1.48l-1.47-.42a.12.12,0,0,1,0-.23l1.47-.43a2.18,2.18,0,0,0,1.48-1.48l.42-1.46a.12.12,0,0,1,.23,0l.43,1.46A2.16,2.16,0,0,0,18.65,7.2l1.46.43A.12.12,0,0,1,20.11,7.86Z"/>
+</svg>`;
+
+// Holds the current invoice's number for the run (assigned once per
+// successful download in generatePdf, via nextInvoiceNumber()).
+let pendingInvoiceNumber = null;
+
+function buildInvoiceHtml(invoiceNumber, negotiationTopUp){
+  const client = document.getElementById('projClient').value || '—';
+  const clientContact = document.getElementById('projClientContact').value || '';
+  const dateStr = document.getElementById('projDate').value;
+  const dc = parseDdMmYyyy(dateStr);
+  const date = dc.valid
+    ? new Date(dc.year, dc.month-1, dc.day).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+    : (dateStr || '—');
+  const prep = document.getElementById('projPrep').value || '—';
+
+  // Final client-facing amount only — never the material/quantity breakdown.
+  // Grand Total + Profit + Commission (as shown on the Profit bar) is the
+  // actual selling price. Any negotiation top-up is blended straight into
+  // this same figure — it is never labeled or broken out anywhere in the
+  // PDF, by design.
+  let grandTotal = 0;
+  items.forEach(it=>{
+    if(it.excludedFromJob) return;
+    const effectiveQty = computeQtyForItem(it);
+    const hasTotal = (effectiveQty && it.price!==null && it.price!==undefined);
+    if(hasTotal) grandTotal += effectiveQty * it.price;
+  });
+  const topUp = (typeof negotiationTopUp === 'number' && !isNaN(negotiationTopUp) && negotiationTopUp > 0) ? negotiationTopUp : 0;
+  const amountDue = computeClientTotal(grandTotal) + topUp;
+
+  const contactLines = [];
+  if(companyInfo.phone) contactLines.push(`Tel: ${escapeHtml(companyInfo.phone)}`);
+  if(companyInfo.email) contactLines.push(`Email: ${escapeHtml(companyInfo.email)}`);
+  if(companyInfo.tin) contactLines.push(`TIN/VAT Reg: ${escapeHtml(companyInfo.tin)}`);
+
+  const billToLines = [`<div style="font-weight:700; font-size:13px; margin-bottom:2px;">${escapeHtml(client)}</div>`];
+  if(clientContact) billToLines.push(`<div>${escapeHtml(clientContact)}</div>`);
+
+  const notesBlock = invoiceSettings.notes
+    ? `<div style="margin-top:18px; font-size:10.5px; color:#4a4048;"><strong>Notes:</strong> ${escapeHtml(invoiceSettings.notes)}</div>`
+    : '';
+  const termsBlock = invoiceSettings.paymentTerms
+    ? `<div style="margin-top:8px; font-size:10.5px; color:#4a4048;"><strong>Payment Terms:</strong> ${escapeHtml(invoiceSettings.paymentTerms)}</div>`
+    : '';
+  const bankBlock = companyInfo.bank
+    ? `<div style="margin-top:8px; font-size:10.5px; color:#4a4048;"><strong>Bank Details:</strong> ${escapeHtml(companyInfo.bank)}</div>`
+    : '';
+
+  return `
+  <div style="font-family:'Segoe UI',Calibri,Arial,sans-serif; width:794px; background:#fff; color:#262626; box-sizing:border-box; padding:0; position:relative;">
+    <div style="background:#a3123a; padding:24px 40px 18px; display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:14px;">
+        ${HADAR_LOGO_SVG}
+        <div>
+          <div style="color:#fff; font-size:22px; font-weight:800; letter-spacing:.4px;">HADAR ADVERTISING</div>
+          <div style="color:#f4d3dc; font-size:11px; font-style:italic; margin-top:3px;">Hayahulet, Bata Complex Building, 2nd Floor, Addis Ababa</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="color:#fff; font-size:24px; font-weight:800; letter-spacing:.08em;">INVOICE</div>
+        <div style="color:#f4d3dc; font-size:11px; margin-top:3px;">${escapeHtml(invoiceNumber)}</div>
+      </div>
+    </div>
+    <div style="height:4px; background:linear-gradient(90deg,#8a0f30,#c41643);"></div>
+
+    <div style="padding:22px 40px 0; display:flex; justify-content:space-between; gap:30px;">
+      <div style="flex:1;">
+        <div style="font-size:9.5px; font-weight:700; letter-spacing:.06em; color:#a3123a; text-transform:uppercase; margin-bottom:6px;">Bill To</div>
+        <div style="font-size:11.5px; line-height:1.5;">${billToLines.join('')}</div>
+      </div>
+      <div style="width:230px; font-size:11.5px; line-height:1.7;">
+        <div style="display:flex; justify-content:space-between;"><span style="color:#6b5b5f;">Invoice Date</span><strong>${escapeHtml(date)}</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span style="color:#6b5b5f;">Invoice No.</span><strong>${escapeHtml(invoiceNumber)}</strong></div>
+        <div style="display:flex; justify-content:space-between;"><span style="color:#6b5b5f;">Issued By</span><strong>${escapeHtml(prep)}</strong></div>
+      </div>
+    </div>
+
+    <div style="padding:26px 40px 0;">
+      <table style="width:100%; border-collapse:collapse; font-size:12px;">
+        <thead>
+          <tr>
+            <th style="background:#c41643; color:#fff; text-align:left; padding:10px 14px; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase; font-weight:700;">Description</th>
+            <th style="background:#c41643; color:#fff; text-align:right; padding:10px 14px; font-size:10.5px; letter-spacing:.04em; text-transform:uppercase; font-weight:700; width:38%;">Amount (ETB)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:22px 14px; border-bottom:1px solid #eddade;">
+              <div style="font-weight:700;">Signage / Interior Works — ${escapeHtml(client)}</div>
+              <div style="color:#6b5b5f; font-size:10.5px; margin-top:4px;">As agreed with Hadar Advertising. Full cost breakdown available on request.</div>
+            </td>
+            <td style="padding:22px 14px; border-bottom:1px solid #eddade; text-align:right; font-weight:700; vertical-align:top;">${fmt(amountDue)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+        <div style="width:280px;">
+          <div style="display:flex; justify-content:space-between; padding:6px 14px; font-size:11.5px; color:#6b5b5f;">
+            <span>Subtotal</span><span>${fmt(amountDue)} ETB</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:6px 14px; font-size:10.5px; color:#6b5b5f; font-style:italic;">
+            <span>VAT</span><span>Not included</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; background:#a3123a; border-radius:6px; padding:12px 16px; margin-top:8px;">
+            <span style="color:#fff; font-weight:800; font-size:12.5px; letter-spacing:.03em;">TOTAL DUE</span>
+            <span style="color:#fdfaf9; font-weight:800; font-size:17px;">${fmt(amountDue)} ETB</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:6px; text-align:right; font-size:9.5px; color:#a3123a; font-weight:700;">* All prices are exclusive of VAT.</div>
+
+      ${termsBlock}
+      ${bankBlock}
+      ${notesBlock}
+
+      <div style="display:flex; justify-content:space-between; margin-top:46px; padding-top:10px;">
+        <div style="width:220px; text-align:center;">
+          <div style="border-top:1px solid #262626; padding-top:6px; font-size:10px; color:#6b5b5f;">Authorized Signature</div>
+        </div>
+        <div style="width:220px; text-align:center;">
+          <div style="border-top:1px solid #262626; padding-top:6px; font-size:10px; color:#6b5b5f;">Company Stamp</div>
+        </div>
+      </div>
+
+      <div style="margin-top:28px; text-align:center; font-size:11px; color:#a3123a; font-weight:600; font-style:italic;">Thank you for your business.</div>
+
+      <div style="margin-top:18px; display:flex; justify-content:space-between; font-size:9px; color:#888; border-top:1px solid #eddade; padding-top:8px; padding-bottom:24px;">
+        <span>${contactLines.join('  •  ') || 'Hadar Advertising'}</span>
+        <span>Generated ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
+      </div>
+    </div>
+  </div>
+  `;
+}
+
+async function generatePdf(negotiationTopUp){
+  if(!validateRequiredFields()){
+    alert('Please fill in Project / Client, Date (dd/mm/yyyy), and Prepared by before generating the invoice.');
+    return;
+  }
+  const btn = document.getElementById('exportPdfBtn');
+  const originalText = btn.textContent;
+  btn.textContent = 'Generating…';
+  btn.disabled = true;
+
+  let invoicePreview;
+  try{ invoicePreview = await hadarNextInvoiceNumber(); }
+  catch(e){
+    alert('Could not get an invoice number from the server. Check the connection and try again.');
+    btn.textContent = originalText; btn.disabled = false; validateRequiredFields();
+    return;
+  }
+  const invoiceNumber = invoicePreview.label;
+  const container = document.getElementById('printTemplate');
+  container.innerHTML = buildInvoiceHtml(invoiceNumber, negotiationTopUp);
+  container.style.position = 'fixed';
+  container.style.left = '0';
+  container.style.top = '0';
+  container.style.zIndex = '-1';
+  const innerEl = container.firstElementChild;
+
+  await new Promise(r=>setTimeout(r, 100));
+
+  try{
+    const canvas = await html2canvas(innerEl, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      windowWidth: 794
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidthMm = 210;
+    const pageHeightMm = 297;
+
+    const imgWidthMm = pageWidthMm;
+    const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width;
+
+    const imgData = canvas.toDataURL('image/png');
+
+    if (imgHeightMm <= pageHeightMm) {
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidthMm, imgHeightMm);
+    } else {
+      // paginate: slice the canvas into page-height chunks
+      const pageHeightPx = Math.floor((pageHeightMm * canvas.width) / pageWidthMm);
+      let renderedHeightPx = 0;
+      let first = true;
+      while (renderedHeightPx < canvas.height) {
+        const sliceHeightPx = Math.min(pageHeightPx, canvas.height - renderedHeightPx);
+        const sliceCanvas = document.createElement('canvas');
+        sliceCanvas.width = canvas.width;
+        sliceCanvas.height = sliceHeightPx;
+        const ctx = sliceCanvas.getContext('2d');
+        ctx.drawImage(canvas, 0, renderedHeightPx, canvas.width, sliceHeightPx, 0, 0, canvas.width, sliceHeightPx);
+        const sliceData = sliceCanvas.toDataURL('image/png');
+        const sliceHeightMm = (sliceHeightPx * imgWidthMm) / canvas.width;
+        if (!first) pdf.addPage();
+        pdf.addImage(sliceData, 'PNG', 0, 0, imgWidthMm, sliceHeightMm);
+        renderedHeightPx += sliceHeightPx;
+        first = false;
+      }
+    }
+
+    const client = (document.getElementById('projClient').value || 'client').trim().replace(/[^a-z0-9]+/gi,'_').slice(0,40) || 'client';
+    pdf.save(`Hadar_Invoice_${invoiceNumber}_${client}.pdf`);
+
+    btn.textContent = originalText;
+    validateRequiredFields();
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.zIndex = '';
+  }catch(err){
+    console.error(err);
+    alert('PDF generation failed: ' + err.message);
+    btn.textContent = originalText;
+    validateRequiredFields();
+  }
+}
+
+/* ============================ DATE FIELD (calendar picker, dd/mm/yyyy display) ============================ */
+const projDateInput = document.getElementById('projDate');
+const projDatePicker = document.getElementById('projDatePicker');
+
+// Clicking or focusing the visible readonly field opens the native calendar.
+projDateInput.addEventListener('click', ()=>{
+  if(projDatePicker.showPicker){ projDatePicker.showPicker(); }
+  else { projDatePicker.click(); }
+});
+projDateInput.addEventListener('focus', ()=>{
+  if(projDatePicker.showPicker){ projDatePicker.showPicker(); }
+});
+
+// When a date is chosen from the calendar, format it as dd/mm/yyyy in the visible field.
+projDatePicker.addEventListener('change', ()=>{
+  const val = projDatePicker.value; // yyyy-mm-dd
+  if(val){
+    const [y,m,d] = val.split('-');
+    projDateInput.value = `${d}/${m}/${y}`;
+  } else {
+    projDateInput.value = '';
+  }
+  validateRequiredFields();
+});
+
+// Returns {valid, reason, day, month, year} after checking the dd/mm/yyyy string is a real calendar date
+function parseDdMmYyyy(str){
+  const trimmed = str.trim();
+  if(trimmed === '') return {valid:false, reason:'missing'};
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
+  if(!m) return {valid:false, reason:'format'};
+  const day = parseInt(m[1],10), month = parseInt(m[2],10), year = parseInt(m[3],10);
+  if(month < 1 || month > 12) return {valid:false, reason:'month'};
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if(day < 1 || day > daysInMonth) return {valid:false, reason:'day'};
+  return {valid:true, day, month, year};
+}
+
+/* ============================ REQUIRED FIELDS VALIDATION ============================ */
+function validateRequiredFields(){
+  const client = document.getElementById('projClient').value.trim();
+  const prep = document.getElementById('projPrep').value.trim();
+  const dateStr = document.getElementById('projDate').value.trim();
+  const dateCheck = parseDdMmYyyy(dateStr);
+
+  const clientOk = client.length > 0;
+  const prepOk = prep.length > 0;
+  const dateOk = dateCheck.valid;
+
+  const dependencyMessages = applyDependencyWarnings();
+  const depsOk = dependencyMessages.length === 0;
+
+  const exportBtn = document.getElementById('exportPdfBtn');
+  const msgBox = document.getElementById('validationMsg');
+  const allOk = clientOk && prepOk && dateOk && depsOk;
+  exportBtn.disabled = !allOk;
+
+  const missing = [];
+  if(!clientOk) missing.push('Project / Client');
+  if(!dateOk) missing.push('Date (dd/mm/yyyy)');
+  if(!prepOk) missing.push('Prepared by');
+
+  const allMissing = [...missing, ...dependencyMessages];
+
+  if(allOk){
+    msgBox.style.display = 'none';
+    exportBtn.title = '';
+  } else {
+    msgBox.style.display = 'block';
+    msgBox.textContent = 'Before exporting the PDF, please fix: ' + allMissing.join(' | ');
+    exportBtn.title = msgBox.textContent;
+  }
+
+  return allOk;
+}
+
+document.getElementById('projClient').addEventListener('input', validateRequiredFields);
+document.getElementById('projPrep').addEventListener('input', validateRequiredFields);
+
+/* ============================ INIT ============================ */
+renderCostTable();
+renderSettingsTable();
+renderLightboxItemPicker();
+renderQuickFillSettingsPicker();
+renderLightboxQuickFill();
+renderConditionalRulesTable();
+renderMicaFormulaTable();
+renderLedFormulaTable();
+initReliefFormulaInputs();
+initMetalFormulaInputs();
+initProfitSettingsInputs();
+initCommissionSettingsInputs();
+initCompanyInvoiceInputs();
+restoreLightboxFormFromState();
+validateRequiredFields();
+</script>
+
+</body>
+</html>
