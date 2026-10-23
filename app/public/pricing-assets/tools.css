@@ -573,7 +573,7 @@ body { background: var(--g-bg) !important; color: var(--g-ink) !important; }
 .lq-row .quickfill-check input[type=checkbox] { width: 22px !important; height: 22px !important; }
 .lq-row .lbx-qf-ico { display: inline-flex; color: var(--g-mute); font-size: 22px; flex-shrink: 0; }
 .lq-row .lbx-qf-name { min-width: 0; display: flex; flex-direction: column; line-height: 1.2; overflow-wrap: anywhere; }
-.lq-row .lbx-qf-name small { font-size: 12px; font-weight: 500; color: var(--g-mute); margin-top: 2px; }
+.lq-row .lbx-qf-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .lq-row .quickfill-check { min-width: 0 !important; }
 .lq-row .lbx-qf-input { display: inline-flex; align-items: stretch; flex-shrink: 0; border: 1px solid var(--g-fline); border-radius: 10px; overflow: hidden; background: #fff; }
 .lq-row .quickfill-input { width: 92px !important; border: 0 !important; border-radius: 0 !important; min-height: 40px !important; padding: 0 8px !important; text-align: center; font-size: 17px !important; font-weight: 700; box-shadow: none !important; background: #fff !important; }
@@ -700,3 +700,44 @@ body { background: var(--g-bg) !important; color: var(--g-ink) !important; }
 .pt-bar .pt-bar-1st:disabled { background: #EBC6D0 !important; opacity: 1 !important; box-shadow: none !important; cursor: not-allowed; }
 .pt-bar.pt-bar-has2 .pt-bar-ico { display: none !important; }
 body.pt-has-bar { padding-bottom: calc(var(--pt-bar-h) + env(safe-area-inset-bottom)) !important; }
+
+/* ---------- Lightbox Quote — one screen (picture) ----------
+   The tab fills the space between the tabs and the bottom bar; only the
+   Include list (and a long Quick-Fill list) scrolls inside its card. */
+#tab-lightbox.active { display: flex !important; flex-direction: column; gap: 8px; height: calc(100vh - var(--pt-tabs-h, 50px) - var(--pt-bar-h, 64px) - 16px); min-height: 500px; }
+#tab-lightbox > * { flex-shrink: 0; margin: 0 !important; }
+#tab-lightbox .lq-card { padding: 11px 12px; border-radius: 14px; }
+#tab-lightbox .lq-head { gap: 10px; margin-bottom: 9px; }
+#tab-lightbox .lq-ico:not(.lq-ico-plain) { width: 38px; height: 38px; font-size: 20px; border-radius: 10px; }
+#tab-lightbox .lq-head-text h3 { font-size: 17px !important; }
+#tab-lightbox .lq-head-text p { font-size: 13px; }
+#tab-lightbox .lq-head-row { margin-bottom: 8px; }
+#tab-lightbox .lq-sub { margin-bottom: 8px; }
+#tab-lightbox .lq-grid { gap: 8px; }
+#tab-lightbox .lq-box { padding: 6px 10px 4px; gap: 0; }
+#tab-lightbox .lq-lab { min-height: 20px; font-size: 12px; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+#tab-lightbox .lq-lab i, #tab-lightbox .lq-lab input[type=checkbox] { vertical-align: -3px; margin-right: 4px; }
+#tab-lightbox .lq-box input[type=number] { min-height: 30px !important; font-size: 21px !important; }
+#tab-lightbox .lq-area-card { padding: 10px 12px; border-radius: 14px; }
+#tab-lightbox .lq-area-ico { width: 42px; height: 42px; font-size: 22px; }
+#tab-lightbox .lq-stat b { font-size: 24px; }
+#tab-lightbox .lq-row { min-height: 46px; padding: 6px 12px; }
+#tab-lightbox .lq-row .quickfill-input { min-height: 36px !important; }
+#tab-lightbox .lq-chip { min-height: 42px; padding: 8px 12px; }
+#tab-lightbox .lq-list { max-height: 36vh; overflow-y: auto; }
+#tab-lightbox .lq-inc { flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; }
+#tab-lightbox .lq-inc .lq-chips { flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: start; overscroll-behavior: contain; }
+#tab-lightbox .lbx-apply-row { display: none !important; }
+@media (min-width: 900px) {
+  #tab-lightbox.active {
+    display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px;
+    grid-template-rows: auto minmax(0, 1fr); align-items: start;
+  }
+  #tab-lightbox .lq-size { grid-column: 1; grid-row: 1; }
+  #tab-lightbox .lq-area-card { grid-column: 1; grid-row: 2; }
+  #tab-lightbox #lbValidationMsg { grid-column: 1; grid-row: 2; align-self: end; }
+  #tab-lightbox .lq-qf { grid-column: 2; grid-row: 1; }
+  #tab-lightbox .lq-inc { grid-column: 2; grid-row: 2; align-self: stretch; min-height: 0; }
+  #tab-lightbox .lq-grid { grid-template-columns: 1fr 1fr; }
+  #tab-lightbox .lq-inc .lq-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

@@ -13,11 +13,11 @@ export function ToolFrame({ id, title }: { id: string; title: string }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const [armed, setArmed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tips, setTips] = useState(true);
+  const [tips, setTips] = useState(false);
 
   useEffect(() => {
     try {
-      setTips(window.localStorage.getItem(TIPS_KEY) !== "0");
+      setTips(window.localStorage.getItem(TIPS_KEY) === "1");
     } catch {}
   }, []);
 
