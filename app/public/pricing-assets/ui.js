@@ -15,8 +15,23 @@
   function visible(el) { return !!el && el.offsetParent !== null; }
   function text(id) { var el = $(id); return el ? el.textContent.trim() : ''; }
 
-  // ---- status into the tab bar ----
+  // ---- tabs: a segmented switch inside the crimson header ----
   var tabs = document.querySelector('.tabs');
+  if (tabs) {
+    var seg = document.createElement('div');
+    seg.className = 'pt-seg';
+    Array.prototype.slice.call(tabs.querySelectorAll('.tab, .tab-btn')).forEach(function (t) { seg.appendChild(t); });
+    tabs.insertBefore(seg, tabs.firstChild);
+  }
+
+  // ---- help text on/off (the 💡 button in the app header) ----
+  function setTips(on) { root.classList.toggle('pt-notips', !on); refresh(); }
+  try { if (window.localStorage.getItem('pricing:tips') === '0') root.classList.add('pt-notips'); } catch (e) {}
+  window.addEventListener('message', function (e) {
+    if (e.origin === window.location.origin && e.data && e.data.pt === 'tips') setTips(!!e.data.on);
+  });
+
+  // ---- status into the tab bar ----
   var status = $('saveStatus');
   if (tabs && status) {
     status.classList.add('pt-status');
@@ -110,10 +125,10 @@
   bar.hidden = true;
   bar.innerHTML =
     '<span class="pt-bar-ico"></span>' +
-    '<div class="pt-bar-total"><small></small><b></b></div>' +
+    '<div class="pt-bar-total"><small></small><b></b><em class="pt-bar-warn"></em></div>' +
     '<button type="button" class="pt-bar-2nd"></button>' +
     '<button type="button" class="pt-bar-1st"></button>';
-  var barIco = bar.querySelector('.pt-bar-ico'), barLabel = bar.querySelector('small'), barValue = bar.querySelector('b');
+  var barIco = bar.querySelector('.pt-bar-ico'), barLabel = bar.querySelector('small'), barValue = bar.querySelector('b'), barWarn = bar.querySelector('.pt-bar-warn');
   var btn1 = bar.querySelector('.pt-bar-1st'), btn2 = bar.querySelector('.pt-bar-2nd');
   var target1 = null, target2 = null;
   btn1.addEventListener('click', function () { if (target1 && !target1.disabled) target1.click(); });
@@ -124,7 +139,7 @@
     if (tool === 'lightbox') {
       if (visible($('tab-cost'))) {
         return {
-          icon: 'calculator', label: 'Total amount', value: text('totalWithProfitDisplay'),
+          icon: null, label: 'TOTAL (CLIENT PRICE)', value: text('totalWithProfitDisplay').replace(/\s*ETB$/, ''), unit: 'ETB',
           primary: { text: 'Download Invoice', icon: 'download', target: $('exportPdfBtn') },
           secondary: { text: 'Clear all', icon: 'trash', target: $('resetQtyBtn') }
         };
@@ -167,18 +182,21 @@
       return;
     }
     bar.hidden = false;
-    var icoHtml = window.ptIcon ? window.ptIcon(s.icon) : '';
+    var icoHtml = s.icon && window.ptIcon ? window.ptIcon(s.icon) : '';
     if (barIco.innerHTML !== icoHtml) barIco.innerHTML = icoHtml;
+    barIco.hidden = !icoHtml;
     var t = s.primary.target;
     var blocked = t && t.disabled && t.title;
-    barLabel.textContent = blocked ? t.title.replace(/^Before exporting the PDF, please fix:\s*/i, 'Missing: ') : s.label;
-    barLabel.classList.toggle('pt-warn', !!blocked);
-    barValue.textContent = s.value || '—';
+    barLabel.textContent = s.label;
+    barWarn.textContent = blocked ? t.title.replace(/^Before exporting the PDF, please fix:\s*/i, 'Missing: ').replace(/ \| /g, ', ') : '';
+    barWarn.hidden = !blocked;
+    var valueHtml = (s.value || '—').replace(/[&<>]/g, '') + (s.unit ? ' <span>' + s.unit + '</span>' : '');
+    if (barValue.innerHTML !== valueHtml) barValue.innerHTML = valueHtml;
     target1 = paintButton(btn1, s.primary);
     target2 = paintButton(btn2, s.secondary);
     bar.classList.toggle('pt-bar-has2', !!s.secondary);
     document.body.classList.add('pt-has-bar');
-    root.style.setProperty('--pt-bar-h', (bar.offsetHeight + (window.innerWidth > 700 ? 28 : 0)) + 'px');
+    root.style.setProperty('--pt-bar-h', bar.offsetHeight + 'px');
   }
 
   // ---- keep everything in step with the tool ----
@@ -190,6 +208,7 @@
       queued = false;
       labelTables();
       if (window.ptFillIcons) window.ptFillIcons();
+      if (tabs) root.style.setProperty('--pt-tabs-h', tabs.offsetHeight + 'px');
       compact();
       paintBar();
       paintStatus();

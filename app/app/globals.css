@@ -2170,19 +2170,27 @@ button.tab {
 .prc-ok { color: var(--success) !important; font-weight: 600; font-size: 13px; margin: 10px 0 0 !important; }
 .prc-err { color: var(--danger) !important; font-weight: 600; font-size: 13px; margin: 10px 0 0 !important; }
 
-.prc-tool { margin: -24px; height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
-.prc-toolbar { height: 60px; flex-shrink: 0; display: flex; align-items: center; gap: 12px; padding: 0 12px; background: linear-gradient(120deg, #c41643 0%, #a3123a 55%, #8a0f30 100%); color: #fff; border-radius: 0 0 16px 16px; box-shadow: 0 6px 18px rgba(138, 15, 48, .25); position: relative; z-index: 2; }
-.prc-tbtn { width: 42px; height: 42px; flex-shrink: 0; display: inline-grid; place-items: center; border-radius: 12px; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22); color: #fff; cursor: pointer; text-decoration: none; }
-.prc-tbtn:hover { background: rgba(255, 255, 255, .24); }
-.prc-tbtn.armed { background: #fff; color: var(--accent-deep); }
-.prc-title { flex: 1; min-width: 0; font-weight: 600; font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
-.prc-frame-wrap { flex: 1; position: relative; min-height: 0; margin-top: -16px; }
-.prc-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: var(--bg); padding-top: 16px; }
+.prc-tool { margin: -24px; height: 100vh; display: flex; flex-direction: column; background: #F5F2F3; }
+.prc-toolbar { flex-shrink: 0; display: flex; align-items: center; gap: 4px; height: 56px; padding: 0 10px; background: #A8133A; color: #fff; }
+.prc-hb { width: 40px; height: 40px; flex-shrink: 0; display: inline-grid; place-items: center; border-radius: 10px; border: 0; background: transparent; color: #fff; cursor: pointer; text-decoration: none; }
+.prc-hb:hover { background: rgba(255, 255, 255, .18); }
+.prc-menu { display: none; }
+.prc-tips { opacity: .75; }
+.prc-tips.on { opacity: 1; background: rgba(255, 255, 255, .22); }
+.prc-reload { border: 1px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .12); margin-left: 4px; }
+.prc-reload.armed { background: #fff; color: #A8133A; }
+.prc-titles { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-left: 4px; }
+.prc-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #FFE3EA; }
+.prc-title { font-size: 17px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+.prc-frame-wrap { flex: 1; position: relative; min-height: 0; }
+.prc-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; background: #F5F2F3; }
 .prc-loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-dim); font-size: 13px; }
 @media (max-width: 860px) {
-  .prc-tool { margin: -16px; height: calc(100vh - 61px); height: calc(100dvh - 61px); }
-  .prc-toolbar { height: 56px; }
-  .prc-title { font-size: 17px; }
+  .prc-tool { margin: -16px; }
+  .app-shell:has(.prc-tool) .mobile-topbar { display: none; }
+  .prc-tool { height: 100vh; height: 100dvh; }
+  .prc-toolbar { height: 54px; padding: 0 6px 0 8px; }
+  .prc-menu { display: inline-grid; }
   .prc-long { display: none; }
   .prc-hero h1 { font-size: 20px; }
   .prc-tool-card { padding: 14px; gap: 12px; }
