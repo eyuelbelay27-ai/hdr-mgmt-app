@@ -1501,6 +1501,8 @@ function renderLightboxQuickFill(){
     wrap.innerHTML = `<div class="quickfill-empty">No Quick-Fill items yet — enable some in Settings ("Lightbox Quick-Fill Items").</div>`;
     return;
   }
+  // "Footing (use 1 pc per foot)" -> name "Footing", note "use 1 pc per foot"
+  const qfSplit = (n)=>{ const m = /^(.*?)\s*\((.+)\)\s*$/.exec(n||''); return m && m[1] ? [m[1], m[2]] : [n||'', '']; };
   wrap.innerHTML = qfItems.map(it=>{
     const included = !it.excludedFromJob;
     const transport = isTransportItem(it);
@@ -1515,7 +1517,7 @@ function renderLightboxQuickFill(){
         <label class="quickfill-check">
           <input type="checkbox" data-qf-include="${it.id}" ${included?'checked':''}>
           <span class="lbx-qf-ico">${ptIcon(icon)}</span>
-          <span class="lbx-qf-name">${escapeHtml(it.name)}</span>
+          <span class="lbx-qf-name">${escapeHtml(qfSplit(it.name)[0])}${qfSplit(it.name)[1]?`<small>${escapeHtml(qfSplit(it.name)[1])}</small>`:''}</span>
         </label>
         ${included ? `
           <span class="lbx-qf-input">
