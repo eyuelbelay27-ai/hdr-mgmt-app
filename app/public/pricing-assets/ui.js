@@ -24,9 +24,11 @@
     tabs.insertBefore(seg, tabs.firstChild);
   }
 
-  // ---- help text on/off (the 💡 button in the app header) ----
+  // ---- help text on/off (the 💡 button in the app header; off by default) ----
   function setTips(on) { root.classList.toggle('pt-notips', !on); refresh(); }
-  try { if (window.localStorage.getItem('pricing:tips') === '0') root.classList.add('pt-notips'); } catch (e) {}
+  // hidden until the owner turns them on
+  root.classList.add('pt-notips');
+  try { if (window.localStorage.getItem('pricing:tips') === '1') root.classList.remove('pt-notips'); } catch (e) {}
   window.addEventListener('message', function (e) {
     if (e.origin === window.location.origin && e.data && e.data.pt === 'tips') setTips(!!e.data.on);
   });

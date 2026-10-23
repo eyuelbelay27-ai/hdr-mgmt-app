@@ -479,7 +479,7 @@
 
   <!-- ===================== LIGHTBOX QUOTE TAB ===================== -->
   <div class="tab-panel active" id="tab-lightbox">
-    <section class="lq-card">
+    <section class="lq-card lq-size">
       <div class="lq-head">
         <span class="lq-ico" data-ic="ruler"></span>
         <div class="lq-head-text">
@@ -514,7 +514,7 @@
       <p class="lq-note"><span data-ic="info"></span><span><b>Mica Area is calculated automatically from Signage Area</b> using the Mica Formula ranges set in Settings (“Formula Settings” → “Mica Formula”).</span></p>
     </section>
 
-    <section class="lq-card">
+    <section class="lq-card lq-qf">
       <div class="lq-head lq-head-row">
         <span class="lq-ico lq-ico-plain" data-ic="clipboard"></span>
         <h3>Quick-Fill Items</h3>
@@ -524,7 +524,7 @@
       <div id="lbQuickFillWrap" class="lq-list"></div>
     </section>
 
-    <section class="lq-card">
+    <section class="lq-card lq-inc">
       <div class="lq-head lq-head-row">
         <span class="lq-ico lq-ico-plain" data-ic="list"></span>
         <h3>Include in This Quote</h3>
@@ -1501,8 +1501,8 @@ function renderLightboxQuickFill(){
     wrap.innerHTML = `<div class="quickfill-empty">No Quick-Fill items yet — enable some in Settings ("Lightbox Quick-Fill Items").</div>`;
     return;
   }
-  // "Footing (use 1 pc per foot)" -> name "Footing", note "use 1 pc per foot"
-  const qfSplit = (n)=>{ const m = /^(.*?)\s*\((.+)\)\s*$/.exec(n||''); return m && m[1] ? [m[1], m[2]] : [n||'', '']; };
+  // "Footing (use 1 pc per foot)" -> "Footing" (the full name stays in the tooltip)
+  const qfSplit = (n)=>{ const m = /^(.*?)\s*\(.+\)\s*$/.exec(n||''); return m && m[1] ? m[1] : (n||''); };
   wrap.innerHTML = qfItems.map(it=>{
     const included = !it.excludedFromJob;
     const transport = isTransportItem(it);
@@ -1517,7 +1517,7 @@ function renderLightboxQuickFill(){
         <label class="quickfill-check">
           <input type="checkbox" data-qf-include="${it.id}" ${included?'checked':''}>
           <span class="lbx-qf-ico">${ptIcon(icon)}</span>
-          <span class="lbx-qf-name">${escapeHtml(qfSplit(it.name)[0])}${qfSplit(it.name)[1]?`<small>${escapeHtml(qfSplit(it.name)[1])}</small>`:''}</span>
+          <span class="lbx-qf-name" title="${escapeAttr(it.name)}">${escapeHtml(qfSplit(it.name))}</span>
         </label>
         ${included ? `
           <span class="lbx-qf-input">
