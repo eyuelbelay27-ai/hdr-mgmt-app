@@ -479,76 +479,62 @@
 
   <!-- ===================== LIGHTBOX QUOTE TAB ===================== -->
   <div class="tab-panel active" id="tab-lightbox">
-    <section class="lbx-card">
-      <div class="lbx-head">
-        <span class="lbx-ico" data-ic="ruler"></span>
-        <div class="lbx-head-text">
+    <section class="lq-card">
+      <div class="lq-head">
+        <span class="lq-ico" data-ic="ruler"></span>
+        <div class="lq-head-text">
           <h3>Signage Size</h3>
           <p>Enter the total outside size of the lightbox.</p>
         </div>
         <button type="button" class="lbx-info" data-ic="info" aria-label="How this works"
           data-tip="Width and height flow automatically into every material in the catalog that needs them — no need to re-type m² on each row."></button>
       </div>
-      <div class="lbx-grid2">
-        <label class="lbx-field">
-          <span class="lbx-label"><i data-ic="width"></i>Width (m) <span class="required-star">*</span></span>
+      <div class="lq-grid">
+        <label class="lq-box">
+          <span class="lq-lab"><i data-ic="width"></i>Width (m) <span class="required-star">*</span></span>
           <input type="number" min="0" step="any" inputmode="decimal" id="lbWidth" placeholder="e.g. 2.5">
         </label>
-        <label class="lbx-field">
-          <span class="lbx-label"><i data-ic="height"></i>Height (m) <span class="required-star">*</span></span>
+        <label class="lq-box">
+          <span class="lq-lab"><i data-ic="height"></i>Height (m) <span class="required-star">*</span></span>
           <input type="number" min="0" step="any" inputmode="decimal" id="lbHeight" placeholder="e.g. 1.2">
         </label>
-      </div>
-    </section>
-
-    <div class="lbx-grid2 lbx-pair">
-      <section class="lbx-card lbx-mini">
-        <label class="lbx-field">
-          <span class="lbx-label"><i data-ic="percent"></i>Profit Percentage (%)</span>
+        <label class="lq-box">
+          <span class="lq-lab"><i data-ic="percent"></i>Profit Percentage (%)</span>
           <input type="number" min="0" step="any" inputmode="decimal" id="lbProfitPercentage" placeholder="e.g. 40">
         </label>
-      </section>
-      <section class="lbx-card lbx-mini">
-        <label class="lbx-field">
-          <span class="lbx-label lbx-check"><input type="checkbox" id="lbCommissionEnabled">Apply Commission (%)</span>
+        <label class="lq-box lq-comm">
+          <span class="lq-lab"><input type="checkbox" id="lbCommissionEnabled">Apply Commission (%)</span>
           <input type="number" min="0" step="any" inputmode="decimal" id="lbCommissionPercentage" placeholder="e.g. 7">
         </label>
-      </section>
-    </div>
-
-    <div class="lbx-note">
-      <span data-ic="info"></span>
-      <div>
-        <b>Mica Area is calculated automatically from Signage Area</b>
-        <span>using the Mica Formula ranges set in Settings ("Formula Settings" → "Mica Formula").</span>
       </div>
-    </div>
-
-    <section class="lbx-card">
-      <div class="lbx-head">
-        <span class="lbx-ico" data-ic="clipboard"></span>
-        <div class="lbx-head-text">
-          <h3>Quick-Fill Items</h3>
-          <p>Tick an item to include it in this quote. Fill its value if needed — it will flow into the Material Cost tab automatically.</p>
-        </div>
-      </div>
-      <div id="lbQuickFillWrap" class="lbx-qf-list"></div>
     </section>
 
-    <div id="lbAreaSummary" class="lbx-area" style="display:none;"></div>
+    <section class="lq-area-card">
+      <div id="lbAreaSummary" class="lq-area"></div>
+      <p class="lq-note"><span data-ic="info"></span><span><b>Mica Area is calculated automatically from Signage Area</b> using the Mica Formula ranges set in Settings (“Formula Settings” → “Mica Formula”).</span></p>
+    </section>
+
+    <section class="lq-card">
+      <div class="lq-head lq-head-row">
+        <span class="lq-ico lq-ico-plain" data-ic="clipboard"></span>
+        <h3>Quick-Fill Items</h3>
+        <span class="lq-pill" id="lqQfCount"></span>
+      </div>
+      <p class="lq-sub pt-tipline">Tick an item to include it in this quote. Fill its value if needed — it will flow into the Material Cost tab automatically.</p>
+      <div id="lbQuickFillWrap" class="lq-list"></div>
+    </section>
+
+    <section class="lq-card">
+      <div class="lq-head lq-head-row">
+        <span class="lq-ico lq-ico-plain" data-ic="list"></span>
+        <h3>Include in This Quote</h3>
+        <span class="lq-pill" id="lqIncCount"></span>
+      </div>
+      <p class="lq-sub pt-tipline">Untick anything that doesn’t apply to this job — it’s hidden from Material Cost (the catalog is untouched). Which items appear here, and which start ticked, is set in Settings.</p>
+      <div id="lbItemPicker" class="lq-chips"></div>
+    </section>
+
     <div id="lbValidationMsg" class="lbx-error" style="display:none;"></div>
-
-    <section class="lbx-card">
-      <div class="lbx-head">
-        <span class="lbx-ico" data-ic="list"></span>
-        <div class="lbx-head-text">
-          <h3>Include in This Quote</h3>
-          <p>Untick anything that doesn't apply to this job — it's hidden from Material Cost (the catalog is untouched). Which items appear here, and which start ticked, is set in Settings.</p>
-        </div>
-      </div>
-      <div id="lbItemPicker" class="lbx-chips"></div>
-    </section>
-
     <div class="lbx-apply-row">
       <button class="btn btn-amber" id="applyLightboxBtn">Apply &amp; Go to Material Cost →</button>
     </div>
@@ -557,88 +543,78 @@
 
   <!-- ===================== MATERIAL COST TAB ===================== -->
   <div class="tab-panel" id="tab-cost">
-    <section class="lbx-card lbx-project">
-      <div class="lbx-pf">
-        <label class="lbx-pf-label" for="projClient"><span data-ic="building"></span>Project / Client <span class="required-star">*</span></label>
-        <input type="text" id="projClient" placeholder="e.g. Star Cafe sign">
-      </div>
-      <div class="lbx-pf">
-        <label class="lbx-pf-label" for="projDate"><span data-ic="calendar"></span>Date <span class="required-star">*</span></label>
-        <span class="date-field-wrap lbx-date">
-          <input type="text" id="projDate" placeholder="dd/mm/yyyy" readonly>
-          <span class="lbx-date-ic" data-ic="calendar"></span>
-          <input type="date" id="projDatePicker" class="date-picker-native" tabindex="-1">
-        </span>
-      </div>
-      <div class="lbx-pf">
-        <label class="lbx-pf-label" for="projPrep"><span data-ic="user"></span>Prepared by <span class="required-star">*</span></label>
-        <input type="text" id="projPrep" placeholder="Name">
-      </div>
-      <div class="lbx-pf lbx-pf-contact">
-        <label class="lbx-pf-label" for="projClientContact"><span data-ic="phone"></span>Client Contact (optional)</label>
-        <span class="lbx-contact">
-          <input type="text" id="projClientContact" placeholder="Phone / email" inputmode="email">
-          <button type="button" class="lbx-contact-btn" data-contact="tel" aria-label="Call this number" data-ic="phone"></button>
-          <button type="button" class="lbx-contact-btn" data-contact="mail" aria-label="Email this address" data-ic="mail"></button>
-        </span>
-      </div>
-      <div class="lbx-hidden-actions">
-        <button class="btn btn-secondary" id="resetQtyBtn">Clear Quantities</button>
-        <button class="btn btn-amber" id="exportPdfBtn">⬇ Download Invoice</button>
+    <section class="mc-proj" id="mcProj">
+      <button type="button" class="mc-proj-head" id="mcProjToggle" aria-expanded="true">
+        <span class="mc-proj-ic" data-ic="building"></span>
+        <span class="mc-proj-title" id="mcProjTitle">Project details</span>
+        <span class="mc-pill" id="mcProjPill"></span>
+        <span class="mc-chev" data-ic="chevron"></span>
+      </button>
+      <div class="mc-proj-body">
+        <div class="mc-grid mc-grid-a">
+          <label class="mc-fld" id="mcFldClient">
+            <span class="mc-lab">Project / Client <b>*</b></span>
+            <input type="text" id="projClient" placeholder="e.g. Star Cafe sign">
+          </label>
+          <div class="mc-fld" id="mcFldDate">
+            <span class="mc-lab"><i data-ic="calendar"></i>Date <b>*</b></span>
+            <span class="date-field-wrap">
+              <input type="text" id="projDate" placeholder="dd/mm/yyyy" readonly>
+              <input type="date" id="projDatePicker" class="date-picker-native" tabindex="-1">
+            </span>
+          </div>
+        </div>
+        <div class="mc-grid mc-grid-b">
+          <label class="mc-fld" id="mcFldPrep">
+            <span class="mc-lab"><i data-ic="user"></i>Prepared by <b>*</b></span>
+            <input type="text" id="projPrep" placeholder="Name">
+          </label>
+          <div class="mc-fld mc-contact">
+            <label class="mc-contact-in">
+              <span class="mc-lab"><i data-ic="phone"></i>Client Contact (optional)</span>
+              <input type="text" id="projClientContact" placeholder="Phone / email" inputmode="email">
+            </label>
+            <button type="button" class="mc-cbtn" data-contact="tel" aria-label="Call client" data-ic="phone"></button>
+            <button type="button" class="mc-cbtn" data-contact="mail" aria-label="Email client" data-ic="mail"></button>
+          </div>
+        </div>
+        <div id="validationMsg" class="mc-alert" style="display:none;"></div>
+        <div class="lbx-hidden-actions">
+          <button class="btn btn-secondary" id="resetQtyBtn">Clear Quantities</button>
+          <button class="btn btn-amber" id="exportPdfBtn">⬇ Download Invoice</button>
+        </div>
       </div>
     </section>
-    <div id="validationMsg" class="lbx-error" style="display:none;"></div>
 
-    <section class="lbx-card lbx-searchbar">
-      <label class="lbx-search"><span data-ic="search"></span><input type="search" id="lbxSearch" placeholder="Search material (e.g. mica, led, color board…)" autocomplete="off"></label>
-      <button type="button" class="lbx-add" id="lbxAddItem"><span data-ic="plus"></span>Add Item</button>
+    <section class="mc-list">
+      <div class="mc-tools">
+        <div class="mc-searchrow">
+          <label class="mc-search"><span data-ic="search"></span><input type="search" id="lbxSearch" aria-label="Search material" placeholder="Search material (e.g. mica, led, cl…)" autocomplete="off"></label>
+          <button type="button" class="mc-add" id="lbxAddItem"><span data-ic="plus"></span>Add Item</button>
+        </div>
+        <div class="mc-filterrow">
+          <div class="mc-seg" id="mcFilter" role="group" aria-label="Filter items">
+            <button type="button" data-f="all" aria-pressed="true">All <span></span></button>
+            <button type="button" data-f="Cash" aria-pressed="false">Cash <span></span></button>
+            <button type="button" data-f="Stock" aria-pressed="false">Stock <span></span></button>
+          </div>
+          <span class="mc-used" id="mcUsed"></span>
+        </div>
+        <p class="mc-tip pt-tipline">Only the Qty column is editable here. To add, remove, rename, or reprice materials, go to the Settings tab. Profit and Commission are set in the Lightbox Quote tab.</p>
+      </div>
+      <div class="mc-colhead"><span class="c-n">#</span><span class="c-item">ITEM · UNIT · PRICE</span><span class="c-qty">QTY</span><span class="c-total">TOTAL</span><span class="c-more"></span></div>
+      <div class="mc-scroll">
+        <table id="costTable"><tbody id="costTableBody"></tbody></table>
+        <div id="lbxSearchEmpty" class="lbx-empty" style="display:none;">No materials match your search.</div>
+      </div>
     </section>
-    <div id="lbxSearchEmpty" class="lbx-empty" style="display:none;">No materials match your search.</div>
 
-    <table id="costTable">
-      <thead>
-        <tr>
-          <th style="width:5%">NO</th>
-          <th class="col-item" style="width:32%">Item</th>
-          <th style="width:11%">Unit</th>
-          <th style="width:10%">Qty</th>
-          <th style="width:18%">Unit Price (ETB)</th>
-          <th style="width:18%">Total (ETB)</th>
-          <th class="col-more" aria-label="Options"></th>
-        </tr>
-      </thead>
-      <tbody id="costTableBody"></tbody>
-    </table>
-
-    <div class="grand-total-bar">
-      <span class="label">GRAND TOTAL</span>
-      <span class="value" id="grandTotalDisplay">0.00 ETB</span>
-    </div>
-
-    <div class="profit-bar" id="profitBar">
-      <div class="profit-row">
-        <span class="profit-label">Profit Status</span>
-        <span class="profit-value" id="profitStatus">—</span>
-      </div>
-      <div class="profit-row profit-row-amount">
-        <span class="profit-label">Profit</span>
-        <span class="profit-value" id="profitAmountDisplay">0.00 ETB</span>
-      </div>
-      <div class="profit-row">
-        <span class="profit-label">Commission Status</span>
-        <span class="profit-value" id="commissionStatus">—</span>
-      </div>
-      <div class="profit-row profit-row-amount">
-        <span class="profit-label">Commission</span>
-        <span class="profit-value" id="commissionAmountDisplay">0.00 ETB</span>
-      </div>
-      <div class="profit-row profit-row-total">
-        <span class="profit-label">TOTAL (client price)</span>
-        <span class="profit-value" id="totalWithProfitDisplay">0.00 ETB</span>
-      </div>
-    </div>
-
-    <div class="hint">Only the Qty column is editable here. To add, remove, rename, or reprice materials, go to the Settings tab. Profit and Commission are calculated automatically from the percentages set on the Lightbox Quote tab, and both stack on top of Grand Total to form the client's final price. Commission never appears on the client-facing invoice — it's for internal tracking only.</div>
+    <section class="mc-totals" aria-live="polite">
+      <div><span class="mc-tl">GRAND TOTAL</span><b id="grandTotalDisplay">0.00</b><small>ETB · materials</small></div>
+      <div><span class="mc-tl">PROFIT</span><b class="mc-plus" id="profitAmountDisplay">0.00</b><small id="profitStatus">—</small></div>
+      <div><span class="mc-tl">COMMISSION</span><b class="mc-plus" id="commissionAmountDisplay">0.00</b><small id="commissionStatus">—</small></div>
+      <span id="totalWithProfitDisplay" hidden>0.00 ETB</span>
+    </section>
   </div>
 
   <!-- ===================== SETTINGS TAB ===================== -->
@@ -1266,13 +1242,13 @@ function renderProfitBar(grandTotal){
     ? `${info.percentage}% applied on Grand Total`
     : 'Not set (set it on the Lightbox Quote tab)';
 
-  document.getElementById('profitAmountDisplay').textContent = fmt(info.profitAmount) + ' ETB';
+  document.getElementById('profitAmountDisplay').textContent = fmt(info.profitAmount);
 
   document.getElementById('commissionStatus').textContent = commInfo.percentageSet
     ? `${commInfo.percentage}% applied on Grand Total`
     : (commInfo.enabled ? 'Not set (set the % on the Lightbox Quote tab)' : 'Not applied (tick "Apply Commission" on the Lightbox Quote tab)');
 
-  document.getElementById('commissionAmountDisplay').textContent = fmt(commInfo.commissionAmount) + ' ETB';
+  document.getElementById('commissionAmountDisplay').textContent = fmt(commInfo.commissionAmount);
   document.getElementById('totalWithProfitDisplay').textContent = fmt(clientTotal) + ' ETB';
 }
 
@@ -1459,7 +1435,6 @@ function applyLightboxToCatalog(showSuccessSwitch){
       msgBox.style.display = 'block';
       msgBox.textContent = 'Enter a valid Signage Width and Height (both greater than 0) before applying.';
     }
-    document.getElementById('lbAreaSummary').style.display = 'none';
   } else {
     msgBox.style.display = 'none';
   }
@@ -1536,7 +1511,7 @@ function renderLightboxQuickFill(){
     const lname = (it.name||'').toLowerCase();
     const icon = transport ? 'truck' : /footing/.test(lname) ? 'footing' : /scaffold/.test(lname) ? 'scaffold' : 'package';
     return `
-      <div class="quickfill-row${included?' is-on':''}">
+      <div class="quickfill-row lq-row${included?' is-on':''}">
         <label class="quickfill-check">
           <input type="checkbox" data-qf-include="${it.id}" ${included?'checked':''}>
           <span class="lbx-qf-ico">${ptIcon(icon)}</span>
@@ -1551,6 +1526,7 @@ function renderLightboxQuickFill(){
       </div>`;
   }).join('');
 
+  updateQuoteCounts();
   wrap.querySelectorAll('[data-qf-include]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const it = items.find(i=>i.id===cb.dataset.qfInclude);
@@ -1600,11 +1576,12 @@ function renderLightboxItemPicker(){
     return;
   }
   wrap.innerHTML = pickable.map(it=>`
-    <label class="lbx-chip">
+    <label class="lq-chip" title="${escapeAttr(it.name)}">
       <input type="checkbox" data-lb-include-id="${it.id}" ${it.excludedFromJob?'':'checked'}>
-      ${escapeHtml(it.name)}
+      <span>${escapeHtml(it.name)}</span>
     </label>
   `).join('');
+  updateQuoteCounts();
   wrap.querySelectorAll('[data-lb-include-id]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const it = items.find(i=>i.id===cb.dataset.lbIncludeId);
@@ -1618,14 +1595,11 @@ function renderLightboxItemPicker(){
 
 function renderLightboxSummary(){
   const box = document.getElementById('lbAreaSummary');
-  if(!lightboxState || lightboxState.signageArea===null){
-    box.style.display = 'none';
-    return;
-  }
+  const has = lightboxState && lightboxState.signageArea!==null && lightboxState.signageArea!==undefined;
   box.style.display = 'flex';
-  box.innerHTML = `<span class="lbx-area-ico">${ptIcon('calculator')}</span>
-    <span class="lbx-area-stat"><small>Signage Area</small><b>${fmtArea(lightboxState.signageArea)}</b></span>
-    <span class="lbx-area-stat"><small>Mica Area</small><b>${fmtArea(lightboxState.micaArea)}</b></span>`;
+  box.innerHTML = `<span class="lq-area-ico">${ptIcon('calculator')}</span>
+    <span class="lq-stat"><small>Signage Area</small><b>${has ? fmtArea(lightboxState.signageArea) : '—'}</b></span>
+    <span class="lq-stat"><small>Mica Area <em>AUTO</em></small><b>${has ? fmtArea(lightboxState.micaArea) : '—'}</b></span>`;
 }
 
 // Re-applies the currently saved lightbox values (used when the Mica Formula
@@ -2027,8 +2001,9 @@ function renderCostTable(){
     const sectionRow = document.createElement('tr');
     sectionRow.className = 'section-row';
     const td = document.createElement('td');
-    td.colSpan = 7;
-    td.textContent = cat === 'Cash' ? 'CASH ITEMS' : 'STOCK ITEMS';
+    td.colSpan = 5;
+    sectionRow.dataset.cat = cat;
+    td.innerHTML = `<span>${cat === 'Cash' ? 'CASH ITEMS' : 'STOCK ITEMS'} · <span data-count="${cat}">0</span></span><span class="mc-subtotal">Subtotal <span data-sub="${cat}">0.00</span></span>`;
     sectionRow.appendChild(td);
     body.appendChild(sectionRow);
 
@@ -2047,6 +2022,7 @@ function renderCostTable(){
 
       const tr = document.createElement('tr');
       tr.dataset.id = it.id;
+      tr.dataset.cat = cat;
       const effectiveQty = computeQtyForItem(it);
       const total = (effectiveQty && it.price!==null && it.price!==undefined) ? (effectiveQty*it.price) : null;
       if(total!==null) grandTotal += total;
@@ -2073,20 +2049,19 @@ function renderCostTable(){
       }
 
       const qtyLabel = (it.autoCalc && it.autoCalc.enabled && it.autoCalc.formulaKey !== 'metal') ? 'Qty (m²)' : `Qty (${it.unit||'pc'})`;
+      if(!total) tr.classList.add('mc-zero');
       tr.innerHTML = `
         <td class="row-no">${idx+1}</td>
-        <td class="col-item"><span class="lbx-item-name">${escapeHtml(it.name)}</span></td>
-        <td class="col-unit" data-label="Unit">${escapeHtml(it.unit||'')}</td>
-        <td class="col-qty" data-label="${qtyLabel}">${qtyCellHtml}</td>
-        <td class="col-price" data-label="Price">${fmt(it.price)}</td>
-        <td class="row-total" data-label="Total"><span class="lbx-pill">${total!==null ? fmt(total) : '-'}</span></td>
-        <td class="col-more"><button type="button" class="lbx-more" data-more="${it.id}" aria-label="More options">${ptIcon('more')}</button></td>
+        <td class="col-item"><span class="lbx-item-name" title="${escapeAttr(it.name)}">${escapeHtml(it.name)}</span><span class="mc-meta">${escapeHtml(it.unit||'')} · ${fmt(it.price)}</span></td>
+        <td class="col-qty" aria-label="${qtyLabel}">${qtyCellHtml}</td>
+        <td class="row-total"><span class="lbx-pill">${total ? fmt(total) : '–'}</span></td>
+        <td class="col-more"><button type="button" class="lbx-more" data-more="${it.id}" aria-label="More actions for ${escapeAttr(it.name)}">${ptIcon('more')}</button></td>
       `;
       body.appendChild(tr);
     });
   });
 
-  document.getElementById('grandTotalDisplay').textContent = fmt(grandTotal) + ' ETB';
+  document.getElementById('grandTotalDisplay').textContent = fmt(grandTotal);
   renderProfitBar(grandTotal);
 
   if(defaultsApplied) saveItems();
@@ -2157,6 +2132,7 @@ function renderCostTable(){
   });
 
   applyDependencyWarnings();
+  updateCostMeta();
   applyCostSearch();
 }
 
@@ -2175,16 +2151,18 @@ function recomputeVisibleTotals(){
     const totalCell = tr.querySelector('.row-total');
     if(totalCell){
       const pill = totalCell.querySelector('.lbx-pill') || totalCell;
-      pill.textContent = total!==null ? fmt(total) : '-';
+      pill.textContent = total ? fmt(total) : '–';
     }
+    tr.classList.toggle('mc-zero', !total);
     tr.classList.toggle('row-warn', !!(effectiveQty && (it.price===null || it.price===undefined)));
     const badge = tr.querySelector('.autocalc-badge');
     if(badge && it.autoCalc && it.autoCalc.enabled){
       badge.textContent = effectiveQty!==null ? `= ${effectiveQty} ${it.unit||'pc'}` : '';
     }
   });
-  document.getElementById('grandTotalDisplay').textContent = fmt(grandTotal) + ' ETB';
+  document.getElementById('grandTotalDisplay').textContent = fmt(grandTotal);
   renderProfitBar(grandTotal);
+  updateCostMeta();
 }
 
 /* ============================ MIN/MAX RANGE WARNINGS ============================ */
@@ -2871,6 +2849,7 @@ document.getElementById('projClient').addEventListener('input', validateRequired
 document.getElementById('projPrep').addEventListener('input', validateRequiredFields);
 
 /* ============================ MATERIAL COST: SEARCH, ADD ITEM, STEPPERS, ITEM MENU ============================ */
+let costFilter = 'all';
 function applyCostSearch(){
   const inp = document.getElementById('lbxSearch');
   const q = inp ? inp.value.trim().toLowerCase() : '';
@@ -2878,18 +2857,18 @@ function applyCostSearch(){
   let section = null, sectionHasRows = false;
   document.querySelectorAll('#costTableBody tr').forEach(tr=>{
     if(tr.classList.contains('section-row')){
-      if(section) section.classList.toggle('lbx-hide', !!q && !sectionHasRows);
+      if(section) section.classList.toggle('lbx-hide', (!!q && !sectionHasRows) || (costFilter!=='all' && section.dataset.cat!==costFilter));
       section = tr; sectionHasRows = false;
       return;
     }
     const it = items.find(i=>i.id===tr.dataset.id);
-    const match = !q || (it && (it.name||'').toLowerCase().includes(q));
+    const match = (!q || (it && (it.name||'').toLowerCase().includes(q))) && (costFilter==='all' || tr.dataset.cat===costFilter);
     tr.classList.toggle('lbx-hide', !match);
     if(match){ shown++; sectionHasRows = true; }
   });
-  if(section) section.classList.toggle('lbx-hide', !!q && !sectionHasRows);
+  if(section) section.classList.toggle('lbx-hide', (!!q && !sectionHasRows) || (costFilter!=='all' && section.dataset.cat!==costFilter));
   const empty = document.getElementById('lbxSearchEmpty');
-  if(empty) empty.style.display = (q && shown===0) ? 'block' : 'none';
+  if(empty) empty.style.display = shown===0 ? 'block' : 'none';
 }
 document.getElementById('lbxSearch').addEventListener('input', applyCostSearch);
 
@@ -2986,6 +2965,82 @@ document.getElementById('costTableBody').addEventListener('click', e=>{
 document.addEventListener('click', e=>{
   if(!e.target.closest('.lbx-menu') && !e.target.closest('.lbx-more')) document.querySelectorAll('.lbx-menu').forEach(m=>m.remove());
 });
+
+/* ============================ MATERIAL COST: COUNTS, SUBTOTALS, FILTER, PROJECT CARD ============================ */
+function updateCostMeta(){
+  const sub = {Cash:0, Stock:0}, count = {Cash:0, Stock:0};
+  let used = 0, rows = 0;
+  items.forEach(it=>{
+    if(it.excludedFromJob || (it.category!=='Cash' && it.category!=='Stock')) return;
+    rows++; count[it.category]++;
+    const q = computeQtyForItem(it);
+    const t = (q && it.price!==null && it.price!==undefined) ? q*it.price : 0;
+    if(t) used++;
+    sub[it.category] += t;
+  });
+  ['Cash','Stock'].forEach(cat=>{
+    document.querySelectorAll(`[data-sub="${cat}"]`).forEach(el=>{ el.textContent = fmt(sub[cat]); });
+    document.querySelectorAll(`[data-count="${cat}"]`).forEach(el=>{ el.textContent = count[cat]; });
+  });
+  const f = document.getElementById('mcFilter');
+  if(f){
+    f.querySelector('[data-f="all"] span').textContent = rows;
+    f.querySelector('[data-f="Cash"] span').textContent = count.Cash;
+    f.querySelector('[data-f="Stock"] span').textContent = count.Stock;
+  }
+  const u = document.getElementById('mcUsed');
+  if(u) u.textContent = `${used} of ${rows} used`;
+}
+document.getElementById('mcFilter').addEventListener('click', e=>{
+  const b = e.target.closest('[data-f]');
+  if(!b) return;
+  costFilter = b.dataset.f;
+  document.querySelectorAll('#mcFilter [data-f]').forEach(x=>x.setAttribute('aria-pressed', String(x===b)));
+  applyCostSearch();
+});
+
+function updateQuoteCounts(){
+  const qf = getQuickFillItems();
+  const qfOn = qf.filter(it=>!it.excludedFromJob).length;
+  const a = document.getElementById('lqQfCount');
+  if(a) a.textContent = `${qfOn} selected`;
+  const pickable = items.filter(it=>it.showInLightbox!==false && !it.quickFillLightbox);
+  const b = document.getElementById('lqIncCount');
+  if(b) b.textContent = `${pickable.filter(it=>!it.excludedFromJob).length} of ${pickable.length}`;
+}
+document.getElementById('lbItemPicker').addEventListener('change', ()=>setTimeout(updateQuoteCounts, 0));
+
+// Project details: collapsible, with a "Ready" / "N required missing" badge.
+function updateProjectStatus(){
+  const client = document.getElementById('projClient').value.trim();
+  const prep = document.getElementById('projPrep').value.trim();
+  const dateOk = parseDdMmYyyy(document.getElementById('projDate').value.trim()).valid;
+  const bad = { mcFldClient: !client, mcFldDate: !dateOk, mcFldPrep: !prep };
+  Object.keys(bad).forEach(id=>document.getElementById(id).classList.toggle('mc-bad', bad[id]));
+  const n = Object.values(bad).filter(Boolean).length;
+  const pill = document.getElementById('mcProjPill');
+  pill.textContent = n ? `${n} required missing` : 'Ready';
+  pill.classList.toggle('is-ok', !n);
+  document.getElementById('mcProjTitle').textContent = client || 'Project details';
+}
+const validateRequiredFieldsBase = validateRequiredFields;
+validateRequiredFields = function(){
+  const ok = validateRequiredFieldsBase();
+  updateProjectStatus();
+  return ok;
+};
+document.getElementById('mcProjToggle').addEventListener('click', ()=>{
+  const card = document.getElementById('mcProj');
+  const open = card.classList.toggle('is-collapsed') === false;
+  document.getElementById('mcProjToggle').setAttribute('aria-expanded', String(open));
+  try{ sessionStorage.setItem('pricing:lightbox:projOpen', open ? '1' : '0'); }catch(e){}
+});
+try{
+  if(sessionStorage.getItem('pricing:lightbox:projOpen')==='0'){
+    document.getElementById('mcProj').classList.add('is-collapsed');
+    document.getElementById('mcProjToggle').setAttribute('aria-expanded','false');
+  }
+}catch(e){}
 
 /* ============================ SETTINGS: "INCLUDE IN THIS QUOTE" DEFAULTS ============================ */
 function renderIncludeDefaults(){
