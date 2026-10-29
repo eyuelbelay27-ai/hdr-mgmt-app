@@ -817,6 +817,15 @@ document.querySelectorAll('.tab').forEach(tab => {
   });
 });
 
+// Minimum / maximum profit (ETB): saved like the other settings.
+['minProfitBirr','maxProfitBirr'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    state[id] = parseFloat(e.target.value) || 0;
+    saveState();
+    calculate();
+  });
+});
+
 ['rateWorkshop','defaultProfit','defaultCommission'].forEach(id => {
   document.getElementById(id).addEventListener('input', e => {
     if(id === 'rateWorkshop') state.rateWorkshop = parseFloat(e.target.value) || 0;
