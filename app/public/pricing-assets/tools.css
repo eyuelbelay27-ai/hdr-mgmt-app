@@ -741,3 +741,9 @@ body.pt-has-bar { padding-bottom: calc(var(--pt-bar-h) + env(safe-area-inset-bot
   #tab-lightbox .lq-grid { grid-template-columns: 1fr 1fr; }
   #tab-lightbox .lq-inc .lq-chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* automatic-save indicator (bootstrap.js) */
+#pricingSaved { display: none; position: fixed; top: calc(var(--pt-tabs-h, 50px) + 8px); right: 12px; z-index: 60; padding: 5px 11px; border-radius: 999px; font: 700 12px/1.2 var(--pt-sans, system-ui, sans-serif); box-shadow: 0 2px 8px rgba(0, 0, 0, .12); pointer-events: none; }
+#pricingSaved.is-saving { background: #fff; color: var(--g-mute, #675E63); }
+#pricingSaved.is-saved { background: #E3F5EA; color: #17663A; }
+#pricingSaved.is-error { background: #FDECEF; color: #9C1034; }

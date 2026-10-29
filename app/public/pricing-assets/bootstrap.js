@@ -68,11 +68,14 @@
   };
 
   function post(path, body) {
+    var json = JSON.stringify(body || {});
     return fetch(path, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {})
+      // Small saves finish even if the page is refreshed or closed right away.
+      keepalive: json.length < 60000,
+      body: json
     }).then(function (r) {
       if (r.status === 204) return { ok: true };
       return r.json().catch(function () { return { ok: false, error: 'Server error (' + r.status + ').' }; });
@@ -96,21 +99,63 @@
     toastTimer = setTimeout(function () { t.style.display = 'none'; }, 5000);
   }
 
+  // ---- "Saving… / Saved ✓" pill, so every automatic save is visible ----
+  var pillTimer;
+  function savePill(state) {
+    var el = document.getElementById('pricingSaved');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'pricingSaved';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    clearTimeout(pillTimer);
+    el.className = 'is-' + state;
+    el.textContent = state === 'saving' ? 'Saving…' : state === 'saved' ? 'Saved ✓' : 'Not saved';
+    el.style.display = 'block';
+    if (state !== 'saving') pillTimer = setTimeout(function () { el.style.display = 'none'; }, state === 'saved' ? 1800 : 5000);
+  }
+
   // ---- shared saving (debounced per key) ----
-  var timers = {}, waiters = {}, values = {};
+  var timers = {}, waiters = {}, values = {}, inflight = 0, shrinking = [];
+  // Design pictures the server already holds, per pictures key. A picture is
+  // only left out of the settings once it is confirmed here, so a save cut
+  // short by a refresh can never lose it.
+  var confirmedPics = {};
+  // Pictures saved the old way, inside the settings, that are not in their
+  // own key yet. Only these stay in the settings until they are confirmed;
+  // a newly added picture goes to the pictures key alone (if that upload is
+  // cut short, the design keeps its previous picture).
+  var legacyPics = {};
+  KEYS.forEach(function (k) {
+    if (/-images$/.test(k)) { try { confirmedPics[k] = JSON.parse(SHARED[k] || '{}'); } catch (e) { confirmedPics[k] = {}; } }
+    if (/-settings$/.test(k) && SHARED[k]) {
+      try {
+        legacyPics[k] = {};
+        (JSON.parse(SHARED[k]).designs || []).forEach(function (d) { if (d.refImage) legacyPics[k][d.id] = d.refImage; });
+      } catch (e) {}
+    }
+  });
   function send(key) {
     var list = waiters[key] || [];
     waiters[key] = [];
     timers[key] = null;
+    inflight++;
+    savePill('saving');
     return post('/api/pricing/store', { tool: TOOL, key: key, value: values[key] }).catch(offline).then(function (r) {
-      if (!r.ok) notify(r.error || 'Settings could not be saved.');
+      inflight--;
+      if (r.ok) {
+        if (confirmedPics[key]) { try { confirmedPics[key] = JSON.parse(values[key]); } catch (e) {} }
+        if (!inflight) savePill('saved');
+      }
+      else { savePill('error'); notify(r.error || 'Settings could not be saved.'); }
       list.forEach(function (w) { r.ok ? w.resolve(true) : w.reject(new Error(r.error || 'save failed')); });
       return r.ok;
     });
   }
-  function pushShared(key, value) {
+  function pushShared(key, value, force) {
     SHARED[key] = value;
-    if (!unlocked) return Promise.resolve(false);
+    if (!unlocked && !force) return Promise.resolve(false);
     values[key] = value;
     clearTimeout(timers[key]);
     return new Promise(function (resolve, reject) {
@@ -129,14 +174,14 @@
   post('/api/pricing/lock'); // a freshly opened tool always starts locked
   window.hadarUnlock = function (pin) {
     return post('/api/pricing/unlock', { pin: pin }).catch(offline).then(function (r) {
-      if (r.ok) unlocked = true;
+      if (r.ok) { unlocked = true; movePictures(); }
       return r;
     });
   };
   window.hadarLock = function () {
     if (!unlocked) return;
     unlocked = false;
-    flush().then(function () { post('/api/pricing/lock'); });
+    Promise.all(shrinking).then(flush).then(function () { post('/api/pricing/lock'); });
   };
   window.hadarChangePin = function (current, pin, confirm) {
     return post('/api/pricing/pin', { current: current, pin: pin, confirm: confirm }).catch(offline);
@@ -148,7 +193,12 @@
     });
   };
   window.addEventListener('pagehide', function () {
-    if (unlocked) { flush(); navigator.sendBeacon('/api/pricing/lock'); }
+    if (!unlocked) return;
+    // A save still on its way would be refused if the lock got there first;
+    // the next page load locks again anyway.
+    var busy = inflight > 0 || shrinking.length > 0 || Object.keys(timers).some(function (k) { return timers[k]; });
+    flush();
+    if (!busy) navigator.sendBeacon('/api/pricing/lock');
   });
 
   // ---- Lightbox: synchronous localStorage-style store ----
@@ -197,15 +247,101 @@
     removeItem: function (k) { if (!isShared(k)) ls.remove(k); }
   };
 
+  // ---- Neon / Tapela / Hanger: design pictures kept apart from settings ----
+  // The pictures are stored under their own key (shrunk to a sensible size),
+  // so changing a number only sends a few KB instead of every picture again.
+  function imagesKey(k) { var ik = k.replace(/-settings$/, '-images'); return ik !== k && isShared(ik) ? ik : null; }
+  var shrunk = {};
+  function shrinkImage(src) {
+    if (!src || src.length < 250000 || !/^data:image\//.test(src)) return Promise.resolve(src);
+    if (shrunk[src]) return Promise.resolve(shrunk[src]);
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var scale = Math.min(1, 1000 / Math.max(img.naturalWidth, img.naturalHeight));
+          var c = document.createElement('canvas');
+          c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+          var g = c.getContext('2d');
+          g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+          g.drawImage(img, 0, 0, c.width, c.height);
+          var out = c.toDataURL('image/jpeg', 0.82);
+          resolve(shrunk[src] = out.length < src.length ? out : src);
+        } catch (e) { resolve(src); }
+      };
+      img.onerror = function () { resolve(src); };
+      img.src = src;
+    });
+  }
+  function withImages(k, v) {
+    var ik = imagesKey(k);
+    if (!ik || !v || !SHARED[ik]) return v;
+    try {
+      var s = JSON.parse(v), pics = JSON.parse(SHARED[ik]);
+      (s.designs || []).forEach(function (d) { if (!d.refImage && pics[d.id]) d.refImage = pics[d.id]; });
+      return JSON.stringify(s);
+    } catch (e) { return v; }
+  }
+  function saveImages(ik, designs, force) {
+    var ids = [], srcs = [];
+    designs.forEach(function (d) { if (d.refImage) { ids.push(d.id); srcs.push(d.refImage); } });
+    var job = Promise.all(srcs.map(shrinkImage)).then(function (small) {
+      var pics = {};
+      ids.forEach(function (id, i) { pics[id] = small[i]; });
+      var json = JSON.stringify(pics);
+      if (json !== SHARED[ik]) return pushShared(ik, json, force);
+    }).then(function (saved) {
+      // Pictures confirmed: drop the copies still sitting inside the settings.
+      var k = ik.replace(/-images$/, '-settings');
+      if (saved !== false && SHARED[k] && /"refImage":"data:/.test(SHARED[k])) {
+        var stripped = stripPictures(ik, SHARED[k]);
+        if (stripped !== SHARED[k]) return pushShared(k, stripped, force);
+      }
+    }).catch(function () {}).then(function () { shrinking.splice(shrinking.indexOf(job), 1); });
+    shrinking.push(job);
+  }
+
+  function stripPictures(ik, v) {
+    try {
+      var s = JSON.parse(v), done = confirmedPics[ik] || {};
+      var legacy = legacyPics[ik.replace(/-images$/, '-settings')] || {};
+      if (!Array.isArray(s.designs)) return v;
+      s.designs = s.designs.map(function (d) {
+        var c = {}; Object.keys(d).forEach(function (f) { c[f] = d[f]; });
+        var keep = c.refImage && legacy[c.id] === c.refImage && !done[c.id];
+        if (!keep) c.refImage = '';
+        return c;
+      });
+      return JSON.stringify(s);
+    } catch (e) { return v; }
+  }
+  function movePictures() {
+    KEYS.forEach(function (k) {
+      var ik = imagesKey(k);
+      if (!ik || !SHARED[k] || !/"refImage":"data:/.test(SHARED[k])) return;
+      try { saveImages(ik, JSON.parse(withImages(k, SHARED[k])).designs || [], true); } catch (e) {}
+    });
+  }
+
   // ---- Neon / Tapela / Hanger: async window.storage ----
   window.storage = {
     get: function (k) {
-      var v = isShared(k) ? SHARED[k] : ls.get(k);
+      var v = isShared(k) ? withImages(k, SHARED[k]) : ls.get(k);
       return Promise.resolve(v != null ? { key: k, value: v, shared: isShared(k) } : null);
     },
     set: function (k, v) {
       v = String(v);
       if (!isShared(k)) { ls.set(k, v); return Promise.resolve({ key: k, value: v }); }
+      var ik = imagesKey(k);
+      if (ik) {
+        try {
+          var s = JSON.parse(v);
+          if (Array.isArray(s.designs)) {
+            if (unlocked) saveImages(ik, s.designs, true);
+            v = stripPictures(ik, v);
+          }
+        } catch (e) {}
+      }
       return pushShared(k, v).then(function (saved) {
         if (!saved) throw new Error('Settings are locked');
         return { key: k, value: v, shared: true };
