@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 const files = new Map<string, string>();
 /** Bumped with the shared tool assets so browsers don't keep stale copies. */
-const ASSET_VERSION = "19";
+const ASSET_VERSION = "20";
 
 async function toolHtml(id: string): Promise<string> {
   let html = files.get(id);
