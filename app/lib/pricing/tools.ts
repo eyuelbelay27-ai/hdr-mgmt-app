@@ -38,21 +38,21 @@ export const PRICING_TOOLS: PricingTool[] = [
     title: "Neon Sign Pricing",
     icon: "💡",
     desc: "Pick readymade neon sign designs and standard sizes, or approximate a custom size, then generate an invoice.",
-    sharedKeys: ["neon-pricing-settings"],
+    sharedKeys: ["neon-pricing-settings", "neon-pricing-images"],
   },
   {
     id: "tapela",
     title: "Tapela Sign Pricing",
     icon: "🔲",
     desc: "Pick readymade tapela sign designs and standard sizes, or approximate a custom size, then generate an invoice.",
-    sharedKeys: ["tapela-pricing-settings"],
+    sharedKeys: ["tapela-pricing-settings", "tapela-pricing-images"],
   },
   {
     id: "hanger",
     title: "Hanger Sign Pricing",
     icon: "🪧",
     desc: "Readymade hanger signs or a custom size, with UV Board and Colour Board add-ons, then generate an invoice.",
-    sharedKeys: ["hanger-pricing-settings"],
+    sharedKeys: ["hanger-pricing-settings", "hanger-pricing-images"],
   },
 ];
 
