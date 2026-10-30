@@ -8,6 +8,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, PermissionError } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
 import { deleteUpload } from "@/lib/storage";
+import { APPROVAL_SMS_PHONES, approvalSmsText, sendSms } from "@/lib/sms";
 import type { ActionState } from "./actions";
 
 /** Draft → Waiting for Approval (Section 6). Clears any prior revision note. */
@@ -15,7 +16,7 @@ export async function submitForApprovalAction(jobId: string): Promise<void> {
   const user = await requireCurrentUser();
   requireAction(user, "submitForApproval", "edit");
 
-  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true } });
+  const job = await prisma.job.findUnique({ where: { id: jobId }, select: { status: true, jobNumber: true, title: true } });
   if (!job || job.status !== "Draft") throw new PermissionError("Only a Draft job can be submitted for approval.");
 
   await prisma.job.update({
@@ -23,6 +24,16 @@ export async function submitForApprovalAction(jobId: string): Promise<void> {
     data: { status: "WaitingForApproval", revisionNote: null, revisionNoteBy: null },
   });
   await logActivity(jobId, `${user.name} submitted the job for approval.`);
+
+  // Text the approvers (both phones at once). A failed SMS never blocks the
+  // submission; the outcome is noted in the job's activity.
+  const results = await sendSms(APPROVAL_SMS_PHONES, approvalSmsText({ id: jobId, jobNumber: job.jobNumber, title: job.title }));
+  const sent = results.filter((r) => r.ok).map((r) => r.phone);
+  const failed = results.filter((r) => !r.ok);
+  if (sent.length) await logActivity(jobId, `Approval SMS sent to ${sent.join(" and ")}.`);
+  if (failed.length) {
+    await logActivity(jobId, `Approval SMS could not be sent to ${failed.map((r) => `${r.phone} (${r.error})`).join(", ")}.`);
+  }
   revalidatePath(`/jobs/${jobId}`);
 }
 
