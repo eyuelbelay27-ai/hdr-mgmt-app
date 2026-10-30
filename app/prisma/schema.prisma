@@ -1003,3 +1003,15 @@ model PricingSettings {
   pinHash   String?
   updatedAt DateTime @updatedAt
 }
+
+// -----------------------------------------------------------------------
+// Workshop Schedule — the owner's week planner (production / installation
+// days per job). One shared document; `version` guards concurrent saves.
+// -----------------------------------------------------------------------
+model WorkshopStore {
+  id        String   @id @default("main")
+  data      String
+  version   Int      @default(0)
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}

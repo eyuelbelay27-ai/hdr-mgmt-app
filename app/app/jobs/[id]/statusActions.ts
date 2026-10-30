@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { mutateStore, removeAppJob } from "@/lib/workshop/store";
 import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, PermissionError } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity";
@@ -176,6 +177,8 @@ export async function deleteJobAction(
 
   await prisma.job.delete({ where: { id: jobId } });
   await Promise.all(fileUrls.map((url) => deleteUpload(url)));
+  // A deleted job leaves the Workshop Schedule too.
+  await mutateStore(prisma, user.name, (s) => removeAppJob(s, jobId, `Job ${job.jobNumber} was deleted`, user.name)).catch(() => {});
 
   redirect("/jobs");
 }

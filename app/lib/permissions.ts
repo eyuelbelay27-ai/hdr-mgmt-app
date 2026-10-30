@@ -54,6 +54,7 @@ export const ACTION_KEYS = [
   { key: "manageCrmLeads", label: "CRM: register & assign leads, see every rep's leads" },
   { key: "workCrmLeads", label: "CRM: work assigned leads as a sales rep" },
   { key: "managePayroll", label: "Payroll: manage employees, debts, overtime rates and monthly payroll" },
+  { key: "editSchedule", label: "Workshop Schedule: add, move and delete jobs, change working days (without it the schedule is view-only)" },
 ] as const;
 
 export type ActionKey = (typeof ACTION_KEYS)[number]["key"];
@@ -68,6 +69,7 @@ export const PAGE_KEYS = [
   { key: "crm", label: "CRM" },
   { key: "pulseclock", label: "PulseClock" },
   { key: "pricing", label: "Pricing" },
+  { key: "workshop", label: "Workshop Schedule" },
   { key: "payroll", label: "Payroll" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
@@ -130,7 +132,7 @@ export const DEFAULT_PAGES_BY_ROLE: Record<Role, PageKey[]> = {
   Supervisor: ["dashboard", "jobs"],
   Manager: ["dashboard", "jobs", "calculator"],
   OwnerFinance: ["dashboard", "jobs", "calculator", "inventory", "reconciliation"],
-  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "pricing", "payroll", "users", "settings"],
+  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "pricing", "workshop", "payroll", "users", "settings"],
 };
 
 export const DEFAULT_TABS_BY_ROLE: Record<Role, TabKey[]> = {
