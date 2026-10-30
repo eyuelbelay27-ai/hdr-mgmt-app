@@ -6,6 +6,7 @@ import { requireCurrentUser } from "@/lib/current-user";
 import { requireAction, requirePage, PermissionError } from "@/lib/permissions";
 import { nextJobNumber } from "@/lib/job-number";
 import { saveUpload, getUploadedFile } from "@/lib/storage";
+import { ethLong, requestedDeadlineError } from "@/lib/ethiopian";
 
 export interface CreateJobState {
   error: string | null;
@@ -40,11 +41,16 @@ export async function createJobAction(
   const advanceAmountRaw = String(formData.get("advanceAmount") ?? "").trim();
   const advanceAmount = Number(advanceAmountRaw);
   const proofFile = getUploadedFile(formData, "advanceProof");
+  const salesRep = String(formData.get("salesRep") ?? "").trim();
+  const requestedDeadline = String(formData.get("requestedDeadline") ?? "").trim();
 
   if (!clientName) return { error: "Client name is required." };
   if (!title) return { error: "Job title is required." };
   if (!clientPhone) return { error: "Client phone is required." };
   if (!clientAddress) return { error: "Client address is required." };
+  if (!salesRep) return { error: "The sales rep's name is required." };
+  const deadlineError = requestedDeadlineError(requestedDeadline);
+  if (deadlineError) return { error: deadlineError };
   if (!advanceAmountRaw || !Number.isFinite(advanceAmount) || advanceAmount <= 0) {
     return { error: "Advance payment amount is required and must be greater than zero." };
   }
@@ -72,6 +78,8 @@ export async function createJobAction(
       title,
       clientPhone,
       clientAddress,
+      salesRep,
+      requestedDeadline: new Date(requestedDeadline),
       payments: {
         create: {
           amount: advanceAmount,
@@ -84,7 +92,7 @@ export async function createJobAction(
       },
       activity: {
         create: {
-          text: `Job ${jobNumber} created by ${user.name} with an advance payment of ${advanceAmount} Br.`,
+          text: `Job ${jobNumber} created by ${user.name} with an advance payment of ${advanceAmount} Br. Sales rep: ${salesRep}. Requested deadline: ${ethLong(requestedDeadline)}.`,
         },
       },
     },

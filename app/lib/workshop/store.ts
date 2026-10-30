@@ -155,28 +155,8 @@ export function planError(p: ApprovalPlan | null): string | null {
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
-// Same Ethiopian-calendar wording the schedule page uses, for its audit trail.
-const EM = ["Meskerem", "Tikimt", "Hidar", "Tahsas", "Tir", "Yekatit", "Megabit", "Miyazya", "Ginbot", "Sene", "Hamle", "Nehase", "Pagume"];
-const EMS = ["Mes", "Tik", "Hid", "Tah", "Tir", "Yek", "Meg", "Miy", "Gin", "Sen", "Ham", "Neh", "Pag"];
-function toEth(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  const j = Math.floor(Date.UTC(y, m - 1, d) / 864e5) + 2440588;
-  const r = (((j - 1723856) % 1461) + 1461) % 1461;
-  const n = (r % 365) + 365 * Math.floor(r / 1460);
-  return { m: Math.floor(n / 30) + 1, d: (n % 30) + 1 };
-}
-const weekday = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "short", timeZone: "UTC" });
-/** "Fri 4 Hidar" */
-export function ethFull(iso: string): string {
-  const e = toEth(iso);
-  return `${weekday(iso)} ${e.d} ${EM[e.m - 1]}`;
-}
-/** "Fri 4 Hid", "Sat 21 Tik OT" — for lists of days. */
-export function ethSlot(k: string): string {
-  const [iso, shift] = k.split("|");
-  const e = toEth(iso);
-  return `${weekday(iso)} ${e.d} ${EMS[e.m - 1]}${shift === "ot" ? " OT" : ""}`;
-}
+// Ethiopian-calendar wording for the audit trail (same as the schedule page).
+export { ethFull, ethSlot } from "@/lib/ethiopian";
 export const appJobKey = (jobId: string) => `app_${jobId}`;
 
 /** Puts (or replaces) an approved job and its days on the schedule. */

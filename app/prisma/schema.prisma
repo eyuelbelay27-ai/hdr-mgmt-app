@@ -168,6 +168,11 @@ model Job {
   status         JobStatus  @default(Draft)
   previousStatus JobStatus?
   deadline       DateTime?
+  // Set when the job is created (editable while Draft): the sales rep's name
+  // and the deadline the client asked for. Both pre-fill the Workshop
+  // Schedule at budget approval, where the approved `deadline` is set.
+  salesRep          String?
+  requestedDeadline DateTime?
 
   // Revision flow (Section 6): set on "Request Revision", cleared on
   // "Submit for Approval".
