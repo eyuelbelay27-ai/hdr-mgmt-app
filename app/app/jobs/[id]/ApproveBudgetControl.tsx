@@ -1,64 +1,85 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
-import { approveBudgetAction, type ApproveBudgetState } from "./budgetActions";
-
-const initialState: ApproveBudgetState = { error: null };
-
-function ConfirmButton({ enabled }: { enabled: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <button className="btn btn-primary btn-sm" type="submit" disabled={pending || !enabled}>
-      {pending ? "Approving…" : "Confirm Approval"}
-    </button>
-  );
-}
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { approveBudgetAction } from "./budgetActions";
+import type { ApprovalPlan } from "@/lib/workshop/store";
 
 /**
  * The exact same control renders at both entry points (header shortcut and
- * Budget tab button — Section 6.1) so they behave identically: click
- * Approve Budget, an inline date picker appears, Confirm Approval stays
- * disabled until a date is chosen AND the job has at least one budget
- * item — the approver is the one who dictates the budget, so a blank one
- * (never pulled from the Cost Estimate, never filled in manually) can't
- * be approved (Section: user request). Re-checked server-side in
- * approveBudgetAction regardless of this client-side disable.
+ * Budget tab button — Section 6.1) so they behave identically. Approving
+ * requires scheduling the job: the button opens the Workshop Schedule right
+ * here, in its approval mode (deadline → production days → installation
+ * days); its last step, "Approve budget", approves with that deadline and
+ * puts the days on the shared schedule. A blank budget still can't be
+ * approved — re-checked server-side in approveBudgetAction.
  */
 export function ApproveBudgetControl({ jobId, hasBudgetItems }: { jobId: string; hasBudgetItems: boolean }) {
+  const router = useRouter();
+  const frame = useRef<HTMLIFrameElement>(null);
   const [open, setOpen] = useState(false);
-  const [deadline, setDeadline] = useState("");
-  const boundAction = approveBudgetAction.bind(null, jobId);
-  const [state, formAction] = useFormState(boundAction, initialState);
+  const [loading, setLoading] = useState(true);
+  const [hint, setHint] = useState(false);
 
-  if (!open) {
-    return (
-      <button className="btn btn-primary btn-sm" type="button" onClick={() => setOpen(true)}>
-        Approve Budget & Move to Implementation
-      </button>
-    );
-  }
+  useEffect(() => {
+    if (!open) return;
+    const reply = (error: string | null) =>
+      frame.current?.contentWindow?.postMessage({ ws: "approve-result", error }, window.location.origin);
+    const onMessage = async (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || !e.data || e.source !== frame.current?.contentWindow) return;
+      if (e.data.ws === "cancel") setOpen(false);
+      if (e.data.ws === "approve") {
+        try {
+          const res = await approveBudgetAction(jobId, e.data.plan as ApprovalPlan);
+          if (res.error) return reply(res.error);
+          setOpen(false);
+          router.refresh();
+        } catch {
+          reply("Could not approve. Check the connection and try again.");
+        }
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("message", onMessage);
+    window.addEventListener("keydown", onKey);
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("keydown", onKey);
+      document.documentElement.style.overflow = "";
+    };
+  }, [open, jobId, router]);
 
   return (
-    <form action={formAction} className="card" style={{ padding: 12, display: "flex", gap: 10, alignItems: "end", flexWrap: "wrap" }}>
-      <div>
-        <label className="label" htmlFor={`deadline-${jobId}`}>Deadline</label>
-        <input
-          className="input"
-          id={`deadline-${jobId}`}
-          name="deadline"
-          type="date"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-        />
-      </div>
-      <ConfirmButton enabled={!!deadline && hasBudgetItems} />
-      <button className="btn btn-sm" type="button" onClick={() => setOpen(false)}>
-        Cancel
+    <>
+      <button
+        className="btn btn-primary btn-sm"
+        type="button"
+        onClick={() => {
+          if (!hasBudgetItems) return setHint(true);
+          setLoading(true);
+          setOpen(true);
+        }}
+      >
+        Approve Budget & Move to Implementation
       </button>
-      {!hasBudgetItems && <span className="label">Add at least one budget item before approving.</span>}
-      {hasBudgetItems && !deadline && <span className="label">Choose a date to enable Confirm Approval.</span>}
-      {state.error && <p className="login-error">{state.error}</p>}
-    </form>
+      {hint && !hasBudgetItems && <span className="label">Add at least one budget item before approving.</span>}
+      {open && (
+        <div className="ws-approve" role="dialog" aria-modal="true" aria-label="Schedule and approve">
+          <div className="ws-approve-box">
+            {loading && <div className="prc-loading">Opening the Workshop Schedule…</div>}
+            <iframe
+              ref={frame}
+              src={`/workshop/app?approve=${encodeURIComponent(jobId)}`}
+              title="Schedule and approve"
+              className="prc-frame"
+              onLoad={() => setLoading(false)}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

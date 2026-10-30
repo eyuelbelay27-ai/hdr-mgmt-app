@@ -2196,3 +2196,11 @@ button.tab {
   .prc-tool-card { padding: 14px; gap: 12px; }
   .prc-tool-icon { width: 42px; height: 42px; }
 }
+
+/* Budget approval: the Workshop Schedule opens over the job page */
+.ws-approve { position: fixed; inset: 0; z-index: 200; background: rgba(12, 8, 14, .55); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.ws-approve-box { position: relative; width: 100%; max-width: 680px; height: min(860px, 100%); border-radius: 20px; overflow: hidden; background: #F8F4F5; box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+@media (max-width: 700px) {
+  .ws-approve { padding: 0; }
+  .ws-approve-box { max-width: none; height: 100%; height: 100dvh; border-radius: 0; }
+}

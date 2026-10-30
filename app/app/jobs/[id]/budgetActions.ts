@@ -8,6 +8,7 @@ import { toNumber } from "@/lib/money";
 import { costEstimateLineTotal } from "@/lib/calc/cost-estimate";
 import { logActivity } from "@/lib/activity";
 import { pullBudgetIntoExpenses } from "./expensesActions";
+import { ethFull, ethSlot, mutateStore, placeApprovedJob, planError, removeAppJob, type ApprovalPlan } from "@/lib/workshop/store";
 import type { ActionState } from "./actions";
 
 async function assertBudgetEditable(jobId: string) {
@@ -165,11 +166,7 @@ export interface ApproveBudgetState {
  * Inventory only reacts to Stock items once they're registered in the
  * Expenses tab (Manual add or Pull From Budget, Section 7.4/7.5).
  */
-export async function approveBudgetAction(
-  jobId: string,
-  _prevState: ApproveBudgetState,
-  formData: FormData
-): Promise<ApproveBudgetState> {
+export async function approveBudgetAction(jobId: string, plan: ApprovalPlan): Promise<ApproveBudgetState> {
   const user = await requireCurrentUser();
   try {
     requireAction(user, "approveBudget", "edit");
@@ -178,9 +175,12 @@ export async function approveBudgetAction(
     throw err;
   }
 
-  const deadlineRaw = String(formData.get("deadline") ?? "");
-  const deadline = deadlineRaw ? new Date(deadlineRaw) : null;
-  if (!deadline || Number.isNaN(deadline.getTime())) return { error: "Choose a deadline." };
+  // Scheduling the job in the Workshop Schedule is part of approving it:
+  // the deadline comes from there, and its days go on the shared schedule.
+  const badPlan = planError(plan);
+  if (badPlan) return { error: badPlan };
+  const deadline = new Date(plan.due);
+  if (Number.isNaN(deadline.getTime())) return { error: "Pick the deadline in the schedule." };
 
   const job = await prisma.job.findUnique({ where: { id: jobId }, include: { budgetItems: { select: { id: true } } } });
   if (!job) return { error: "Job not found." };
@@ -207,9 +207,22 @@ export async function approveBudgetAction(
     });
 
     await tx.activityEntry.create({
-      data: { jobId, text: `${user.name} approved the budget with a deadline of ${deadline.toISOString().slice(0, 10)}.` },
+      data: { jobId, text: `${user.name} approved the budget with a deadline of ${plan.due}.` },
     });
-  });
+
+    const days = (list: string[]) => list.slice().sort().map(ethSlot).join(", ");
+    await mutateStore(tx, user.name, (s) =>
+      placeApprovedJob(s, job, plan, user.name, [
+        `Job ${job.jobNumber} · budget approved by ${user.name}`,
+        `Deadline: ${ethFull(plan.due)}`,
+        `Production: ${days(plan.prod)}`,
+        `Installation: ${plan.noInst ? "not needed" : days(plan.inst)}`,
+      ])
+    );
+    await tx.activityEntry.create({
+      data: { jobId, text: `${user.name} scheduled the job in the Workshop Schedule (${plan.prod.length} production, ${plan.noInst ? "no" : plan.inst.length} installation slots).` },
+    });
+  }, { timeout: 20000 });
 
   // Pulling every Budget line into Expenses is mandatory (Section 8.3) —
   // it happens automatically here rather than through an optional button,
@@ -250,7 +263,12 @@ export async function undoBudgetApprovalAction(jobId: string): Promise<void> {
     await tx.activityEntry.create({
       data: { jobId, text: `${user.name} undid the budget approval.` },
     });
-  });
+
+    // Off the Workshop Schedule too; it is scheduled again at the next approval.
+    await mutateStore(tx, user.name, (s) =>
+      removeAppJob(s, jobId, `Budget approval of ${job.jobNumber} undone`, user.name)
+    );
+  }, { timeout: 20000 });
 
   revalidatePath(`/jobs/${jobId}`);
 }

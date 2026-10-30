@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Hadar Workshop Scheduler</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" type="image/svg+xml" href="/pricing-assets/icon.svg">
+<!--WORKSHOP_BOOTSTRAP-->
+<style>
+@font-face{font-family:"Inter Variable";font-style:normal;font-display:swap;font-weight:100 900;src:url(/pricing-assets/fonts/inter-latin-wght-normal.woff2) format("woff2-variations")}
+@font-face{font-family:"Space Grotesk Variable";font-style:normal;font-display:swap;font-weight:300 700;src:url(/pricing-assets/fonts/space-grotesk-latin-wght-normal.woff2) format("woff2-variations")}
+/* Inside the app: menu button (phones), view-only mode, links to Jobs, approval mode */
+.appmenu{display:none;width:40px;height:40px;border-radius:10px;place-items:center;color:#fdfaf9;flex:none}
+.appmenu:hover{background:rgba(253,250,249,.14)}
+@media (max-width:899px){.appmenu{display:grid}}
+html.ro .fab,html.ro #addDesk,html.ro #setDesk,html.ro #nSet,html.ro .zadd{display:none!important}
+html.ro .bn{grid-template-columns:repeat(2,1fr)}
+.rotag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:rgba(253,250,249,.16);color:#fdfaf9;white-space:nowrap}
+.applink{display:inline-flex;align-items:center;gap:6px;color:var(--crimson);font-weight:600;font-size:13.5px;text-decoration:none}
+.applink:hover{text-decoration:underline}
+.apptag{font-size:10px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:999px;background:var(--crimson-soft);color:var(--crimson-deep);flex:none}
+html.approve .appbar,html.approve main,html.approve .bottomnav,html.approve .fab{visibility:hidden}
+html.approve .overlay{background:var(--bg);padding:0;align-items:stretch}
+html.approve .sheet{max-width:none;max-height:none;height:100%;border-radius:0;box-shadow:none;animation:none!important}
+html.approve .grab{display:none}
+.inp[readonly]{background:var(--surface-2);color:var(--muted)}
+/* Layout: one week calendar (Mon–Sun rows), each day split by colour into Working hours and Overtime, filled with job cards. Adding a job is a 3-step sheet: details → production days → installation days, picked on the same week view. */
+:root{
+  color-scheme:light;
+  /* Hadar brand: crimson #C41643 → deep crimson #8A0F30, off-white #FDFAF9, near-black ink */
+  --bg:#F8F4F5; --surface:#FFFFFF; --surface-2:#F4EDEF; --ink:#1C1417; --muted:#6F6166; --faint:#AA9CA1; --line:#ECE2E5;
+  --crimson:#C41643; --crimson-deep:#8A0F30; --on-crimson:#FDFAF9; --crimson-soft:#FCE9EF;
+  --ok:#17784F; --ok-soft:#E1F3EA; --warn:#9A5B00; --warn-soft:#FCF1DE;
+  --prod:#2563EB; --prod-soft:#DBEAFE; --inst:#0F766E; --inst-soft:#CCFBF1;
+  --late:#DC2626; --late-soft:#FEE2E2;
+  --night:#3B4A7A; --work:#FFFFFF; --workline:#ECE2E5; --otz:#EEF1F8; --otline:#D5DBEA;
+  --c0:#C41643; --c1:#1C1417; --c2:#8A0F30; --c3:#E0607E; --c4:#5B4A50; --c5:#A3324F; --c6:#8E7F84;
+  --shadow:0 1px 2px rgba(138,15,48,.06),0 12px 32px rgba(138,15,48,.14);
+  --font-display:"Space Grotesk Variable","Space Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-body:"Inter Variable","Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+html.locked,html.locked body{overflow:hidden}
+body{font-family:var(--font-body);font-size:14px;line-height:1.45;-webkit-tap-highlight-color:transparent;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:#c41643}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0;text-align:inherit}
+button:disabled{cursor:default}
+:focus-visible{outline:2px solid var(--crimson);outline-offset:2px}
+svg.i{width:20px;height:20px;flex:none}
+.desk-only{display:none!important}
+
+/* App bar */
+.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:linear-gradient(120deg,#c41643,#8a0f30);color:#fdfaf9;box-shadow:0 2px 10px rgba(138,15,48,.25)}
+.appbar .logo{width:40px;height:40px;flex:none;border-radius:10px;box-shadow:0 0 0 1.5px rgba(253,250,249,.55)}
+.appbar .wm{display:block;font:700 10.5px/1 var(--font-display);letter-spacing:.22em;opacity:.8;margin-bottom:2px}
+.appbar .brand-t small{color:rgba(253,250,249,.75)}
+.appbar .btn.line{border-color:rgba(253,250,249,.35);color:#fdfaf9;background:rgba(253,250,249,.12)}
+.appbar .btn.line:hover{background:rgba(253,250,249,.2)}
+.appbar .btn.primary{background:#fdfaf9;color:#8a0f30}
+.appbar .btn.primary:hover{background:#fff}
+.appbar-in{max-width:1040px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:36px;height:36px;border-radius:10px;background:var(--crimson);color:var(--on-crimson);display:grid;place-items:center;font:700 18px/1 var(--font-display);flex:none}
+.brand-t{min-width:0}
+.brand-t b{display:block;font:600 17px/1.15 var(--font-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-t small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr{display:flex;align-items:center;gap:6px;flex:none}
+.ibtn{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--ink);flex:none}
+.ibtn:hover{background:var(--surface-2)}
+.ibtn:disabled{opacity:.25;background:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:12px;font-weight:600;font-size:14.5px;background:var(--surface-2);color:var(--ink);white-space:nowrap}
+.btn:hover{filter:brightness(.97)}
+.btn.sm{min-height:38px;padding:0 12px;font-size:13px;border-radius:10px}
+.btn.primary{background:var(--crimson);color:var(--on-crimson)}
+.btn.primary:hover{background:var(--crimson-deep);filter:none}
+.btn.line{background:var(--surface);border:1px solid var(--line)}
+.btn.danger{color:var(--crimson);background:var(--crimson-soft)}
+.btn.full{width:100%}
+.btn svg.i{width:18px;height:18px}
+
+.layout{max-width:1040px;margin:0 auto;padding-block:12px calc(150px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+
+/* Week header */
+.weekbar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px auto;align-items:center;gap:2px}
+.wt{text-align:center;min-width:0}
+.wt h2{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wt small{display:block;color:var(--muted);font-size:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:16px;height:12px;border-radius:4px;border:1px solid var(--line);display:inline-block}
+.sw.w{background:var(--work)}
+.sw.o{background:var(--otz);border-color:var(--otline)}
+.alertbar{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:12px;background:var(--late-soft);color:var(--late);font-weight:600;font-size:13.5px;text-align:left}
+.alertbar.warn{background:var(--warn-soft);color:var(--warn)}
+.alertbar span{flex:1;min-width:0}
+.alertbar svg.i{width:18px;height:18px}
+
+/* Week grid */
+.week{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--surface);box-shadow:0 1px 2px rgba(138,15,48,.05),0 8px 24px rgba(138,15,48,.06)}
+.drow{display:grid;grid-template-columns:58px minmax(0,1fr);border-top:1px solid var(--line)}
+.drow:first-child{border-top:0}
+.dlab{display:flex;flex-direction:column;align-items:center;gap:1px;padding:12px 4px;border-right:1px solid var(--line);text-align:center;background:#FDFAF9}
+.dlab b{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.dlab span{font:700 25px/1.1 var(--font-display)}
+.dlab small{font-size:11px;color:var(--muted)}
+.drow.today .dlab{background:linear-gradient(160deg,#c41643,#8a0f30);color:#fdfaf9}
+.drow.today .dlab b,.drow.today .dlab small{color:inherit;opacity:.8}
+.drow.past{opacity:.55}
+.zones{display:flex;flex-direction:column;min-width:0}
+.zone{display:flex;flex-direction:column;gap:8px;padding:10px 12px;min-width:0;min-height:46px;position:relative}
+.zone.work{background:var(--work)}
+.zone.ot{background:var(--otz);border-top:1px solid var(--otline)}
+.zone.work{border-left:3px solid transparent}
+.zone.ot{border-left:3px solid var(--night)}
+.zl{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink)}
+.zone.ot .zl{color:var(--night)}
+.zl>span{display:inline-flex;align-items:center;gap:5px}
+.zl svg.i{width:13px;height:13px}
+.zadd{display:inline-flex;align-items:center;gap:4px;min-height:30px;padding:0 10px;border-radius:9px;border:1.5px dashed color-mix(in srgb,var(--crimson) 35%,var(--line));background:var(--surface);font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--crimson)}
+.zone.ot .zadd{border-color:color-mix(in srgb,var(--crimson) 35%,var(--line));color:var(--crimson)}
+.zadd:hover{background:var(--crimson-soft)}
+.zadd svg.i{width:14px;height:14px}
+.zoff{font-size:12.5px;color:var(--faint)}
+.wcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.duebar{display:flex;flex-wrap:wrap;gap:5px;padding:6px 10px;background:var(--surface);border-top:1px solid var(--line)}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:2px 7px;border-radius:999px;white-space:nowrap;font-style:normal}
+.tag.prod{background:var(--prod-soft);color:var(--prod)}
+.tag.inst{background:var(--inst-soft);color:var(--inst)}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--muted);white-space:nowrap}
+.pill svg.i{width:12px;height:12px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.late{background:var(--late-soft);color:var(--late)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.jcard{display:flex;flex-direction:column;gap:3px;padding:8px 10px 8px 11px;border-radius:12px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--jc);text-align:left;min-width:0;--jc:var(--c6);box-shadow:0 1px 2px rgba(22,18,26,.05);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.jcard:hover{border-color:color-mix(in srgb,var(--crimson) 35%,var(--line));box-shadow:0 4px 14px rgba(138,15,48,.10)}
+.jcard .l1{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.jcard .n{font-weight:700;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.jcard .l2{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:5px;min-width:0}
+.jcard .l2 span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jcard .l2 svg.i,.jcard .l3 svg.i{width:13px;height:13px}
+.jcard .l3{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;color:var(--muted)}
+.jcard .l3.none{color:var(--faint);font-weight:500}
+.jcard .l3.soon{color:var(--warn)}
+.jcard .l4{font-size:11.5px;font-weight:600;color:var(--warn);display:flex;align-items:center;gap:5px}
+.jcard .l4 svg.i{width:12px;height:12px}
+.jcard.late{border:2px solid var(--late);border-left-width:5px;background:#FFF7F7}
+.jcard.late .l3{color:var(--late)}
+.lateflag{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:var(--late);color:var(--on-crimson);padding:2px 6px;border-radius:999px;flex:none}
+
+/* Moving a card */
+.pickbar{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 66px);z-index:12;background:var(--crimson-deep);color:var(--on-crimson);box-shadow:var(--shadow)}
+.pickbar-in{max-width:1040px;margin:0 auto;display:flex;align-items:center;gap:10px;padding-block:10px}
+.pickbar-in span{flex:1;min-width:0;font-size:13.5px;font-weight:500}
+.pickbar-in b{font-weight:700}
+.pickbar .btn{background:rgba(253,250,249,.16);color:var(--on-crimson)}
+.picking .zone:not(.past-zone){cursor:copy}
+.picking .zone:not(.past-zone)::after{content:"";position:absolute;inset:3px;border:2px dashed color-mix(in srgb,var(--crimson) 45%,transparent);border-radius:10px;pointer-events:none}
+.picking .zone.hover::after{border-style:solid;border-color:var(--crimson);background:color-mix(in srgb,var(--crimson) 8%,transparent)}
+.jcard.picked{touch-action:none;outline:3px solid var(--crimson);outline-offset:1px;cursor:grab;animation:wig 1.2s ease-in-out infinite}
+@keyframes wig{0%,100%{transform:none}50%{transform:translateY(-2px)}}
+.jcard.lifted{opacity:.3}
+.ghost{position:fixed;z-index:60;pointer-events:none;box-shadow:var(--shadow);transform:rotate(-2deg);opacity:.95}
+
+/* Bottom nav + FAB */
+.bottomnav{position:fixed;left:0;right:0;bottom:0;z-index:8;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.bn{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.bn button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--muted);min-height:60px}
+.bn button[aria-current="page"]{color:var(--crimson)}
+.bn button[aria-current="page"] svg.i{filter:drop-shadow(0 2px 4px color-mix(in srgb,var(--crimson) 35%,transparent))}
+.fab{background:linear-gradient(120deg,#c41643,#8a0f30)!important;position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:8;height:56px;padding:0 20px 0 16px;border-radius:18px;background:var(--crimson);color:var(--on-crimson);display:flex;align-items:center;gap:8px;font-weight:700;box-shadow:var(--shadow)}
+.picking .fab{display:none}
+
+/* Sheets */
+.overlay{position:fixed;inset:0;z-index:30;background:rgba(12,8,14,.5);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);color:var(--ink);width:100%;max-width:620px;max-height:calc(100% - 20px - env(safe-area-inset-top,0px));overflow:auto;overscroll-behavior:contain;border-radius:22px 22px 0 0;
+  padding:8px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+.sheet:focus{outline:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);align-self:center;flex:none}
+.shead{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px;align-items:start}
+.shead h3{font-size:21px;line-height:1.2}
+.shead small{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--jc,var(--muted));margin-bottom:2px}
+.shead small svg.i{width:14px;height:14px}
+.shead p{color:var(--muted);margin-top:4px}
+.shead .ibtn{margin:-6px -8px 0 0;background:var(--surface-2)}
+.status{border-radius:14px;padding:12px 14px;display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start}
+.status b{display:block;font:600 16px/1.3 var(--font-display)}
+.status span{font-size:13px;color:var(--ink);opacity:.85}
+.status.ok{background:var(--ok-soft);color:var(--ok)}
+.status.late{background:var(--late-soft);color:var(--late)}
+.status.warn{background:var(--warn-soft);color:var(--warn)}
+.status.none{background:var(--surface-2);color:var(--muted)}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:0}
+.facts div{background:var(--surface);padding:10px 12px;min-width:0}
+.facts dt{font-size:11.5px;color:var(--muted);font-weight:600}
+.facts dd{margin:2px 0 0;font-weight:600;overflow-wrap:anywhere}
+.sh4{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.planrow{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:start;padding:4px 0}
+.planrow>span{font-size:12.5px;font-weight:600;color:var(--muted);padding-top:3px}
+.dchips{display:flex;flex-wrap:wrap;gap:5px}
+.dchip{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--work);border:1px solid var(--workline);white-space:nowrap}
+.dchip.ot{background:var(--otz);border-color:var(--otline);color:var(--night)}
+.dchip.sel{background:var(--crimson);color:var(--on-crimson);border-color:var(--crimson)}
+.acts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.acts.two{grid-template-columns:1fr 1fr}
+.note svg.i{width:15px;height:15px;vertical-align:-3px;margin-right:4px}
+.act{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 4px;border-radius:14px;background:var(--surface-2);font-size:12.5px;font-weight:600;min-height:66px;text-align:center;line-height:1.2}
+.act:hover{filter:brightness(.96)}
+.menu{display:flex;flex-direction:column;gap:8px}
+.menu .btn{justify-content:flex-start;min-height:56px;font-size:15.5px}
+details.other summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;min-height:36px;color:var(--crimson);font-weight:600;font-size:13.5px}
+details.other summary::-webkit-details-marker{display:none}
+details.other summary::after{content:"›";font-size:16px;transition:transform .15s}
+details.other[open] summary::after{transform:rotate(90deg)}
+.mlinks{display:flex;flex-direction:column;gap:8px;padding-top:8px}
+
+/* Wizard */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.step{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:600;color:var(--faint);text-align:left}
+.step i{height:4px;border-radius:2px;background:var(--line)}
+.step.done{color:var(--muted)}
+.step.done i{background:var(--crimson-deep)}
+.step.cur{color:var(--crimson)}
+.step.cur i{background:var(--crimson)}
+.form{display:flex;flex-direction:column;gap:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld>label,.lbl{font-size:12.5px;font-weight:600;color:var(--muted)}
+.req{color:var(--crimson)}
+.inp{min-height:48px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:12px;padding:0 12px;font:inherit;font-size:16px;width:100%;min-width:0}
+.inp:focus{border-color:var(--ink);outline:none}
+.note{font-size:12.5px;color:var(--muted)}
+.notebox{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:13px;font-weight:600}
+.err{color:var(--crimson);font-size:13px;font-weight:600}
+.sfoot{position:sticky;bottom:calc(-20px - env(safe-area-inset-bottom,0px));margin:0 -16px calc(-20px - env(safe-area-inset-bottom,0px));padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;z-index:2}
+.sfoot .row{display:flex;gap:8px}
+.sfoot .row .btn{flex:1}
+.qchips{display:flex;flex-wrap:wrap;gap:6px}
+.qchip{min-height:38px;padding:0 13px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.qchip[aria-pressed="true"]{background:var(--crimson);color:var(--on-crimson);border-color:var(--crimson)}
+.check{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:14px;cursor:pointer}
+.check input{width:22px;height:22px;accent-color:var(--crimson);flex:none;margin:0}
+.check b{display:block;font-size:14px}
+.check span{font-size:12.5px;color:var(--muted)}
+
+/* Deadline calendar */
+.duecal{border:1px solid var(--line);border-radius:16px;padding:8px 10px 12px;display:flex;flex-direction:column;gap:8px}
+.duehead{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;text-align:center}
+.duehead b{font:600 16px var(--font-display)}
+.dgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.dgrid .mh{font-size:10.5px;font-weight:700;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em;padding:2px 0}
+.dd{min-height:44px;border-radius:12px;font-weight:600;font-size:15.5px;display:grid;place-items:center;border:1px solid transparent}
+.dd:disabled{opacity:.28}
+.dd.today{border-color:var(--ink)}
+.dd.sun{color:var(--muted)}
+.dd.has{position:relative}
+.dd.has::after{content:"";position:absolute;bottom:6px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--muted)}
+.dd.on{background:var(--crimson);color:var(--on-crimson);border-color:var(--crimson)}
+.dd:not(:disabled):not(.on):hover{background:var(--surface-2)}
+.duesel{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:var(--surface-2)}
+.duesel svg.i{color:var(--crimson)}
+.duesel b{font:600 16px/1.3 var(--font-display);display:block}
+.duesel span{font-size:12.5px;color:var(--muted)}
+.duesel.on{background:var(--crimson-soft)}
+
+/* Week picker inside sheets */
+.wp{border:1px solid var(--line);border-radius:16px;overflow:clip}
+.wph{background:#FDFAF9!important;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;text-align:center;padding:4px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:-8px;z-index:3;border-radius:16px 16px 0 0}
+@media (min-width:640px){.wph{top:-20px}}
+.wph b{font:600 15px var(--font-display)}
+.wph small{display:block;font-size:11.5px;color:var(--muted)}
+.wprow{display:grid;grid-template-columns:52px minmax(0,1fr);border-top:1px solid var(--line)}
+.wprow:first-of-type{border-top:0}
+.wprow .dlab{padding:8px 2px}
+.wprow .dlab span{font-size:18px}
+.wprow.past{opacity:.45}
+.wprow.past .wpz{cursor:not-allowed}
+.wprow.dueday .dlab{background:var(--warn-soft);color:var(--warn)}
+.wprow.dueday .dlab b,.wprow.dueday .dlab small{color:var(--warn)}
+.wpz{display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:7px 9px;text-align:left;min-height:46px;border:2px solid transparent;position:relative}
+.wpz.work{background:var(--work)}
+.wpz.ot{background:var(--otz);border-top:1px dashed var(--otline)}
+.wpz .zl{font-size:10px}
+.wpz .tick{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);background:var(--surface);display:grid;place-items:center;flex:none}
+.wpz .tick svg.i{width:14px;height:14px;opacity:0}
+.wpz.on{border-color:var(--crimson);background:color-mix(in srgb,var(--crimson) 9%,var(--work))}
+.wpz.ot.on{background:color-mix(in srgb,var(--crimson) 7%,var(--otz))}
+.wpz.on .tick{background:var(--crimson);border-color:var(--crimson);color:var(--on-crimson)}
+.wpz.on .tick svg.i{opacity:1}
+.wpz:disabled{cursor:default}
+.wpz .busy{display:flex;flex-wrap:wrap;gap:4px}
+.mini-job{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--jc);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;--jc:var(--c6)}
+.mini-job em{font-style:normal;font-weight:700;color:var(--muted);margin-left:4px}
+.mini-job.mine{background:var(--crimson);color:var(--on-crimson);border-color:var(--crimson)}
+.mini-job.mine em{color:inherit;opacity:.75}
+.wpz .empty{font-size:11.5px;color:var(--faint)}
+.picked-sum{display:flex;flex-wrap:wrap;gap:5px}
+
+/* Audit trail */
+.audit{display:flex;flex-direction:column}
+.aday{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;padding:12px 0 4px}
+.arow{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.arow time{font-size:12px;color:var(--muted);font-weight:600}
+.arow b{font-weight:600;display:block}
+.arow ul{margin:3px 0 0;padding-left:16px;color:var(--muted);font-size:12.5px}
+.arow .who{font-size:11.5px;color:var(--faint)}
+.mgroup{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.mgroup:first-of-type{border-top:0;padding-top:0}
+.m{color:var(--muted);font-size:12.5px;font-weight:500}
+.mini{display:flex;flex-direction:column}
+.mini>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.mini>div:first-child{border-top:0}
+.mini .x{min-height:34px;padding:0 12px;border-radius:10px;background:var(--surface-2);font-weight:600;font-size:12.5px}
+.pick3{display:grid;grid-template-columns:72px minmax(0,1fr) 92px;gap:6px}
+.pick3 select{padding:0 8px;appearance:auto}
+.list{display:flex;flex-direction:column;gap:8px}
+.lcard{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:14px;border:1px solid var(--line);border-left:4px solid var(--jc);text-align:left;--jc:var(--c6)}
+.lcard b{font-size:15px}
+.lcard span{font-size:12.5px;color:var(--muted)}
+
+/* Toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(144px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--on-crimson);border-radius:14px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:12px;font-size:13.5px;font-weight:500;width:max-content;max-width:calc(100% - 32px);box-shadow:var(--shadow)}
+html.locked .toast{bottom:auto;top:calc(16px + env(safe-area-inset-top,0px))}
+.toast span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast button{color:#FF8FAA;font-weight:700;min-height:36px;padding:0 12px;border-radius:10px;background:color-mix(in srgb,var(--bg) 16%,transparent);display:inline-flex;align-items:center;gap:6px;flex:none}
+.toast button svg.i{width:15px;height:15px}
+.toast.plain{padding:12px 16px}
+
+@media (prefers-reduced-motion:reduce){.jcard.picked{animation:none}}
+@media (prefers-reduced-motion:no-preference){
+  .overlay:not([hidden]) .sheet{animation:up .22s cubic-bezier(.2,.8,.2,1)}
+  .overlay:not([hidden]),.toast:not([hidden]){animation:fade .2s ease}
+  @keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+}
+@media (min-width:640px){
+  .overlay{align-items:center;padding:24px}
+  .sheet{border-radius:20px;max-height:calc(100% - 48px);padding:20px 22px}
+  .sfoot{bottom:-20px;margin:0 -22px -20px;padding:12px 22px 16px}
+  .grab{display:none}
+}
+@media (min-width:1000px){
+  .layout{padding-bottom:40px}
+  .bottomnav,.fab{display:none!important}
+  .desk-only{display:flex!important}
+  .btn.desk-only{display:inline-flex!important}
+  .toast{bottom:24px}
+  .pickbar{top:calc(env(safe-area-inset-top,0px) + 66px)}
+}
+</style>
+
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-in gut">
+    <div class="brand">
+      <button type="button" class="appmenu" data-act="appmenu" aria-label="Open menu"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <svg class="logo" viewBox="0 0 256 256" aria-hidden="true"><defs><linearGradient id="hbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c41643"/><stop offset="1" stop-color="#8a0f30"/></linearGradient></defs><rect width="256" height="256" rx="48" fill="url(#hbg)"/><g transform="translate(38,40) scale(7.2)"><path fill="#fdfaf9" d="M19,23.46,18.23,23,18,22.79l-.53-.35-.78-.52-.33-.22-.45-.3-.8-.53-.41-.28-.4-.26-.83-.56L13,19.46l-.17-.11-.75.5-1,.66-1.7,1.13L8,22.59l-.91.6-.35.24h0L6,23.89l.91.37c.44.16.89.3,1.35.43s.76.2,1.15.28q.91.18,1.86.27l.44-.64.7-1h0l.15-.21.25-.36.14.21.12.18.49.71.4.57.09.14.29.42c.52,0,1-.12,1.55-.21a17.51,17.51,0,0,0,3.48-1l.24-.1,0,0Z"/><path fill="#fdfaf9" d="M25.65,12.49a.2.2,0,0,0,0-.07,11.1,11.1,0,0,0-.15-1.63c0-.23-.08-.46-.13-.68s-.12-.55-.2-.81a12.1,12.1,0,0,0-.41-1.2A.69.69,0,0,0,24.7,8a11.61,11.61,0,0,0-.56-1.18l-.24-.44c-.12-.21-.25-.42-.39-.62a9.67,9.67,0,0,0-.65-.89l0,0c-.23-.29-.48-.57-.74-.84s-.27-.28-.42-.42l-.35-.32a10.29,10.29,0,0,0-.8-.65l-.22-.16L19.7,2c-.27-.16-.54-.32-.82-.47l-.06,0h0c-.22-.12-.45-.24-.68-.34s-.51-.22-.77-.32L17.19.76l-.6-.2-.8-.22L15.43.26,15,.18a7.86,7.86,0,0,0-.83-.11c-.23,0-.46,0-.69-.06h-1a8.27,8.27,0,0,0-.86,0L11,.12l-.32.05c-.29,0-.58.11-.86.18A8.37,8.37,0,0,0,9,.58c-.29.09-.58.19-.85.3s-.57.24-.85.37a12.63,12.63,0,0,0-1.75,1l-.49.36A12.7,12.7,0,0,0,4,3.5a10.32,10.32,0,0,0-.91,1L3,4.6a10.45,10.45,0,0,0-.7.91,11.68,11.68,0,0,0-.66,1.06l0,0A11.91,11.91,0,0,0,1,7.81c-.08.19-.16.38-.23.58s-.16.45-.23.69-.2.71-.28,1.07a2.33,2.33,0,0,0-.05.28A11.66,11.66,0,0,0,0,11.89v0H0c0,.29,0,.59,0,.89s0,.53,0,.79c0,.05,0,.1,0,.15a11.77,11.77,0,0,0,.21,1.58,12.34,12.34,0,0,0,.47,1.71,12.13,12.13,0,0,0,.73,1.69c.2.38.42.76.65,1.11.12.19.25.37.38.54l.36.47.55-.36.37-.25.54-.36,1-.7h0l1.11-.74h0l1.09-.73.14-.1,1.44-1,2-1.33h0l1.69-1.12.32.21.76.51.18.12.58.38,1,.69.44.3.74.49.41.27.31.21.73.48.53.36.19.12.71.48.66.44.77.51.71.48.06,0,.64.42.21.14a12.38,12.38,0,0,0,.86-1.19,12.18,12.18,0,0,0,.68-1.22,13.15,13.15,0,0,0,.69-1.7,14.56,14.56,0,0,0,.41-1.64c0-.22.07-.44.1-.67a12.47,12.47,0,0,0,.1-1.62ZM20.11,7.86l-1.46.42a2.18,2.18,0,0,0-1.48,1.48l-.43,1.47a.12.12,0,0,1-.23,0l-.42-1.47a2.2,2.2,0,0,0-1.48-1.48l-1.47-.42a.12.12,0,0,1,0-.23l1.47-.43a2.18,2.18,0,0,0,1.48-1.48l.42-1.46a.12.12,0,0,1,.23,0l.43,1.46A2.16,2.16,0,0,0,18.65,7.2l1.46.43A.12.12,0,0,1,20.11,7.86Z"/></g></svg>
+      <div class="brand-t"><span class="wm">HADAR</span><b>Workshop schedule</b><small id="updated">Hadar</small></div>
+    </div>
+    <div class="hdr">
+      <span class="rotag" id="roTag" hidden>View only</span>
+      <button class="btn line desk-only" data-act="audit" id="auditDesk"></button>
+      <button class="btn line desk-only" data-act="settings" id="setDesk"></button>
+      <button class="btn primary desk-only" data-act="new" id="addDesk"></button>
+    </div>
+  </div>
+</header>
+<div class="pickbar" id="pickbar" hidden></div>
+
+<main class="layout gut">
+  <div class="weekbar">
+    <button class="ibtn" data-nav="-1" id="prevW" aria-label="Previous week"></button>
+    <div class="wt"><h2 id="wTitle"></h2><small id="wSub"></small></div>
+    <button class="ibtn" data-nav="1" id="nextW" aria-label="Next week"></button>
+    <button class="btn sm line" data-nav="0">Today</button>
+  </div>
+  <div id="alerts" style="display:flex;flex-direction:column;gap:6px"></div>
+  <div class="week" id="week"></div>
+  <p class="note" id="hint"></p>
+</main>
+
+<nav class="bottomnav" aria-label="Main">
+  <div class="bn gut">
+    <button id="nWeek" aria-current="page" data-nav="0"></button>
+    <button data-act="audit" id="nAudit"></button>
+    <button data-act="settings" id="nSet"></button>
+  </div>
+</nav>
+<button class="fab" data-act="new" id="fab" aria-label="New job"></button>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Details" tabindex="-1"></div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function(){
+'use strict';
+// Inside the app (app/workshop/app/route.ts injects window.__WS__): one shared
+// schedule saved on the server, the signed-in user's name, view-only for
+// people without edit permission, and an approval mode used by Jobs.
+const CFG=window.__WS__||{};
+const HORIZON=730,NCOL=7,USER=CFG.user||'Someone',CAN=!!CFG.canEdit,APPROVE=CFG.approve||null;
+
+/* ---------- dates: stored Gregorian ISO, shown Ethiopian ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const iso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const diffDays=(a,b)=>Math.round((parse(a)-parse(b))/864e5);
+const mondayOf=s=>addDays(s,-((parse(s).getDay()+6)%7));
+const TODAY=iso(new Date());
+const EM=['Meskerem','Tikimt','Hidar','Tahsas','Tir','Yekatit','Megabit','Miyazya','Ginbot','Sene','Hamle','Nehase','Pagume'];
+const EMS=['Mes','Tik','Hid','Tah','Tir','Yek','Meg','Miy','Gin','Sen','Ham','Neh','Pag'];
+const jdnOf=s=>{const[y,m,d]=s.split('-').map(Number);return Math.floor(Date.UTC(y,m-1,d)/864e5)+2440588};
+const isoOfJdn=j=>{const t=new Date((j-2440588)*864e5);return `${t.getUTCFullYear()}-${pad(t.getUTCMonth()+1)}-${pad(t.getUTCDate())}`};
+function toEth(s){const j=jdnOf(s),r=((j-1723856)%1461+1461)%1461,n=r%365+365*Math.floor(r/1460);
+  return{y:4*Math.floor((j-1723856)/1461)+Math.floor(r/365)-Math.floor(r/1460),m:Math.floor(n/30)+1,d:n%30+1}}
+const fromEth=(y,m,d)=>isoOfJdn(1723856+365+365*(y-1)+Math.floor(y/4)+30*m+d-31);
+const ethLen=(y,m)=>m<13?30:(y%4===3?6:5);
+const wd=s=>parse(s).toLocaleDateString('en-GB',{weekday:'short'});
+const dm=s=>{const e=toEth(s);return `${e.d} ${EMS[e.m-1]}`};
+const full=s=>{const e=toEth(s);return `${wd(s)} ${e.d} ${EM[e.m-1]}`};
+const longD=s=>{const e=toEth(s);return `${parse(s).toLocaleDateString('en-GB',{weekday:'long'})} ${e.d} ${EM[e.m-1]} ${e.y}`};
+const ethTime=d=>{const h=d.getHours();return `${((h-6)%12+12)%12||12}:${pad(d.getMinutes())} ${h<6?'night':h<12?'morning':h<18?'afternoon':'evening'}`};
+const plural=(n,w)=>`${n} ${w}${n===1?'':'s'}`;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const $=id=>document.getElementById(id);
+const jc=j=>`--jc:var(--c${(j.color||0)%NCOL})`;
+const MAXW=Math.ceil(HORIZON/7);
+
+/* ---------- icons ---------- */
+const P={
+ cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+ list:'<path d="M9 6h12M9 12h12M9 18h12"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>', l:'<path d="M15 18l-6-6 6-6"/>', r:'<path d="M9 18l6-6-6-6"/>',
+ check:'<path d="M20 6L9 17l-5-5"/>',
+ edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>',
+ moon:'<path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+ x:'<path d="M18 6L6 18M6 6l12 12"/>',
+ alert:'<path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/>',
+ flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/>',
+ trash:'<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>',
+ undo:'<path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-15-6.7L3 13"/>',
+ move:'<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>',
+ hand:'<path d="M18 11V6a2 2 0 00-4 0v5M14 10V4a2 2 0 00-4 0v6M10 10.5V6a2 2 0 00-4 0v8"/><path d="M18 8a2 2 0 014 0v6a8 8 0 01-8 8h-2c-2.8 0-4.5-.9-6-2.4l-3.6-3.6a2 2 0 012.8-2.8L7 15"/>',
+ repeat:'<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/>',
+ tool:'<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.8-3.8a6 6 0 01-7.9 7.9l-6.9 6.9a2.1 2.1 0 01-3-3l6.9-6.9a6 6 0 017.9-7.9z"/>',
+ truck:'<path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/>'
+};
+const ic=n=>`<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
+const STAGE={prod:{l:'Production',w:'production',i:'tool'},inst:{l:'Installation',w:'installation',i:'truck'}};
+const SHIFT={day:{l:'Working hours',i:'sun'},ot:{l:'Overtime',i:'moon'}};
+
+/* ---------- state ---------- */
+let state=null;
+const S=()=>state.settings;
+const jobById=id=>state.jobs.find(j=>j.id===id);
+const entryById=id=>state.entries.find(e=>e.id===id);
+const isWork=d=>!S().closed.includes(d)&&S().days.includes(parse(d).getDay());
+const sortE=a=>[...a].sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:x.shift==='day'?-1:1);
+const entriesOf=(j,stage)=>sortE(state.entries.filter(e=>e.job===j.id&&(!stage||e.stage===stage)));
+function jobStatus(j){
+  const p=entriesOf(j,'prod'),i=entriesOf(j,'inst'),all=entriesOf(j),last=all.length?all[all.length-1].date:null;
+  const late=!!(j.due&&last&&last>j.due),pEnd=p.length?p[p.length-1].date:null,iStart=i.length?i[0].date:null;
+  return{p,i,last,late,by:late?diffDays(last,j.due):0,order:!!(pEnd&&iStart&&iStart<pEnd),noInst:!i.length&&!j.noInst};
+}
+const fmtSlot=(d,sh)=>`${full(d)} ${sh==='ot'?'overtime':'working hours'}`;
+
+/* ---------- starting data: an empty schedule ---------- */
+function empty(){return{v:5,updated:Date.now(),log:[],settings:{days:[1,2,3,4,5,6],closed:[]},jobs:[],entries:[]}}
+let version=CFG.version||0;
+function load(){const v=CFG.state;return v&&v.v===5&&Array.isArray(v.jobs)?v:null}
+state=load()||empty();
+const ui={week:0,pick:null};
+
+/* ---------- every change goes through here: saved, logged, undoable ---------- */
+let toastTimer=null;
+const logIt=(m,d)=>{state.log.unshift({t:Date.now(),m,d:d||[],by:USER});state.log=state.log.slice(0,500)};
+let pend=[],busy=false;
+function send(){
+  state.updated=Date.now();
+  return fetch('/api/workshop/save',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({version,state})})
+    .then(r=>r.json().catch(()=>({ok:false,error:`Server error (${r.status})`})))
+    .catch(()=>({ok:false,error:'Could not reach the server. Check the connection.'}));
+}
+// Saves every change in order. If someone else saved in between, their
+// schedule is taken and our changes are applied again on top of it.
+async function flushSave(){
+  if(busy)return;busy=true;let tries=0;
+  while(pend.length){
+    const ops=pend.slice(),r=await send();
+    if(r.ok){version=r.version;pend=pend.slice(ops.length);tries=0;continue}
+    if(r.conflict&&r.state&&tries<4){
+      tries++;state=r.state;version=r.version;
+      if(pend.some(o=>o.undo)){pend=[];render();toast('Could not undo: the schedule was changed by someone else.');break}
+      pend.forEach(o=>{o.rebased=true;try{o.fn();logIt(o.msg,o.details)}catch(e){}});
+      render();continue;
+    }
+    pend=[];toast(r.conflict?'Someone else is changing the schedule. Please try again.':'Not saved: '+(r.error||'please try again'));
+    busy=false;await refresh(true);return;
+  }
+  busy=false;
+}
+function change(msg,fn,details){
+  if(!CAN){toast('You can view the schedule but not change it.');render();return}
+  const before=JSON.stringify(state);
+  fn();state.example=false;logIt(msg,details);render();
+  const op={fn,msg,details};pend.push(op);flushSave();
+  toast(msg,()=>{
+    if(op.rebased){toast('Can\'t undo: someone else changed the schedule at the same time.');return}
+    state=JSON.parse(before);logIt('Undid: '+msg);render();pend.push({undo:true});flushSave();toast('Change undone')});
+}
+// Picks up other people's changes (every 15 s, and when the page is shown again).
+async function refresh(force){
+  if(busy||pend.length)return;
+  if(!force&&(!$('overlay').hidden||ui.pick||DR))return;
+  try{const r=await fetch('/api/workshop/state?v='+version,{credentials:'same-origin',cache:'no-store'}).then(x=>x.json());
+    if(r.ok&&r.state&&r.version!==version){state=r.state;version=r.version;render()}}catch(e){}
+}
+function toast(msg,undo){
+  const t=$('toast');clearTimeout(toastTimer);
+  t.className='toast'+(undo?'':' plain');
+  t.innerHTML=`<span>${esc(msg)}</span>${undo?`<button type="button" id="undoBtn">${ic('undo')}Undo</button>`:''}`;
+  t.hidden=false;
+  if(undo)$('undoBtn').onclick=()=>{t.hidden=true;undo()};
+  toastTimer=setTimeout(()=>t.hidden=true,undo?6000:2600);
+}
+
+/* ---------- main week ---------- */
+function cardHTML(e){
+  const j=jobById(e.job);if(!j)return'';
+  const who=[j.rep,j.customer].filter(Boolean).join(' · '),late=!!(j.due&&e.date>j.due),st=jobStatus(j);
+  let l3;
+  if(!j.due)l3=`<span class="l3 none">${ic('flag')}No deadline</span>`;
+  else if(late)l3=`<span class="l3">${ic('flag')}Due ${esc(wd(j.due)+' '+dm(j.due))} · ${plural(diffDays(e.date,j.due),'day')} after</span>`;
+  else{const left=diffDays(j.due,TODAY),txt=left<0?`${plural(-left,'day')} overdue`:left===0?'due today':`${plural(left,'day')} left`;
+    l3=`<span class="l3${left<=2?' soon':''}">${ic('flag')}Due ${esc(wd(j.due)+' '+dm(j.due))} · ${txt}</span>`}
+  const l4=e.stage==='prod'&&st.noInst?`<span class="l4">${ic('alert')}No installation days yet</span>`:'';
+  return `<button class="jcard${late?' late':''}${ui.pick===e.id?' picked':''}" data-entry="${e.id}" style="--jc:var(--${e.stage})">
+    <span class="l1"><span class="n">${esc(j.name)}</span>${late?'<span class="lateflag">Late</span>':`<i class="tag ${e.stage}">${STAGE[e.stage].l}</i>`}</span>
+    <span class="l2">${late?`<i class="tag ${e.stage}">${STAGE[e.stage].l}</i>`:ic('user')}<span>${esc(who||'No sales rep')}</span></span>${l3}${l4}</button>`;
+}
+function render(){
+  $('updated').textContent=state.example?'':`Updated ${full(iso(new Date(state.updated)))} · ${ethTime(new Date(state.updated))}`;$('updated').hidden=!!state.example;
+  document.documentElement.classList.toggle('picking',!!ui.pick);
+  const pe=ui.pick&&entryById(ui.pick);
+  if(ui.pick&&!pe)ui.pick=null;
+  $('pickbar').hidden=!ui.pick;
+  if(pe){const j=jobById(pe.job);$('pickbar').innerHTML=`<div class="pickbar-in gut">${ic('hand')}<span>Moving <b>${esc(j.name)}</b> · drag the card to a day, or tap where it should go</span><button class="btn sm" data-act="cancelpick">Cancel</button></div>`}
+  const late=state.jobs.filter(j=>jobStatus(j).late),noInst=state.jobs.filter(j=>jobStatus(j).noInst);
+  $('alerts').innerHTML=(late.length?`<button class="alertbar" data-act="list" data-kind="late">${ic('alert')}<span>${plural(late.length,'job')} planned after the deadline</span>${ic('r')}</button>`:'')+
+    (noInst.length?`<button class="alertbar warn" data-act="list" data-kind="noinst">${ic('truck')}<span>${plural(noInst.length,'job')} still need installation days</span>${ic('r')}</button>`:'');
+  renderWeek();
+  $('hint').textContent=ui.pick?'':CAN?'Tap a card to edit or delete it. Press and hold a card to move it.':'View only: tap a card to see its details.';
+  if(sheetFn&&!$('overlay').hidden)sheetFn();
+}
+function renderWeek(){
+  const w0=addDays(mondayOf(TODAY),7*ui.week),w6=addDays(w0,6),a=toEth(w0),z=toEth(w6);
+  $('wTitle').textContent=a.m===z.m?`${a.d}–${z.d} ${EM[a.m-1]} ${z.y}`:`${a.d} ${EMS[a.m-1]} – ${z.d} ${EMS[z.m-1]} ${z.y}`;
+  $('wSub').textContent=ui.week===0?'This week':ui.week===1?'Next week':ui.week===-1?'Last week':`In ${ui.week} weeks`;
+  $('prevW').disabled=ui.week<=-1;$('nextW').disabled=ui.week>=MAXW;
+  let h='';
+  for(let i=0;i<7;i++){
+    const d=addDays(w0,i),e=toEth(d),work=isWork(d),past=d<TODAY;
+    const es=state.entries.filter(x=>x.date===d);
+    const zone=sh=>{
+      const list=es.filter(x=>x.shift===sh);
+      const add=CAN&&!past&&!ui.pick?`<button class="zadd" data-add="${d}" data-shift="${sh}" aria-label="Add a job on ${esc(full(d))} ${SHIFT[sh].l.toLowerCase()}">${ic('plus')}Add</button>`:'';
+      const body=list.length?`<div class="wcards">${list.map(cardHTML).join('')}</div>`:(sh==='day'&&!work?`<span class="zoff">${S().closed.includes(d)?'Closed':'Day off'}</span>`:'');
+      return `<div class="zone ${sh==='day'?'work':'ot'}${past?' past-zone':''}" ${past?'':`data-zone="${d}|${sh}"`}><div class="zl"><span>${ic(SHIFT[sh].i)}${SHIFT[sh].l}</span>${add}</div>${body}</div>`;
+    };
+    const due=state.jobs.filter(j=>j.due===d);
+    const dueBar=due.length?`<div class="duebar">${due.map(j=>`<span class="pill ${jobStatus(j).late?'late':''}">${ic('flag')}Deadline: ${esc(j.name)}</span>`).join('')}</div>`:'';
+    h+=`<div class="drow${d===TODAY?' today':''}${past?' past':''}"><div class="dlab"><b>${wd(d)}</b><span>${e.d}</span><small>${EMS[e.m-1]}</small></div><div class="zones">${zone('day')}${zone('ot')}${dueBar}</div></div>`;
+  }
+  $('week').innerHTML=h;
+}
+
+/* ---------- sheets ---------- */
+let sheetFn=null,lastFocus=null;
+function openSheet(fn,refresh=true){
+  if($('overlay').hidden)lastFocus=document.activeElement;
+  sheetFn=refresh?fn:null;fn();
+  $('overlay').hidden=false;document.documentElement.classList.add('locked');
+  $('sheet').scrollTop=0;$('sheet').focus({preventScroll:true});
+}
+function closeSheet(){
+  if(APPROVE){parent.postMessage({ws:'cancel'},location.origin);return}
+  $('overlay').hidden=true;sheetFn=null;$('sheet').innerHTML='';
+  document.documentElement.classList.remove('locked');
+  if(lastFocus&&document.contains(lastFocus))lastFocus.focus({preventScroll:true});
+}
+const head=(title,sub,extra='',style='')=>`<div class="grab"></div><div class="shead" style="${style}"><div>${sub?`<small>${sub}</small>`:''}<h3>${title}</h3>${extra}</div><button class="ibtn" data-sa="close" aria-label="Close">${ic('x')}</button></div>`;
+
+/* Card sheet */
+function entrySheet(eid){
+  const e=entryById(eid);if(!e)return closeSheet();const j=jobById(e.job);if(!j)return closeSheet();
+  const st=jobStatus(j);
+  let box;
+  if(st.late)box=`<div class="status late">${ic('alert')}<div><b>${plural(st.by,'day')} after the deadline</b><span>Last day planned ${esc(full(st.last))}, deadline ${esc(full(j.due))}</span></div></div>`;
+  else if(st.noInst)box=`<div class="status warn">${ic('truck')}<div><b>No installation days yet</b><span>Tap Edit job to add them.</span></div></div>`;
+  else if(st.order)box=`<div class="status warn">${ic('alert')}<div><b>Installation starts before production ends</b><span>Check the days below.</span></div></div>`;
+  else if(j.due)box=`<div class="status ok">${ic('check')}<div><b>On time</b><span>Last day planned ${esc(full(st.last))}, deadline ${esc(full(j.due))}</span></div></div>`;
+  else box=`<div class="status none">${ic('flag')}<div><b>No deadline yet</b><span>Tap Edit job to add one.</span></div></div>`;
+  const row=(stage,list)=>`<div class="planrow"><span>${STAGE[stage].l}</span><div class="dchips">${list.length?list.map(x=>`<span class="dchip${x.shift==='ot'?' ot':''}${x.id===eid?' sel':''}">${esc(wd(x.date)+' '+dm(x.date))}${x.shift==='ot'?' · OT':''}</span>`).join(''):stage==='inst'&&j.noInst?'<span class="m">No installation needed</span>':'<span class="m">Not planned</span>'}</div></div>`;
+  $('sheet').innerHTML=head(esc(j.name),`${ic(STAGE[e.stage].i)}${STAGE[e.stage].l} · ${esc(full(e.date))} · ${SHIFT[e.shift].l}`,'',jc(j))+box+
+    (j.appJob?`<a class="applink" href="/jobs/${esc(j.appJob)}" target="_top">${ic('r')}Open job ${esc(j.appNo||'')} in Jobs</a>`:'')+
+    (CAN?`<div class="acts two">
+      <button class="act" data-sa="editjob" data-job="${j.id}">${ic('edit')}Edit job</button>
+      <button class="act" data-sa="rm" data-id="${eid}">${ic('trash')}Delete this card</button></div>
+    <p class="note">${ic('hand')} To move this card, close this and press and hold it on the calendar.</p>`:'')+
+    `<dl class="facts"><div><dt>Sales rep</dt><dd>${esc(j.rep)||'—'}</dd></div><div><dt>Deadline</dt><dd>${j.due?esc(full(j.due)):'—'}</dd></div><div><dt>Customer</dt><dd>${esc(j.customer)||'—'}</dd></div><div><dt>Notes</dt><dd>${esc(j.notes)||'—'}</dd></div></dl>
+    <div><p class="sh4">All days for this job</p>${row('prod',st.p)}${row('inst',st.i)}</div>
+    ${!CAN?'':j.appJob?`<p class="note">${ic('flag')} Scheduled at budget approval. To take it off the schedule, undo the approval in Jobs.</p>`:`<button class="btn danger full" data-sa="deljob" data-job="${j.id}">${ic('trash')}Delete the whole job (all its cards)</button>`}`;
+}
+/* Long-press menu */
+function holdMenu(eid){
+  const e=entryById(eid);if(!e)return closeSheet();const j=jobById(e.job);
+  $('sheet').innerHTML=head(esc(j.name),`${STAGE[e.stage].l} · ${esc(full(e.date))} · ${SHIFT[e.shift].l}`,'<p>Where should this card go?</p>',jc(j))+
+    `<div class="menu"><button class="btn primary" data-sa="startdrag" data-id="${eid}">${ic('hand')}Drag it to another day</button>
+     <button class="btn line" data-sa="pickday" data-id="${eid}">${ic('cal')}Choose another day</button>
+     <button class="btn line" data-sa="close">Cancel</button></div>`;
+}
+
+/* ---------- week picker (used in the add/edit steps and in Move) ---------- */
+function weekPicker(o){
+  // o: {base, sel:Set('date|shift'), mine:Set (other stage of this job), jobId, due, stageLabel}
+  const w0=o.base,a=toEth(w0),z=toEth(addDays(w0,6));
+  const canPrev=w0>mondayOf(TODAY),canNext=addDays(w0,7)<=addDays(TODAY,HORIZON);
+  let h=`<div class="wp"><div class="wph"><button type="button" class="ibtn" data-wpnav="-1" ${canPrev?'':'disabled'} aria-label="Previous week">${ic('l')}</button><div><b>${a.m===z.m?`${a.d}–${z.d} ${EM[a.m-1]}`:`${a.d} ${EMS[a.m-1]} – ${z.d} ${EMS[z.m-1]}`}</b><small>${w0===mondayOf(TODAY)?'This week':w0===addDays(mondayOf(TODAY),7)?'Next week':'Week of '+esc(dm(w0))}</small></div><button type="button" class="ibtn" data-wpnav="1" ${canNext?'':'disabled'} aria-label="Next week">${ic('r')}</button></div>`;
+  for(let i=0;i<7;i++){
+    const d=addDays(w0,i),e=toEth(d),past=d<TODAY,work=isWork(d);
+    const z=sh=>{
+      const k=d+'|'+sh,on=o.sel.has(k),mine=o.mine&&o.mine.has(k);
+      const others=state.entries.filter(x=>x.date===d&&x.shift===sh&&x.job!==o.jobId&&x.id!==o.skip);
+      const chips=others.map(x=>{const jj=jobById(x.job)||{name:'?'};return `<span class="mini-job" style="--jc:var(--${x.stage})">${esc(jj.name)}<em>${x.stage==='prod'?'P':'I'}</em></span>`}).join('')+
+        (mine?`<span class="mini-job mine">This job<em>${o.otherLabel}</em></span>`:'');
+      return `<button type="button" class="wpz ${sh==='day'?'work':'ot'}${on?' on':''}" data-wz="${k}" ${past?'disabled':''} aria-pressed="${on}" aria-label="${esc(full(d))} ${SHIFT[sh].l}">
+        <span class="zl"><span>${ic(SHIFT[sh].i)}${sh==='day'?(work?'Working hours':'Working hours · day off'):'Overtime'}</span><span class="tick">${ic('check')}</span></span>
+        <span class="busy">${chips||'<span class="empty">Free</span>'}</span></button>`;
+    };
+    h+=`<div class="wprow${past?' past':''}${o.due===d?' dueday':''}"><div class="dlab"><b>${wd(d)}</b><span>${e.d}</span><small>${o.due===d?'Deadline':EMS[e.m-1]}</small></div><div class="zones">${z('day')}${z('ot')}</div></div>`;
+  }
+  return h+'</div>';
+}
+function bindPicker(st,redraw,single,set){
+  set=set||st.sel;
+  $('sheet').querySelectorAll('[data-wpnav]').forEach(b=>b.onclick=()=>{st.base=addDays(st.base,7*+b.dataset.wpnav);redraw()});
+  $('sheet').querySelectorAll('[data-wz]').forEach(b=>b.onclick=()=>{const k=b.dataset.wz;if(single){set.clear();set.add(k)}else set.has(k)?set.delete(k):set.add(k);redraw(true)});
+}
+const selSummary=sel=>{const a=[...sel].sort();return a.length?a.map(k=>{const[d,sh]=k.split('|');return `<span class="dchip${sh==='ot'?' ot':''}">${esc(wd(d)+' '+dm(d))}${sh==='ot'?' · OT':''}</span>`}).join(''):'<span class="m">Nothing picked yet</span>'};
+
+/* ---------- deadline calendar ---------- */
+function dueCal(st){
+  const e=toEth(st.calM),len=ethLen(e.y,e.m),first=fromEth(e.y,e.m,1),lead=(parse(first).getDay()+6)%7;
+  const prevM=e.m===1?fromEth(e.y-1,13,1):fromEth(e.y,e.m-1,1),nextM=e.m===13?fromEth(e.y+1,1,1):fromEth(e.y,e.m+1,1);
+  const dueDays=new Set(state.jobs.filter(j=>j.id!==st.jobId).map(j=>j.due));
+  let g=`<div class="duecal"><div class="duehead"><button type="button" class="ibtn" data-dcm="${prevM}" ${addDays(prevM,ethLen(toEth(prevM).y,toEth(prevM).m)-1)<TODAY?'disabled':''} aria-label="Previous month">${ic('l')}</button><b>${EM[e.m-1]} ${e.y}</b><button type="button" class="ibtn" data-dcm="${nextM}" aria-label="Next month">${ic('r')}</button></div><div class="dgrid">${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(x=>`<span class="mh">${x}</span>`).join('')}`;
+  for(let i=0;i<lead;i++)g+='<span></span>';
+  for(let d=1;d<=len;d++){const x=fromEth(e.y,e.m,d);g+=`<button type="button" class="dd${x===st.f.due?' on':''}${x===TODAY?' today':''}${parse(x).getDay()===0?' sun':''}${dueDays.has(x)?' has':''}" data-dd="${x}" ${x<TODAY?'disabled':''} aria-label="${esc(longD(x))}">${d}</button>`}
+  return g+'</div></div>';
+}
+
+/* ---------- add / edit job: 3 steps ---------- */
+function jobWizard(o){
+  const A=o.approve||null;
+  const j=A?jobById('app_'+A.jobId):o.job?jobById(o.job):null;
+  const st={step:o.step||1,jobId:A?'app_'+A.jobId:j?j.id:null,approve:A,fixedName:!!(A||(j&&j.appJob)),
+    f:{name:j?j.name:A?A.title:'',rep:j?j.rep:'',customer:j?j.customer:A?A.customer||'':'',due:j?j.due:'',notes:j?j.notes:'',noInst:j?!!j.noInst:false},
+    prod:new Set(j?entriesOf(j,'prod').map(e=>e.date+'|'+e.shift):[]),inst:new Set(j?entriesOf(j,'inst').map(e=>e.date+'|'+e.shift):[]),base:null,calM:null};
+  if(o.slot)st.prod.add(o.slot);
+  const firstSel=s=>[...s].sort()[0];
+  const baseFor=set=>{const f=firstSel(set);return mondayOf(f&&f.split('|')[0]>=TODAY?f.split('|')[0]:o.slot?o.slot.split('|')[0]:TODAY)};
+  st.base=baseFor(st.prod);
+  st.calM=st.f.due&&st.f.due>=TODAY?st.f.due:TODAY;
+  const err=m=>{const el=$('wErr');el.textContent=m;el.hidden=false};
+  const draw=keep=>{
+    const sc=keep?$('sheet').scrollTop:0;
+    const steps=['Details','Production days','Installation days'];
+    const stepsHTML=`<div class="steps">${steps.map((s,i)=>`<div class="step${i+1<st.step?' done':i+1===st.step?' cur':''}"><i></i>${i+1}. ${s}</div>`).join('')}</div>`;
+    let body='',foot='';
+    if(st.step===1){
+      const match=!st.jobId&&st.f.name.trim()?state.jobs.find(x=>x.name.trim().toLowerCase()===st.f.name.trim().toLowerCase()):null;
+      const left=st.f.due?diffDays(st.f.due,TODAY):null;
+      body=`<div class="form">
+        <div class="fld"><label for="wName">Job name <span class="req">*</span></label><input class="inp" id="wName" value="${esc(st.f.name)}" placeholder="e.g. Jafa display" autocomplete="off" autocapitalize="words"${st.fixedName?' readonly':''}></div>
+        <div id="wMatch">${match?`<div class="notebox"><span>${esc(match.name)} is already on the schedule.</span><button type="button" class="btn sm" data-sa="openjob" data-job="${match.id}">Edit it instead</button></div>`:''}</div>
+        <div class="row2"><div class="fld"><label for="wRep">Sales rep</label><input class="inp" id="wRep" value="${esc(st.f.rep)}" autocomplete="off"></div>
+          <div class="fld"><label for="wCust">Customer</label><input class="inp" id="wCust" value="${esc(st.f.customer)}" autocomplete="off"></div></div>
+        <div class="fld"><span class="lbl">Deadline <span class="req">*</span></span>
+          <div class="duesel${st.f.due?' on':''}">${ic('flag')}<div><b>${st.f.due?esc(longD(st.f.due)):'Tap the deadline day below'}</b><span>${st.f.due?(left===0?'Today':left>0?`${plural(left,'day')} from today`:`${plural(-left,'day')} ago`):'Required'}</span></div></div>
+          <div class="qchips">${[[7,'In 1 week'],[14,'In 2 weeks'],[21,'In 3 weeks'],[30,'In 1 month']].map(([n,l])=>{const x=addDays(TODAY,n);return `<button type="button" class="qchip" data-dq="${x}" aria-pressed="${st.f.due===x}">${l}</button>`}).join('')}</div>
+          ${dueCal(st)}</div>
+        <div class="fld"><label for="wNotes">Notes</label><input class="inp" id="wNotes" value="${esc(st.f.notes)}" placeholder="Size, material, site contact…" autocomplete="off"></div>
+      </div>`;
+      foot=`<div class="row"><button class="btn" data-sa="close">Cancel</button><button class="btn primary" id="wNext">Next: production days${ic('r')}</button></div>`;
+    }else if(st.step===2){
+      const late=[...st.prod].some(k=>k.split('|')[0]>st.f.due);
+      body=`<p class="note">Tap <b>Working hours</b>, <b>Overtime</b> or both on every day production happens. You can see the jobs already planned on each day.</p>
+        ${weekPicker({base:st.base,sel:st.prod,mine:st.inst,otherLabel:'I',jobId:st.jobId,due:st.f.due})}`;
+      foot=`<div class="picked-sum">${selSummary(st.prod)}</div>${late?`<span class="pill late">${ic('alert')}Some days are after the deadline ${esc(full(st.f.due))}</span>`:''}
+        <div class="row"><button class="btn" id="wBack">${ic('l')}Back</button><button class="btn primary" id="wNext">Next: installation${ic('r')}</button></div>`;
+    }else{
+      const late=[...st.inst].some(k=>k.split('|')[0]>st.f.due);
+      const pEnd=[...st.prod].sort().pop(),early=pEnd&&[...st.inst].some(k=>k<pEnd);
+      body=`<label class="check"><input type="checkbox" id="wNoInst" ${st.f.noInst?'checked':''}><span><b>No installation</b><span>The customer picks it up, or there is nothing to install.</span></span></label>
+        ${st.f.noInst?'':`<p class="note">Tap the days the team installs on site. Production days for this job show as <b>This job · P</b>.</p>${weekPicker({base:st.base,sel:st.inst,mine:st.prod,otherLabel:'P',jobId:st.jobId,due:st.f.due})}`}`;
+      foot=`${st.f.noInst?'':`<div class="picked-sum">${selSummary(st.inst)}</div>`}
+        ${!st.f.noInst&&late?`<span class="pill late">${ic('alert')}Some days are after the deadline ${esc(full(st.f.due))}</span>`:''}${!st.f.noInst&&early?`<span class="pill warn">${ic('alert')}Installation starts before production ends</span>`:''}
+        <div class="row"><button class="btn" id="wBack">${ic('l')}Back</button><button class="btn primary" id="wSave">${ic('check')}${st.approve?'Approve budget':st.jobId?'Save changes':'Add to schedule'}</button></div>`;
+    }
+    $('sheet').innerHTML=head(st.approve?'Schedule & approve':st.jobId?'Edit job':'New job',st.approve?`Job ${esc(st.approve.jobNumber||'')} · ${esc(st.f.name)} · scheduling is required to approve`:st.jobId?esc(st.f.name):'3 quick steps')+stepsHTML+body+`<div class="sfoot"><p class="err" id="wErr" hidden></p>${foot}</div>`;
+    $('sheet').scrollTop=sc;
+    // bindings
+    if(st.step===1){
+      const nm=$('wName');
+      nm.oninput=()=>{st.f.name=nm.value;
+        const m=!st.jobId&&nm.value.trim()?state.jobs.find(x=>x.name.trim().toLowerCase()===nm.value.trim().toLowerCase()):null;
+        $('wMatch').innerHTML=m?`<div class="notebox"><span>${esc(m.name)} is already on the schedule.</span><button type="button" class="btn sm" data-sa="openjob" data-job="${m.id}">Edit it instead</button></div>`:''};
+      $('wRep').oninput=e=>st.f.rep=e.target.value;$('wCust').oninput=e=>st.f.customer=e.target.value;$('wNotes').oninput=e=>st.f.notes=e.target.value;
+      $('sheet').querySelectorAll('[data-dd]').forEach(b=>b.onclick=()=>{st.f.due=b.dataset.dd;draw(true)});
+      $('sheet').querySelectorAll('[data-dq]').forEach(b=>b.onclick=()=>{st.f.due=b.dataset.dq;st.calM=st.f.due;draw(true)});
+      $('sheet').querySelectorAll('[data-dcm]').forEach(b=>b.onclick=()=>{st.calM=b.dataset.dcm;draw(true)});
+      $('wNext').onclick=()=>{
+        st.f.name=$('wName').value;
+        if(!st.f.name.trim())return err('Write the job name.');
+        if(!st.f.due)return err('Pick the deadline on the calendar.');
+        st.step=2;st.base=baseFor(st.prod);draw();
+      };
+    }else{
+      $('wBack').onclick=()=>{st.step--;if(st.step===2)st.base=baseFor(st.prod);draw()};
+      if(st.step===2){
+        bindPicker(st,keep=>draw(keep),false,st.prod);
+        $('wNext').onclick=()=>{if(!st.prod.size)return err('Tap at least one production day.');st.step=3;const pl=[...st.prod].sort().pop().split('|')[0];st.base=st.inst.size?baseFor(st.inst):mondayOf(pl);draw()};
+      }else{
+        $('wNoInst').onchange=e=>{st.f.noInst=e.target.checked;draw(true)};
+        if(!st.f.noInst)bindPicker(st,keep=>draw(keep),false,st.inst);
+        $('wSave').onclick=()=>{
+          if(!st.f.noInst&&!st.inst.size)return err('Tap at least one installation day, or tick No installation.');
+          if(st.approve){
+            const b=$('wSave');b.disabled=true;b.textContent='Approving…';
+            parent.postMessage({ws:'approve',plan:{due:st.f.due,rep:st.f.rep,customer:st.f.customer,notes:st.f.notes,noInst:st.f.noInst,prod:[...st.prod],inst:st.f.noInst?[]:[...st.inst]}},location.origin);
+            return;
+          }
+          saveJob(st);
+        };
+      }
+    }
+  };
+  draw();
+}
+function saveJob(st){
+  const f=st.f,name=f.name.trim(),isNew=!st.jobId;
+  const used=state.jobs.map(x=>x.color%NCOL);let color=0,min=1e9;for(let c=0;c<NCOL;c++){const k=used.filter(u=>u===c).length;if(k<min){min=k;color=c}}
+  const id=st.jobId||'j'+uid();
+  const old=st.jobId?JSON.parse(JSON.stringify(jobById(id))):null;
+  const oldP=st.jobId?entriesOf(old,'prod').map(e=>e.date+'|'+e.shift):[],oldI=st.jobId?entriesOf(old,'inst').map(e=>e.date+'|'+e.shift):[];
+  const lbl=k=>{const[d,sh]=k.split('|');return `${wd(d)} ${dm(d)}${sh==='ot'?' OT':''}`};
+  const det=[];
+  if(isNew){det.push(`Sales rep: ${f.rep||'—'} · Customer: ${f.customer||'—'}`,`Deadline: ${full(f.due)}`,`Production: ${[...st.prod].sort().map(lbl).join(', ')}`,`Installation: ${f.noInst?'not needed':[...st.inst].sort().map(lbl).join(', ')}`)}
+  else{
+    [['name','Name'],['rep','Sales rep'],['customer','Customer'],['notes','Notes']].forEach(([k,l])=>{if((old[k]||'')!==(f[k]||'').trim())det.push(`${l}: "${old[k]||'—'}" → "${f[k].trim()||'—'}"`)});
+    if(old.due!==f.due)det.push(`Deadline: ${old.due?full(old.due):'—'} → ${full(f.due)}`);
+    const diff=(a,b,l)=>{const add=[...b].filter(x=>!a.includes(x)),rm=a.filter(x=>!b.has(x));if(add.length)det.push(`${l} added: ${add.sort().map(lbl).join(', ')}`);if(rm.length)det.push(`${l} removed: ${rm.sort().map(lbl).join(', ')}`)};
+    diff(oldP,st.prod,'Production');diff(oldI,f.noInst?new Set():st.inst,'Installation');
+    if(!!old.noInst!==f.noInst)det.push(f.noInst?'Marked: no installation':'Installation needed again');
+  }
+  closeSheet();
+  const first=[...st.prod].sort()[0].split('|')[0];
+  ui.week=Math.max(-1,Math.min(MAXW,Math.floor(diffDays(mondayOf(first),mondayOf(TODAY))/7)));
+  change(isNew?`Added ${name}`:`Edited ${name}`,()=>{
+    if(isNew)state.jobs.push({id,name,rep:f.rep.trim(),customer:f.customer.trim(),due:f.due,notes:f.notes.trim(),color,noInst:f.noInst});
+    else Object.assign(jobById(id),{name,rep:f.rep.trim(),customer:f.customer.trim(),due:f.due,notes:f.notes.trim(),noInst:f.noInst});
+    state.entries=state.entries.filter(e=>e.job!==id);
+    st.prod.forEach(k=>{const[d,sh]=k.split('|');state.entries.push({id:uid(),job:id,stage:'prod',date:d,shift:sh})});
+    if(!f.noInst)st.inst.forEach(k=>{const[d,sh]=k.split('|');state.entries.push({id:uid(),job:id,stage:'inst',date:d,shift:sh})});
+  },det.length?det:['No changes']);
+}
+
+/* Move by choosing a day */
+function moveSheet(eid){
+  const e=entryById(eid);if(!e)return closeSheet();const j=jobById(e.job);
+  const st={base:mondayOf(e.date<TODAY?TODAY:e.date),sel:new Set()};
+  const draw=keep=>{
+    const sc=keep?$('sheet').scrollTop:0;const k=[...st.sel][0];
+    $('sheet').innerHTML=head('Choose another day',`${esc(j.name)} · ${STAGE[e.stage].l} · now ${esc(full(e.date))}`,'',jc(j))+
+      `<p class="note">Tap where this card should go. You can see the jobs already on each day.</p>${weekPicker({base:st.base,sel:st.sel,jobId:null,skip:eid,due:j.due})}
+      <div class="sfoot"><p class="err" id="mErr" hidden></p><div class="row"><button class="btn" data-sa="back" data-id="${eid}">Cancel</button><button class="btn primary" id="mGo" ${k?'':'disabled'}>${ic('check')}${k?`Move to ${esc(wd(k.split('|')[0])+' '+dm(k.split('|')[0]))}${k.endsWith('ot')?' · OT':''}`:'Pick a day'}</button></div></div>`;
+    $('sheet').scrollTop=sc;
+    bindPicker(st,kp=>draw(kp),true);
+    $('mGo').onclick=()=>{const[d,sh]=[...st.sel][0].split('|');closeSheet();doMove(eid,d,sh)};
+  };
+  draw();
+}
+function doMove(eid,d,sh){
+  const e=entryById(eid);if(!e)return;const j=jobById(e.job);
+  if(e.date===d&&e.shift===sh){render();return}
+  if(state.entries.some(x=>x.id!==eid&&x.job===e.job&&x.stage===e.stage&&x.date===d&&x.shift===sh)){toast(`${j.name} is already there`);render();return}
+  const from=fmtSlot(e.date,e.shift);
+  ui.pick=null;
+  change(`Moved ${j.name} to ${full(d)}${sh==='ot'?' overtime':''}`,()=>{const x=entryById(eid);x.date=d;x.shift=sh},[`${STAGE[e.stage].l} card`,`From ${from}`,`To ${fmtSlot(d,sh)}`]);
+}
+
+function listSheet(kind){
+  const L=state.jobs.filter(j=>kind==='late'?jobStatus(j).late:jobStatus(j).noInst);
+  $('sheet').innerHTML=head(kind==='late'?'Planned after the deadline':'Need installation days',plural(L.length,'job'))+
+    `<div class="list">${L.map(j=>{const s=jobStatus(j);return `<button class="lcard" data-sa="openjob" data-job="${j.id}" data-step="${kind==='late'?2:3}" style="${jc(j)}"><b>${esc(j.name)}</b><span>${kind==='late'?`Deadline ${esc(full(j.due))} · last day ${esc(full(s.last))} · ${plural(s.by,'day')} late`:`Production ${s.p.length?'ends '+esc(full(s.p[s.p.length-1].date)):'not planned'}${j.due?' · deadline '+esc(full(j.due)):''}`}</span></button>`}).join('')||'<p class="m">Nothing here.</p>'}</div>`;
+}
+function auditSheet(){
+  let h='',last='';
+  state.log.forEach(l=>{const d=new Date(l.t),day=iso(d);
+    if(day!==last){h+=`<p class="aday">${day===TODAY?'Today':esc(longD(day))}</p>`;last=day}
+    h+=`<div class="arow"><time>${esc(ethTime(d))}</time><div><b>${esc(l.m)}</b>${l.d&&l.d.length?`<ul>${l.d.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:''}<span class="who">by ${esc(l.by||USER)}</span></div></div>`});
+  $('sheet').innerHTML=head('Audit trail',`${state.log.length} ${state.log.length===1?'activity':'activities'}`,'<p>Every add, edit, move, copy, delete, undo and setting change, newest first.</p>')+`<div class="audit">${h||'<p class="m">Nothing yet.</p>'}</div>`;
+}
+function ethPicker(id,val){
+  const e=toEth(val),cy=toEth(TODAY).y,o=(v,l,s)=>`<option value="${v}"${s?' selected':''}>${l}</option>`;
+  return `<div class="pick3" id="${id}"><select class="inp" data-part="d" aria-label="Day">${[...Array(30)].map((_,i)=>o(i+1,i+1,e.d===i+1)).join('')}</select><select class="inp" data-part="m" aria-label="Month">${EM.map((n,i)=>o(i+1,n,e.m===i+1)).join('')}</select><select class="inp" data-part="y" aria-label="Year">${[cy,cy+1].map(y=>o(y,y,e.y===y)).join('')}</select></div>`;
+}
+function readEth(id){const g=k=>+$(id).querySelector(`[data-part="${k}"]`).value,y=g('y'),m=g('m');return fromEth(y,m,Math.min(g('d'),ethLen(y,m)))}
+function settingsSheet(){
+  const s=S(),dayNames=[[1,'Mon'],[2,'Tue'],[3,'Wed'],[4,'Thu'],[5,'Fri'],[6,'Sat'],[0,'Sun']],closed=s.closed.filter(d=>d>=TODAY).sort();
+  $('sheet').innerHTML=head('Settings','Hadar workshop')+`
+    <div class="mgroup"><p class="sh4">Working days</p><div class="qchips">${dayNames.map(([n,l])=>`<button class="qchip" data-sa="day" data-n="${n}" aria-pressed="${s.days.includes(n)}">${l}</button>`).join('')}</div><p class="m">On other days you can still plan overtime.</p></div>
+    <div class="mgroup"><p class="sh4">Closed days (holidays)</p>
+      <div class="row2" style="grid-template-columns:minmax(0,1fr) auto;align-items:start">${ethPicker('closedIn',TODAY)}<button class="btn" data-sa="addclosed">Add</button></div>
+      ${closed.length?`<div class="mini">${closed.map(d=>`<div><span>${esc(longD(d))}</span><button class="x" data-sa="rmclosed" data-d="${d}">Remove</button></div>`).join('')}</div>`:''}</div>`;
+}
+
+/* ---------- actions ---------- */
+let suppress=false;
+document.addEventListener('click',e=>{
+  if(suppress){e.preventDefault();e.stopPropagation();return}
+  const t=e.target;
+  const sa=t.closest('[data-sa]');if(sa){sheetAction(sa);return}
+  const act=t.closest('[data-act]');
+  if(act){const a=act.dataset.act;
+    if(a==='appmenu'){parent.postMessage({ws:'menu'},location.origin);return}
+    if(!CAN&&(a==='new'||a==='settings'))return;
+    if(a==='new'){ui.pick=null;render();openSheet(()=>jobWizard({}),false)}
+    else if(a==='audit')openSheet(auditSheet);
+    else if(a==='settings')openSheet(settingsSheet);
+    else if(a==='list')openSheet(()=>listSheet(act.dataset.kind));
+    else if(a==='cancelpick'){ui.pick=null;render()}
+    return}
+  const nv=t.closest('[data-nav]');if(nv){const n=+nv.dataset.nav;ui.week=n===0?0:Math.max(-1,Math.min(MAXW,ui.week+n));render();window.scrollTo({top:0});return}
+  if(ui.pick){const z=t.closest('[data-zone]');if(z&&!t.closest('.jcard.picked')){const[d,sh]=z.dataset.zone.split('|');doMove(ui.pick,d,sh)}return}
+  const ad=t.closest('[data-add]');if(ad){openSheet(()=>jobWizard({slot:ad.dataset.add+'|'+ad.dataset.shift}),false);return}
+  const en=t.closest('[data-entry]');if(en){const id=en.dataset.entry;openSheet(()=>entrySheet(id));return}
+});
+$('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeSheet()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('overlay').hidden)closeSheet();else if(ui.pick){ui.pick=null;render()}}});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.jcard'))e.preventDefault()});
+
+let armed=null;
+function arm(el,label,fn){if(armed===el){armed=null;fn();return}armed=el;const old=el.innerHTML;el.innerHTML=label;setTimeout(()=>{if(armed===el){armed=null;if(document.contains(el))el.innerHTML=old}},3000)}
+function sheetAction(el){
+  const a=el.dataset.sa,id=el.dataset.id,jid=el.dataset.job;
+  if(!CAN&&a!=='close'&&a!=='back')return;
+  const e=id?entryById(id):null,j=jid?jobById(jid):e?jobById(e.job):null;
+  switch(a){
+    case 'close':closeSheet();break;
+    case 'back':openSheet(()=>entrySheet(id));break;
+    case 'editjob':openSheet(()=>jobWizard({job:jid}),false);break;
+    case 'openjob':openSheet(()=>jobWizard({job:jid,step:+el.dataset.step||1}),false);break;
+    case 'pickday':openSheet(()=>moveSheet(id),false);break;
+    case 'startdrag':closeSheet();ui.pick=id;render();{const c=document.querySelector(`.jcard[data-entry="${id}"]`);if(c)c.scrollIntoView({block:'center',behavior:'smooth'})}break;
+    case 'nextday':{let d=addDays(e.date,1),g=0;while(g<30&&((e.shift==='day'&&!isWork(d))||state.entries.some(x=>x.job===e.job&&x.stage===e.stage&&x.date===d&&x.shift===e.shift))){d=addDays(d,1);g++}
+      change(`Copied ${j.name} to ${full(d)}`,()=>state.entries.push({id:uid(),job:e.job,stage:e.stage,date:d,shift:e.shift}),[`${STAGE[e.stage].l} card`,`From ${fmtSlot(e.date,e.shift)}`,`New card ${fmtSlot(d,e.shift)}`]);break}
+    case 'rm':closeSheet();change(`Deleted a ${j.name} card`,()=>{state.entries=state.entries.filter(x=>x.id!==id)},[`${STAGE[e.stage].l} card on ${fmtSlot(e.date,e.shift)}`]);break;
+    case 'deljob':arm(el,`${ic('trash')}Tap again to delete ${esc(j.name)}`,()=>{const n=state.entries.filter(x=>x.job===jid).length;closeSheet();change(`Deleted job ${j.name}`,()=>{state.jobs=state.jobs.filter(x=>x.id!==jid);state.entries=state.entries.filter(x=>x.job!==jid)},[`${plural(n,'card')} removed`,`Deadline was ${j.due?full(j.due):'—'}`])});break;
+    case 'day':{const n=+el.dataset.n,on=S().days.includes(n);if(on&&S().days.length===1){toast('Keep at least one working day');break}
+      change(`${el.textContent} ${on?'is now a day off':'is now a working day'}`,()=>S().days=on?S().days.filter(x=>x!==n):[...S().days,n]);break}
+    case 'addclosed':{const v=readEth('closedIn');if(v<TODAY){toast('Pick today or a later day');break}if(S().closed.includes(v)){toast('That day is already closed');break}
+      change(`Closed on ${full(v)}`,()=>S().closed.push(v));break}
+    case 'rmclosed':{const d=el.dataset.d;change(`Open again on ${full(d)}`,()=>S().closed=S().closed.filter(x=>x!==d));break}
+  }
+}
+
+/* ---------- long press → menu; drag a picked card ---------- */
+let LP=null,DR=null;
+document.addEventListener('touchstart',ev=>{
+  if(!CAN||ev.touches.length!==1||ui.pick||DR)return;
+  const c=ev.target.closest('.jcard[data-entry]');if(!c)return;
+  const t=ev.touches[0];
+  LP={c,x:t.clientX,y:t.clientY,timer:setTimeout(()=>{const id=LP.c.dataset.entry;LP=null;suppress=true;setTimeout(()=>suppress=false,500);try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}openSheet(()=>holdMenu(id),false)},450)};
+},{passive:true});
+document.addEventListener('touchmove',ev=>{if(LP){const t=ev.touches[0];if(Math.hypot(t.clientX-LP.x,t.clientY-LP.y)>10){clearTimeout(LP.timer);LP=null}}},{passive:true});
+document.addEventListener('touchend',()=>{if(LP){clearTimeout(LP.timer);LP=null}});
+document.addEventListener('touchcancel',()=>{if(LP){clearTimeout(LP.timer);LP=null}});
+
+function startDrag(card,x,y,pid){
+  const r=card.getBoundingClientRect();
+  const g=card.cloneNode(true);g.classList.remove('picked');g.classList.add('ghost');g.style.width=r.width+'px';g.style.left=(x-r.width/2)+'px';g.style.top=(y-20)+'px';
+  document.body.appendChild(g);card.classList.add('lifted');
+  DR={card,g,id:card.dataset.entry,pid,w:r.width,x,y,zone:null,timer:setInterval(()=>{const m=48;if(DR.y<110)scrollBy(0,-14);else if(DR.y>innerHeight-m-70)scrollBy(0,14);hover(DR.x,DR.y)},16)};
+  if(!ui.pick){ui.pick=DR.id;document.documentElement.classList.add('picking');$('pickbar').hidden=false;}
+}
+function hover(x,y){
+  const el=document.elementFromPoint(x,y),z=el&&el.closest('.zone[data-zone]');
+  if(DR.zone&&DR.zone!==z)DR.zone.classList.remove('hover');
+  if(z)z.classList.add('hover');DR.zone=z;
+}
+function endDrag(drop){
+  const D=DR;DR=null;clearInterval(D.timer);D.g.remove();D.card.classList.remove('lifted');
+  if(D.zone)D.zone.classList.remove('hover');
+  suppress=true;setTimeout(()=>suppress=false,150);
+  if(drop&&D.zone){const[d,sh]=D.zone.dataset.zone.split('|');doMove(D.id,d,sh)}else render();
+}
+let MP=null;
+document.addEventListener('pointerdown',ev=>{
+  if(!CAN||DR||!$('overlay').hidden)return;
+  const c=ev.target.closest('.jcard[data-entry]');if(!c)return;
+  if(c.classList.contains('picked')){ev.preventDefault();try{c.setPointerCapture(ev.pointerId)}catch(_){}startDrag(c,ev.clientX,ev.clientY,ev.pointerId);return}
+  if(ev.pointerType==='mouse'&&ev.button===0&&!ui.pick)MP={c,x:ev.clientX,y:ev.clientY,pid:ev.pointerId};
+});
+document.addEventListener('pointermove',ev=>{
+  if(DR&&ev.pointerId===DR.pid){ev.preventDefault();DR.x=ev.clientX;DR.y=ev.clientY;DR.g.style.left=(ev.clientX-DR.w/2)+'px';DR.g.style.top=(ev.clientY-20)+'px';hover(ev.clientX,ev.clientY);return}
+  if(MP&&ev.pointerId===MP.pid&&Math.hypot(ev.clientX-MP.x,ev.clientY-MP.y)>6){const m=MP;MP=null;startDrag(m.c,ev.clientX,ev.clientY,m.pid)}
+});
+document.addEventListener('pointerup',ev=>{MP=null;if(DR&&ev.pointerId===DR.pid)endDrag(true)});
+document.addEventListener('pointercancel',ev=>{MP=null;if(DR&&ev.pointerId===DR.pid)endDrag(false)});
+
+/* ---------- static bits ---------- */
+$('prevW').innerHTML=ic('l');$('nextW').innerHTML=ic('r');
+$('nWeek').innerHTML=`${ic('cal')}Week`;$('nAudit').innerHTML=`${ic('list')}Audit trail`;$('nSet').innerHTML=`${ic('gear')}Settings`;
+$('fab').innerHTML=`${ic('plus')}New job`;$('addDesk').innerHTML=`${ic('plus')}New job`;$('auditDesk').innerHTML=`${ic('list')}Audit trail`;$('setDesk').innerHTML=`${ic('gear')}Settings`;
+document.documentElement.classList.toggle('ro',!CAN);$('roTag').hidden=CAN;
+setInterval(()=>{if(!document.hidden)refresh(false)},15000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(false)});
+window.addEventListener('message',e=>{
+  if(e.origin!==location.origin||!e.data||e.data.ws!=='approve-result')return;
+  const b=$('wSave');if(b){b.disabled=false;b.innerHTML=`${ic('check')}Approve budget`}
+  const el=$('wErr');if(el&&e.data.error){el.textContent=e.data.error;el.hidden=false}
+});
+render();
+if(APPROVE){document.documentElement.classList.add('approve');openSheet(()=>jobWizard({approve:APPROVE}),false)}
+})();
+</script>
+
+</body>
+</html>
