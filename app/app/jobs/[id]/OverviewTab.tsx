@@ -1,7 +1,13 @@
-import { canSeeTab, type PermissionSubject } from "@/lib/permissions";
+import { can, canSeeTab, type PermissionSubject } from "@/lib/permissions";
+import { ethLong } from "@/lib/ethiopian";
+import { JobPlanEditor } from "./JobPlanEditor";
 import { Lightbox } from "../../Lightbox";
 
 interface OverviewJob {
+  id: string;
+  status: string;
+  salesRep: string | null;
+  requestedDeadline: Date | null;
   clientName: string;
   clientContact: string | null;
   clientPhone: string | null;
@@ -39,6 +45,7 @@ export function OverviewTab({ job, user }: { job: OverviewJob; user: PermissionS
   // house rule rather than inventing a new one.
   const canSeeFinancials = canSeeTab(user, "tab_payments");
   const advance = job.payments.find((p) => p.type === "Advance");
+  const requested = job.requestedDeadline ? job.requestedDeadline.toISOString().slice(0, 10) : null;
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
@@ -49,7 +56,15 @@ export function OverviewTab({ job, user }: { job: OverviewJob; user: PermissionS
         <Field label="Job Title" value={job.title} />
         <Field label="Designer" value={job.designer} />
         <Field label="Created" value={job.createdAt.toISOString().slice(0, 10)} />
+        <Field label="Sales Rep" value={job.salesRep} />
+        <Field label="Requested Deadline" value={requested ? ethLong(requested) : null} />
       </div>
+
+      {job.status === "Draft" && can(user, "manageDraftJobs") && (
+        <div>
+          <JobPlanEditor jobId={job.id} salesRep={job.salesRep} requestedDeadline={requested} />
+        </div>
+      )}
 
       {job.clientNotes && (
         <div className="card" style={{ padding: 16 }}>

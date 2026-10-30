@@ -678,7 +678,7 @@ function jobWizard(o){
   const A=o.approve||null;
   const j=A?jobById('app_'+A.jobId):o.job?jobById(o.job):null;
   const st={step:o.step||1,jobId:A?'app_'+A.jobId:j?j.id:null,approve:A,fixedName:!!(A||(j&&j.appJob)),
-    f:{name:j?j.name:A?A.title:'',rep:j?j.rep:'',customer:j?j.customer:A?A.customer||'':'',due:j?j.due:'',notes:j?j.notes:'',noInst:j?!!j.noInst:false},
+    f:{name:j?j.name:A?A.title:'',rep:j?j.rep:A?A.rep||'':'',customer:j?j.customer:A?A.customer||'':'',due:j?j.due:A?A.due||'':'',notes:j?j.notes:'',noInst:j?!!j.noInst:false},
     prod:new Set(j?entriesOf(j,'prod').map(e=>e.date+'|'+e.shift):[]),inst:new Set(j?entriesOf(j,'inst').map(e=>e.date+'|'+e.shift):[]),base:null,calM:null};
   if(o.slot)st.prod.add(o.slot);
   const firstSel=s=>[...s].sort()[0];

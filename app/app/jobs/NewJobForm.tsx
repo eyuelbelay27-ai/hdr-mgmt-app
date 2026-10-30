@@ -5,6 +5,7 @@ import { useFormState } from "react-dom";
 import { createJobAction, type CreateJobState } from "./actions";
 import { SubmitButton } from "../SubmitButton";
 import { FileField } from "../FileField";
+import { EthDateField } from "../EthDateField";
 
 const initialState: CreateJobState = { error: null };
 
@@ -47,6 +48,11 @@ export function NewJobForm() {
         <label className="label" htmlFor="clientAddress">Client Address</label>
         <input className="input" id="clientAddress" name="clientAddress" required />
       </div>
+      <div>
+        <label className="label" htmlFor="salesRep">Sales Rep</label>
+        <input className="input" id="salesRep" name="salesRep" required autoComplete="off" />
+      </div>
+      <EthDateField id="requestedDeadline" name="requestedDeadline" label="Deadline" required />
       <div>
         <label className="label" htmlFor="advanceAmount">Advance Payment (Br)</label>
         <input className="input" id="advanceAmount" name="advanceAmount" type="number" min="0" step="0.01" required />

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/current-user";
 import { can, canSeePage } from "@/lib/permissions";
 import { readStore } from "@/lib/workshop/store";
+import { addisToday } from "@/lib/ethiopian";
 
 export const dynamic = "force-dynamic";
 
@@ -26,18 +27,28 @@ export async function GET(req: Request) {
   if (!user) return NextResponse.redirect(new URL("/login", req.url));
 
   const approveId = new URL(req.url).searchParams.get("approve");
-  let approve: { jobId: string; title: string; customer: string; jobNumber: string } | null = null;
+  let approve: { jobId: string; title: string; customer: string; jobNumber: string; rep: string; due: string } | null = null;
   if (approveId) {
     // Approving a budget: the approver schedules the job here, even without
     // the Workshop Schedule page.
     if (!can(user, "approveBudget")) return new NextResponse("You can't approve budgets.", { status: 403 });
     const job = await prisma.job.findUnique({
       where: { id: approveId },
-      select: { id: true, title: true, clientName: true, jobNumber: true, status: true },
+      select: { id: true, title: true, clientName: true, jobNumber: true, status: true, salesRep: true, requestedDeadline: true },
     });
     if (!job) return new NextResponse("Job not found.", { status: 404 });
     if (job.status !== "WaitingForApproval") return new NextResponse("This job isn't waiting for approval.", { status: 400 });
-    approve = { jobId: job.id, title: job.title, customer: job.clientName, jobNumber: job.jobNumber };
+    // Sales rep and deadline from the job pre-fill the scheduler (the
+    // approver may still pick another deadline; a past one isn't offered).
+    const due = job.requestedDeadline ? job.requestedDeadline.toISOString().slice(0, 10) : "";
+    approve = {
+      jobId: job.id,
+      title: job.title,
+      customer: job.clientName,
+      jobNumber: job.jobNumber,
+      rep: job.salesRep ?? "",
+      due: due && due >= addisToday() ? due : "",
+    };
   } else if (!canSeePage(user, "workshop")) {
     return new NextResponse("You don't have access to the Workshop Schedule.", { status: 403 });
   }
