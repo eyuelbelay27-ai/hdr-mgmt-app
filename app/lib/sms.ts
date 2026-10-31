@@ -32,12 +32,29 @@ async function sendOne(key: string, phone: string, text: string): Promise<SmsRes
       signal: AbortSignal.timeout(10000),
       cache: "no-store",
     });
-    if (res.ok) return { phone, ok: true };
-    const body = (await res.text().catch(() => "")).slice(0, 200);
-    return { phone, ok: false, error: `HTTP ${res.status}${body ? `: ${body}` : ""}` };
+    // A reply can be HTTP 200 and still say the SMS wasn't sent, so the
+    // body's own `sent` flag decides; its message explains a refusal.
+    const raw = await res.text().catch(() => "");
+    let body: { sent?: boolean; error_message?: string; description?: string } = {};
+    try {
+      body = JSON.parse(raw);
+    } catch {}
+    if (res.ok && body.sent !== false) return { phone, ok: true };
+    const message = body.error_message || body.description || raw.slice(0, 200);
+    return { phone, ok: false, error: explain(res.status, message) };
   } catch (err) {
     return { phone, ok: false, error: err instanceof Error ? err.message : "send failed" };
   }
+}
+
+/** SMS Ethiopia's refusal codes, in words the office can act on. */
+function explain(status: number, message: string): string {
+  if (/10007/.test(message)) return "this number isn't on the SMS Ethiopia whitelist (Campaign → Default → Whitelist)";
+  if (/10005/.test(message)) return "the SMS Ethiopia package has run out of SMS";
+  if (/10006/.test(message)) return "the SMS Ethiopia sender ID is not approved yet";
+  if (status === 401 || status === 403) return "SMS Ethiopia refused the API key";
+  if (status === 429) return "SMS Ethiopia is limiting how fast messages are sent; try again shortly";
+  return `SMS Ethiopia: ${message || `HTTP ${status}`}`;
 }
 
 /** Sends `text` to every phone at the same time. Never throws. */
