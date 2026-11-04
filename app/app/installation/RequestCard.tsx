@@ -8,6 +8,7 @@ import {
   approveInstallationRequestAction,
   deleteInstallationRequestAction,
   rejectInstallationRequestAction,
+  undoInstallationApprovalAction,
   withdrawInstallationRequestAction,
   type ActionState,
 } from "./actions";
@@ -99,6 +100,7 @@ export function RequestCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmUndo, setConfirmUndo] = useState(false);
   const tone = STATUS_TONE[r.status];
   const isOwner = r.submittedById === currentUserId;
   const pending = r.status === "Pending";
@@ -132,6 +134,15 @@ export function RequestCard({
     const res = await run(() => deleteInstallationRequestAction(r.id));
     if (res && res.error) setError(res.error);
     else if (res) onRemove(r.id);
+  };
+  const undo = async () => {
+    const res = await run(() => undoInstallationApprovalAction(r.id));
+    if (!res) return;
+    if ("error" in res) setError(res.error);
+    else {
+      setConfirmUndo(false);
+      onReplace(res.request);
+    }
   };
 
   return (
@@ -283,8 +294,8 @@ export function RequestCard({
             </div>
           )}
 
-          {(pending && canApprove) || (r.status !== "Approved" && isOwner && canRequest) || (canApprove && r.status !== "Approved") ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {canApprove || (r.status !== "Approved" && isOwner && canRequest) ? (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
               {pending && canApprove && (
                 <>
                   <button className="btn btn-sm btn-primary" type="button" disabled={busy} onClick={approve}>
@@ -293,28 +304,52 @@ export function RequestCard({
                   <RejectControl id={r.id} onRejected={(note) => onUpdate(r.id, { status: "Rejected", decidedBy: currentUserName, decidedAt: new Date(), rejectionNote: note })} />
                 </>
               )}
+              {r.status === "Approved" && canApprove && (
+                confirmUndo ? (
+                  <>
+                    <span className="label" style={{ margin: 0, flex: "1 1 100%" }}>
+                      Back to Waiting{r.payments.length ? `; its ${r.payments.length} payment${r.payments.length === 1 ? "" : "s"} (${br(r.requestTotal)}) come off the job` : ""}.
+                    </span>
+                    <button className="btn btn-sm btn-danger" type="button" disabled={busy} onClick={undo}>
+                      {busy ? "Undoing…" : "Confirm Undo"}
+                    </button>
+                    <button className="btn btn-sm btn-ghost" type="button" onClick={() => setConfirmUndo(false)}>
+                      Never Mind
+                    </button>
+                  </>
+                ) : (
+                  <button className="btn btn-sm" type="button" onClick={() => { setConfirmUndo(true); setConfirmDelete(false); }}>
+                    Undo approval
+                  </button>
+                )
+              )}
               {r.status !== "Approved" && isOwner && canRequest && (
                 <>
                   <button className="btn btn-sm" type="button" onClick={() => onEdit(r)}>
                     {r.status === "Rejected" ? "Fix and re-send" : "Edit"}
                   </button>
-                  <button className="btn btn-sm btn-ghost" type="button" disabled={busy} onClick={withdraw}>
-                    Withdraw
-                  </button>
+                  {!canApprove && (
+                    <button className="btn btn-sm btn-ghost" type="button" disabled={busy} onClick={withdraw}>
+                      Withdraw
+                    </button>
+                  )}
                 </>
               )}
-              {canApprove && r.status !== "Approved" && !isOwner && (
+              {canApprove && (
                 confirmDelete ? (
                   <>
+                    <span className="label" style={{ margin: 0, flex: "1 1 100%" }}>
+                      Delete this request for good{r.status === "Approved" && r.payments.length ? `; its ${r.payments.length} payment${r.payments.length === 1 ? "" : "s"} (${br(r.requestTotal)}) come off the job` : ""}.
+                    </span>
                     <button className="btn btn-sm btn-danger" type="button" disabled={busy} onClick={remove}>
-                      Confirm Delete
+                      {busy ? "Deleting…" : "Confirm Delete"}
                     </button>
                     <button className="btn btn-sm btn-ghost" type="button" onClick={() => setConfirmDelete(false)}>
                       Never Mind
                     </button>
                   </>
                 ) : (
-                  <button className="btn btn-sm btn-ghost" type="button" onClick={() => setConfirmDelete(true)}>
+                  <button className="btn btn-sm btn-ghost" type="button" style={{ color: "var(--danger)" }} onClick={() => { setConfirmDelete(true); setConfirmUndo(false); }}>
                     Delete
                   </button>
                 )

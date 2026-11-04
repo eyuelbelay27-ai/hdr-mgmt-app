@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentUser } from "@/lib/current-user";
 import { can, canSeePage, PermissionError } from "@/lib/permissions";
@@ -268,7 +269,47 @@ export async function rejectInstallationRequestAction(id: string, _prev: ActionS
   return { error: null };
 }
 
-/** Approvers can delete a waiting or rejected request (never an approved one: its payments are on the job). */
+/** Takes back the job payments an approved request recorded (inside a transaction). */
+async function removeRecordedPayments(tx: Prisma.TransactionClient, requestId: string): Promise<{ count: number; total: number }> {
+  const items = await tx.installationPayment.findMany({ where: { requestId, paymentId: { not: null } }, select: { id: true, amount: true, paymentId: true } });
+  if (!items.length) return { count: 0, total: 0 };
+  await tx.payment.deleteMany({ where: { id: { in: items.map((i) => i.paymentId as string) } } });
+  await tx.installationPayment.updateMany({ where: { requestId }, data: { paymentId: null } });
+  return { count: items.length, total: round2(items.reduce((s, i) => s + toNumber(i.amount), 0)) };
+}
+
+/** Undo approval: the request goes back to Waiting and its payments come off the job. */
+export async function undoInstallationApprovalAction(id: string): Promise<{ error: string } | { request: InstallationRequestData }> {
+  let user;
+  try {
+    user = await userWith("approveInstallation");
+  } catch (err) {
+    if (err instanceof PermissionError) return { error: err.message };
+    throw err;
+  }
+  const req = await prisma.installationRequest.findUnique({ where: { id }, select: { status: true, jobId: true, job: { select: { status: true } } } });
+  if (!req) return { error: "Request not found." };
+  if (req.status !== "Approved") return { error: "Only an approved request can be undone." };
+  if (req.job.status === "Closed") return { error: "This job is Closed; its payments can't be changed." };
+  const removed = await prisma.$transaction(async (tx) => {
+    const r = await removeRecordedPayments(tx, id);
+    await tx.installationRequest.update({ where: { id }, data: { status: "Pending", decidedBy: null, decidedAt: null, rejectionNote: null } });
+    return r;
+  }, { timeout: 20000 });
+  await logActivity(
+    req.jobId,
+    `${user.name} undid the installation approval.${removed.count ? ` ${removed.count} payment${removed.count === 1 ? "" : "s"} (${fmt(removed.total)}) removed from the job.` : ""} The request is waiting again.`
+  );
+  revalidatePath("/installation");
+  revalidatePath(`/jobs/${req.jobId}`);
+  const request = await reload(user.id, id, true);
+  return request ? { request } : { error: "Undone, but couldn't reload it. Refresh the page." };
+}
+
+/**
+ * Approvers can delete any request. Deleting an approved one also takes
+ * back the payments it recorded on the job, as if it never happened.
+ */
 export async function deleteInstallationRequestAction(id: string): Promise<ActionState> {
   let user;
   try {
@@ -277,11 +318,19 @@ export async function deleteInstallationRequestAction(id: string): Promise<Actio
     if (err instanceof PermissionError) return { error: err.message };
     throw err;
   }
-  const req = await prisma.installationRequest.findUnique({ where: { id }, select: { status: true, jobId: true } });
+  const req = await prisma.installationRequest.findUnique({ where: { id }, select: { status: true, jobId: true, job: { select: { status: true } } } });
   if (!req) return { error: "Request not found." };
-  if (req.status === "Approved") return { error: "An approved request can't be deleted; its payments are on the job." };
-  await prisma.installationRequest.delete({ where: { id } });
-  await logActivity(req.jobId, `${user.name} deleted an installation request.`);
+  if (req.status === "Approved" && req.job.status === "Closed") return { error: "This job is Closed; its payments can't be changed." };
+  const removed = await prisma.$transaction(async (tx) => {
+    const r = await removeRecordedPayments(tx, id);
+    await tx.installationRequest.delete({ where: { id } });
+    return r;
+  }, { timeout: 20000 });
+  await logActivity(
+    req.jobId,
+    `${user.name} deleted ${req.status === "Approved" ? "an approved" : req.status === "Rejected" ? "a rejected" : "a waiting"} installation request.${removed.count ? ` ${removed.count} payment${removed.count === 1 ? "" : "s"} (${fmt(removed.total)}) removed from the job.` : ""}`
+  );
   revalidatePath("/installation");
+  revalidatePath(`/jobs/${req.jobId}`);
   return { error: null };
 }

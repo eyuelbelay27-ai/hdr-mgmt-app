@@ -65,13 +65,12 @@ const file = (name: string | null, url: string | null, kind: string | null): Fil
   url ? { name: name ?? "file", url, kind: kind ?? "application/octet-stream" } : null;
 
 /**
- * Requests visible to this user, newest first: approvers see every
- * request, requesters only their own. The job's price and its payment
- * list are only included for approvers (they're financial details).
+ * Every request, newest first — everyone with the page sees them all
+ * (Waiting / Approved / Rejected). The job's price and its payment list
+ * are only included for approvers (they're financial details).
  */
-export async function loadRequests(userId: string, canApprove: boolean): Promise<InstallationRequestData[]> {
+export async function loadRequests(_userId: string, canApprove: boolean): Promise<InstallationRequestData[]> {
   const rows = await prisma.installationRequest.findMany({
-    where: canApprove ? {} : { submittedById: userId },
     orderBy: { submittedAt: "desc" },
     take: 300,
     include: {
