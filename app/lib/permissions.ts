@@ -54,6 +54,8 @@ export const ACTION_KEYS = [
   { key: "manageCrmLeads", label: "CRM: register & assign leads, see every rep's leads" },
   { key: "workCrmLeads", label: "CRM: work assigned leads as a sales rep" },
   { key: "managePayroll", label: "Payroll: manage employees, debts, overtime rates and monthly payroll" },
+  { key: "requestInstallation", label: "Installation Approval: request approval (with the remaining payments) before a sign goes out for installation" },
+  { key: "approveInstallation", label: "Installation Approval: see every request, approve or reject (payments are recorded on approval)" },
   { key: "editSchedule", label: "Workshop Schedule: add, move and delete jobs, change working days (without it the schedule is view-only)" },
 ] as const;
 
@@ -70,6 +72,7 @@ export const PAGE_KEYS = [
   { key: "pulseclock", label: "PulseClock" },
   { key: "pricing", label: "Pricing" },
   { key: "workshop", label: "Workshop Schedule" },
+  { key: "installation", label: "Installation Approval" },
   { key: "payroll", label: "Payroll" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
@@ -132,7 +135,7 @@ export const DEFAULT_PAGES_BY_ROLE: Record<Role, PageKey[]> = {
   Supervisor: ["dashboard", "jobs"],
   Manager: ["dashboard", "jobs", "calculator"],
   OwnerFinance: ["dashboard", "jobs", "calculator", "inventory", "reconciliation"],
-  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "pricing", "workshop", "payroll", "users", "settings"],
+  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "pricing", "workshop", "installation", "payroll", "users", "settings"],
 };
 
 export const DEFAULT_TABS_BY_ROLE: Record<Role, TabKey[]> = {

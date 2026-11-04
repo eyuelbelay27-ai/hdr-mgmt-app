@@ -64,6 +64,20 @@ export async function sendSms(phones: string[], text: string): Promise<SmsResult
   return Promise.all(phones.map((p) => sendOne(key, p, text)));
 }
 
+/** Job number + title, shortened so `head + title + tail` fits one SMS. */
+function fitTitle(head: string, title: string, tail: string): string {
+  const room = 160 - head.length - tail.length;
+  return title.length > room ? `${title.slice(0, Math.max(0, room - 1))}…` : title;
+}
+
+/** "Installation approval requested for Job …" with a link to the request board. */
+export function installationSmsText(job: { jobNumber: string; title: string }, resent: boolean): string {
+  const base = (process.env.AUTH_URL || "https://hdr-mgmt-app.app.aletcloud.com").replace(/\/+$/, "");
+  const head = `Hadar: Installation approval ${resent ? "re-sent" : "requested"} for Job ${job.jobNumber} "`;
+  const tail = `". ${base}/installation`;
+  return `${head}${fitTitle(head, job.title, tail)}${tail}`;
+}
+
 /** Short enough for one SMS (160 characters): job number, title, link. */
 export function approvalSmsText(job: { id: string; jobNumber: string; title: string }): string {
   const base = (process.env.AUTH_URL || "https://hdr-mgmt-app.app.aletcloud.com").replace(/\/+$/, "");
