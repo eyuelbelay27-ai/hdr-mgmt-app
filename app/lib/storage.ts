@@ -118,3 +118,10 @@ export async function deleteUpload(url: string | null | undefined): Promise<void
     // Orphaned file cleanup is best-effort only.
   }
 }
+
+/** True when `url` points at a file this app stored (S3 bucket or local uploads). */
+export function isStoredUploadUrl(url: unknown): url is string {
+  if (typeof url !== "string" || url.length > 1000) return false;
+  if (s3Client) return url.startsWith(`${S3_PUBLIC_URL_BASE}/uploads/`);
+  return url.startsWith("/uploads/");
+}

@@ -116,10 +116,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  priceHistoryChanges MaterialPriceHistory[]
-  overtimeRequests    OvertimeRequest[]      @relation("OvertimeSubmittedBy")
-  crmLeads            CrmLead[]              @relation("CrmLeadAssignedTo")
-  crmWeeklyReports    CrmWeeklyReport[]      @relation("CrmReportRep")
+  priceHistoryChanges  MaterialPriceHistory[]
+  overtimeRequests     OvertimeRequest[]      @relation("OvertimeSubmittedBy")
+  installationRequests InstallationRequest[]  @relation("InstallationSubmittedBy")
+  crmLeads             CrmLead[]              @relation("CrmLeadAssignedTo")
+  crmWeeklyReports     CrmWeeklyReport[]      @relation("CrmReportRep")
 }
 
 // -----------------------------------------------------------------------
@@ -163,11 +164,11 @@ model MaterialPriceHistory {
 // Job (Section 4.1)
 // -----------------------------------------------------------------------
 model Job {
-  id             String     @id @default(cuid())
-  jobNumber      String     @unique
-  status         JobStatus  @default(Draft)
-  previousStatus JobStatus?
-  deadline       DateTime?
+  id                String     @id @default(cuid())
+  jobNumber         String     @unique
+  status            JobStatus  @default(Draft)
+  previousStatus    JobStatus?
+  deadline          DateTime?
   // Set when the job is created (editable while Draft): the sales rep's name
   // and the deadline the client asked for. Both pre-fill the Workshop
   // Schedule at budget approval, where the approved `deadline` is set.
@@ -199,9 +200,9 @@ model Job {
   cutFiles        CutFile[]
 
   // Cost Estimate (Section 7.2)
-  costEstimatePreparedBy  String?
-  costEstimateGeneratedAt DateTime?
-  costEstimateSoldPrice   Decimal            @default(0) @db.Decimal(14, 2)
+  costEstimatePreparedBy        String?
+  costEstimateGeneratedAt       DateTime?
+  costEstimateSoldPrice         Decimal            @default(0) @db.Decimal(14, 2)
   // Commission is Active/Inactive as before; while Active, Percentage (of
   // Sub Total, user-adjustable, no longer fixed at 7%) and Manual (a flat
   // Br figure typed directly) are two different ways to arrive at the
@@ -268,8 +269,9 @@ model Job {
   activity         ActivityEntry[]
   inventoryEntries InventoryEntry[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  installationRequests InstallationRequest[]
 }
 
 /**
@@ -786,9 +788,11 @@ model PayrollEmployee {
   updatedAt DateTime @updatedAt
 }
 
-/** Money an employee owes the company (an advance or loan). Repaid only
+/**
+ * Money an employee owes the company (an advance or loan). Repaid only
  * through PayrollEntry.debtRepayment; the outstanding balance is always
- * computed (sum of debts − sum of repayments), never stored. */
+ * computed (sum of debts − sum of repayments), never stored.
+ */
 model PayrollDebt {
   id         String          @id @default(cuid())
   employee   PayrollEmployee @relation(fields: [employeeId], references: [id])
@@ -802,8 +806,10 @@ model PayrollDebt {
   @@index([employeeId])
 }
 
-/** Singleton. Overtime is paid as hours × hourly wage × multiplier, where
- * hourly wage = monthly salary ÷ hoursPerMonth. */
+/**
+ * Singleton. Overtime is paid as hours × hourly wage × multiplier, where
+ * hourly wage = monthly salary ÷ hoursPerMonth.
+ */
 model PayrollSettings {
   id                  String   @id @default("singleton")
   hoursPerMonth       Decimal  @default(208) @db.Decimal(6, 2)
@@ -814,10 +820,12 @@ model PayrollSettings {
   updatedAt           DateTime @updatedAt
 }
 
-/** One employee's pay for one month. The salary, hoursPerMonth and the four
+/**
+ * One employee's pay for one month. The salary, hoursPerMonth and the four
  * multipliers are snapshots taken when the month was started, so editing
  * Settings or an employee's salary later only affects months started after
- * that. The salary snapshot stays editable on the row itself. */
+ * that. The salary snapshot stays editable on the row itself.
+ */
 model PayrollEntry {
   id         String          @id @default(cuid())
   employee   PayrollEmployee @relation(fields: [employeeId], references: [id])
@@ -840,9 +848,9 @@ model PayrollEntry {
   debtRepayment  Decimal @default(0) @db.Decimal(14, 2)
 
   // Pay types for this month (snapshot of the employee's, adjustable per row).
-  paySalary     Boolean @default(true)
-  payOvertime   Boolean @default(true)
-  payCommission Boolean @default(false)
+  paySalary     Boolean             @default(true)
+  payOvertime   Boolean             @default(true)
+  payCommission Boolean             @default(false)
   commissions   PayrollCommission[]
 
   // Optional proof of payment — a bank slip or transfer screenshot.
@@ -858,9 +866,11 @@ model PayrollEntry {
   @@index([year, month])
 }
 
-/** A penalty or other deduction, subtracted from that employee's net pay
+/**
+ * A penalty or other deduction, subtracted from that employee's net pay
  * for the given month (Ethiopian calendar, same as PayrollEntry). Net pay
- * is allowed to go negative. */
+ * is allowed to go negative.
+ */
 model PayrollDeduction {
   id         String          @id @default(cuid())
   employee   PayrollEmployee @relation(fields: [employeeId], references: [id])
@@ -876,9 +886,11 @@ model PayrollDeduction {
   @@index([employeeId])
 }
 
-/** One commission line on a monthly payroll row: a typed job/customer name
+/**
+ * One commission line on a monthly payroll row: a typed job/customer name
  * and amount. A row can have any number; they're summed into gross pay
- * while the row's payCommission is on. */
+ * while the row's payCommission is on.
+ */
 model PayrollCommission {
   id        String       @id @default(cuid())
   entry     PayrollEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
@@ -920,8 +932,10 @@ model PulseEmployee {
   updatedAt DateTime @updatedAt
 }
 
-/** One employee's attendance for one work day (Addis Ababa date, stored
- * as that day's UTC midnight). */
+/**
+ * One employee's attendance for one work day (Addis Ababa date, stored
+ * as that day's UTC midnight).
+ */
 model PulseAttendance {
   id         String        @id @default(cuid())
   employee   PulseEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
@@ -960,7 +974,9 @@ model PulseHoliday {
   createdAt DateTime @default(now())
 }
 
-/** Append-only log of check-ins and admin changes. */
+/**
+ * Append-only log of check-ins and admin changes.
+ */
 model PulseAudit {
   id        String   @id @default(cuid())
   actor     String
@@ -971,8 +987,10 @@ model PulseAudit {
   @@index([createdAt])
 }
 
-/** Singleton. Times are minutes after midnight, Addis Ababa. workDays uses
- * JS weekday numbers (0 = Sunday). */
+/**
+ * Singleton. Times are minutes after midnight, Addis Ababa. workDays uses
+ * JS weekday numbers (0 = Sunday).
+ */
 model PulseSettings {
   id            String   @id @default("singleton")
   shiftStartMin Int      @default(510)
@@ -982,7 +1000,6 @@ model PulseSettings {
   adminPinHash  String?
   updatedAt     DateTime @updatedAt
 }
-
 
 // ---------------------------------------------------------------------------
 // Pricing — standalone quote tools (Lightbox, Neon, Tapela, Hanger). Each
@@ -1019,4 +1036,64 @@ model WorkshopStore {
   version   Int      @default(0)
   updatedBy String?
   updatedAt DateTime @updatedAt
+}
+
+// -----------------------------------------------------------------------
+// Installation Approval — before a sign leaves the workshop, an employee
+// asks for approval with the remaining payment(s) collected from the
+// client. The payments are recorded on the job only once approved.
+// -----------------------------------------------------------------------
+enum InstallationStatus {
+  Pending
+  Approved
+  Rejected
+}
+
+model InstallationRequest {
+  id     String             @id @default(cuid())
+  job    Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId  String
+  status InstallationStatus @default(Pending)
+  note   String?
+
+  submittedBy   User     @relation("InstallationSubmittedBy", fields: [submittedById], references: [id])
+  submittedById String
+  // Last time it was sent (a rejected request can be edited and re-sent).
+  submittedAt   DateTime @default(now())
+  sendCount     Int      @default(1)
+
+  // Optional withholding receipt — kept on the request only.
+  withholdingName String?
+  withholdingUrl  String?
+  withholdingKind String?
+
+  // Snapshot names, like OvertimeRequest.decidedBy.
+  decidedBy     String?
+  decidedAt     DateTime?
+  rejectionNote String?
+
+  payments  InstallationPayment[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  @@index([jobId])
+  @@index([status])
+}
+
+model InstallationPayment {
+  id        String              @id @default(cuid())
+  request   InstallationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestId String
+  amount    Decimal             @db.Decimal(14, 2)
+  method    String?
+
+  receiptName String
+  receiptUrl  String
+  receiptKind String
+
+  // The job Payment created from this one when the request was approved.
+  paymentId String?
+  createdAt DateTime @default(now())
+
+  @@index([requestId])
 }
