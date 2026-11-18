@@ -321,7 +321,7 @@ export function PnlApp({ initialAccounts, initialEntries }: { initialAccounts: A
 }
 
 // ================= sheets =================
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => {
     const k = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", k);
@@ -338,7 +338,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-function EthDate({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
+export function EthDate({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
   const e = toEth(value);
   const ty = toEth(addisToday()).y;
   const years: number[] = [];

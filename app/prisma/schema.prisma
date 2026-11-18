@@ -1151,3 +1151,38 @@ model PnlEntry {
 
   @@index([date])
 }
+
+// ---------- Cash Book ----------
+enum CashBookType {
+  in
+  out
+}
+
+model CashBookEntry {
+  id          String       @id @default(cuid())
+  type        CashBookType
+  amount      Decimal      @db.Decimal(14, 2)
+  date        DateTime     @db.Date
+  description String
+  bank        String
+  category    String?
+  ref         String?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([date])
+}
+
+/// One row ("main") holding the Cash Book's settings.
+model CashBookSettings {
+  id          String    @id @default("main")
+  banks       String[]
+  categories  String[]
+  opening     Decimal   @default(0) @db.Decimal(14, 2)
+  openingDate DateTime? @db.Date
+  company     String    @default("Hadar Trading PLC")
+  address     String    @default("Hayahulet, Bata Complex Building, 2nd Floor, Addis Ababa")
+  preparedBy  String    @default("")
+  updatedAt   DateTime  @updatedAt
+}
