@@ -4,8 +4,10 @@ import { addisToday } from "@/lib/ethiopian";
 import { ecShort, gcShort, money, type CbPeriodData, type CbSettings } from "@/lib/cashbook";
 
 // jsPDF ships with the app (public/pricing-assets) and loads on first use.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const jspdf = () => (window as unknown as { jspdf?: { jsPDF: new (o: object) => any } }).jspdf;
 function loadJsPdf(): Promise<void> {
-  if (window.jspdf) return Promise.resolve();
+  if (jspdf()) return Promise.resolve();
   return new Promise((resolve, reject) => {
     const s = document.createElement("script");
     s.src = "/pricing-assets/jspdf.umd.min.js";
@@ -33,8 +35,7 @@ const safe = (s: string) => String(s ?? "").replace(/−/g, "-").replace(/[^\x00
 export async function downloadCashBookPdf(p: CbPeriodData, from: string, to: string, s: CbSettings): Promise<void> {
   await loadJsPdf();
   const png = await logoDataUrl();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const doc: any = new window.jspdf!.jsPDF({ unit: "mm", format: "a4" });
+  const doc = new (jspdf()!.jsPDF)({ unit: "mm", format: "a4" });
   const W = 210, M = 14, CR = [196, 22, 67], INK = [23, 18, 26], GR = [94, 85, 96], GREEN = [22, 122, 80];
   const tx = (t: string, x: number, y: number, o?: object) => doc.text(safe(t), x, y, o);
 

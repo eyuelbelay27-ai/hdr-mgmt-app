@@ -2335,7 +2335,55 @@ button.tab {
   .pnl-head h1 { font-size: 28px; }
 }
 
-/* ---------- Cash Book (reuses the .pnl-* building blocks) ---------- */
+/* ---------- Cash Book (standalone; shares nothing with P&L) ---------- */
+.cb { max-width: 760px; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.cb-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.cb-head .btn { display: inline-flex; align-items: center; gap: 6px; }
+.cb-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.cb-tabs .tab { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cb-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }
+.cb-iconbtn { width: 38px; height: 38px; border-radius: 11px; border: 1px solid var(--border); background: var(--surface); color: var(--accent); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
+.cb-iconbtn.light { background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .3); color: #fff; }
+.cb-day { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-dim); margin: 14px 4px 6px; }
+.cb-day b { color: var(--accent); }
+.cb-list { padding: 0; overflow: hidden; }
+.cb-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; text-align: left; background: none; border: 0; border-top: 1px solid var(--border); color: var(--text); font: inherit; cursor: pointer; }
+.cb-row:first-child { border-top: 0; }
+.cb-row:hover { background: var(--surface-2); }
+.cb-dot { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; flex-shrink: 0; background: var(--accent-soft); color: var(--accent); }
+.cb-dot.in { background: var(--success-soft); color: var(--success); }
+.cb-mid { flex: 1; min-width: 0; }
+.cb-mid b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-mid > span { display: block; font-size: 12.5px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-amt { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cb-amt.in { color: var(--success); }
+.cb-amt small { display: block; font-weight: 400; font-size: 12px; color: var(--text-dim); }
+.cb-empty { background: var(--accent-soft); border-radius: 16px; padding: 24px 18px; text-align: center; color: var(--text-dim); display: grid; justify-items: center; gap: 8px; }
+.cb-empty h2 { font-size: 19px; color: var(--text); margin: 0; }
+.cb-empty p { margin: 0 0 6px; max-width: 38ch; }
+.cb-seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--surface-2); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 10px; }
+.cb-seg button { border: 0; background: none; border-radius: 9px; padding: 9px 6px; font: inherit; font-weight: 600; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.cb-seg button[aria-pressed="true"] { background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color: #fff; box-shadow: 0 3px 10px rgba(196, 22, 67, .22); }
+.cb-seg.big button { padding: 12px 6px; font-size: 15px; }
+.cb-block { width: 100%; margin-top: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.cb-scrim { position: fixed; inset: 0; z-index: 200; background: rgba(40, 6, 18, .5); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.cb-sheet { width: 100%; max-width: 560px; max-height: calc(100vh - 48px); overflow: auto; background: var(--surface); border-radius: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, .3); }
+.cb-shead { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color: #fff; }
+.cb-shead h2 { margin: 0; font-size: 19px; }
+.cb-sbody { padding: 18px; }
+.cb-f { display: block; margin-bottom: 14px; }
+.cb-f > span { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.cb-f > em { display: block; font-style: normal; font-size: 12px; color: var(--text-dim); margin-top: 5px; }
+.cb-amount { font-size: 28px !important; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.cb-date3 { display: grid; grid-template-columns: 1fr 1.6fr 1.2fr; gap: 8px; }
+.cb-sactions { display: flex; gap: 8px; margin-top: 6px; }
+.cb-sactions .btn { flex: 1; }
+.cb-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 28px; z-index: 210; background: linear-gradient(135deg, var(--accent), var(--accent-deep)); color: #fff; padding: 10px 18px; border-radius: 12px; font-weight: 600; box-shadow: 0 8px 20px rgba(138, 15, 48, .3); }
+@media (max-width: 700px) {
+  .cb-scrim { align-items: flex-end; padding: 0; }
+  .cb-sheet { max-width: none; max-height: 92vh; border-radius: 22px 22px 0 0; }
+  .cb-head h1 { font-size: 28px; }
+}
 .cb-cal { margin: 0; width: min(100%, 240px); }
 .cb-cal button { padding: 7px 8px; font-size: 13px; }
 .cb-hero { position: relative; overflow: hidden; border-radius: 20px; padding: 18px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-deep)); box-shadow: 0 10px 26px rgba(196, 22, 67, .22); margin-top: 8px; }
