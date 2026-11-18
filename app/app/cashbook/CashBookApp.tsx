@@ -7,7 +7,7 @@ import {
   byDateAsc, ecShort, ethStr, gcShort, gregStr, monthName, monthOf, monthRange, money, periodData, runningBalances, shiftMonth, spanLabels, switchCal,
   type Cal, type CbEntry, type CbSettings, type Month,
 } from "@/lib/cashbook";
-import { EthDate, Sheet } from "../pnl/PnlApp";
+import { EthDate, Sheet } from "./ui";
 import { deleteCbEntryAction, saveCbEntryAction, saveCbSettingsAction } from "./actions";
 import { downloadCashBookCsv, downloadCashBookPdf } from "./pdf";
 
@@ -93,9 +93,9 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
           <small>Cash on hand</small>
           <div className="cb-bal">{bal(balances.total)}<span>ETB</span></div>
           <div className="cb-month">
-            <button type="button" className="pnl-iconbtn light" aria-label="Previous month" onClick={() => setMonth((m) => shiftMonth(m, -1))}><ChevronLeft size={18} /></button>
+            <button type="button" className="cb-iconbtn light" aria-label="Previous month" onClick={() => setMonth((m) => shiftMonth(m, -1))}><ChevronLeft size={18} /></button>
             <div><b>{monthName(month)}</b><span>{lbl.s}</span></div>
-            <button type="button" className="pnl-iconbtn light" aria-label="Next month" onClick={() => setMonth((m) => shiftMonth(m, 1))}><ChevronRight size={18} /></button>
+            <button type="button" className="cb-iconbtn light" aria-label="Next month" onClick={() => setMonth((m) => shiftMonth(m, 1))}><ChevronRight size={18} /></button>
           </div>
           <div className="cb-split">
             <div><small>Cash in</small><b>{money(tin)}</b></div>
@@ -107,7 +107,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
           <button type="button" className="cb-big out" onClick={() => setSheet({ id: null, type: "out" })}><Minus size={20} /> Cash Out</button>
         </div>
         <div className="cb-filters">
-          <div className="pnl-seg cb-mini" role="group" aria-label="Show">
+          <div className="cb-seg cb-mini" role="group" aria-label="Show">
             {(["all", "in", "out"] as const).map((f) => (
               <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{f === "all" ? "All" : f === "in" ? "In" : "Out"}</button>
             ))}
@@ -118,7 +118,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
           </label>
         </div>
         {!days.length ? (
-          <div className="pnl-empty">
+          <div className="cb-empty">
             {entries.length === 0 ? (
               <>
                 <BookOpen size={40} />
@@ -137,15 +137,15 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
             const h = dayHead(d.date);
             return (
               <div key={d.date}>
-                <div className="pnl-day"><b>{h.a}</b><span>{h.b}</span></div>
-                <div className="card pnl-list">
+                <div className="cb-day"><b>{h.a}</b><span>{h.b}</span></div>
+                <div className="card cb-list">
                   {d.items.map((e) => {
                     const sub = [e.bank ? (e.type === "in" ? `From ${e.bank}` : e.bank) : "", e.category, e.ref ? `#${e.ref}` : "", `by ${e.createdBy}`].filter(Boolean).join(" · ");
                     return (
-                      <button key={e.id} type="button" className="pnl-row" onClick={() => setSheet({ id: e.id, type: e.type })}>
-                        <span className={`pnl-dot${e.type === "in" ? " in" : ""}`}>{e.type === "in" ? <ArrowDown size={16} /> : <ArrowUp size={16} />}</span>
-                        <span className="pnl-mid"><b>{e.description}</b><span>{sub}</span></span>
-                        <span className={`pnl-amt${e.type === "in" ? " in" : ""}`}>
+                      <button key={e.id} type="button" className="cb-row" onClick={() => setSheet({ id: e.id, type: e.type })}>
+                        <span className={`cb-dot${e.type === "in" ? " in" : ""}`}>{e.type === "in" ? <ArrowDown size={16} /> : <ArrowUp size={16} />}</span>
+                        <span className="cb-mid"><b>{e.description}</b><span>{sub}</span></span>
+                        <span className={`cb-amt${e.type === "in" ? " in" : ""}`}>
                           {e.type === "in" ? "+" : "−"}{money(e.amount)}
                           <small>Bal {bal(balances.map.get(e.id) ?? 0)}</small>
                         </span>
@@ -181,15 +181,15 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
     return (
       <>
         <div className="card cb-panel">
-          <div className="pnl-seg" role="group" aria-label="Period">
+          <div className="cb-seg" role="group" aria-label="Period">
             {([["month", "This month"], ["last", "Last month"], ["custom", "Custom"]] as const).map(([k, l]) => (
               <button key={k} type="button" aria-pressed={rep.kind === k} onClick={() => setRep((r) => ({ ...r, kind: k, from: k === "custom" && !r.from ? from : r.from, to: k === "custom" && !r.to ? to : r.to }))}>{l}</button>
             ))}
           </div>
           {rep.kind === "custom" && (
             <div className="cb-two">
-              <label className="pnl-f"><span>From</span><input className="input" type="date" value={rep.from || from} onChange={(e) => e.target.value && setRep((r) => ({ ...r, from: e.target.value }))} /><em>{ethStr(rep.from || from)}</em></label>
-              <label className="pnl-f"><span>To</span><input className="input" type="date" value={rep.to || to} onChange={(e) => e.target.value && setRep((r) => ({ ...r, to: e.target.value }))} /><em>{ethStr(rep.to || to)}</em></label>
+              <label className="cb-f"><span>From</span><input className="input" type="date" value={rep.from || from} onChange={(e) => e.target.value && setRep((r) => ({ ...r, from: e.target.value }))} /><em>{ethStr(rep.from || from)}</em></label>
+              <label className="cb-f"><span>To</span><input className="input" type="date" value={rep.to || to} onChange={(e) => e.target.value && setRep((r) => ({ ...r, to: e.target.value }))} /><em>{ethStr(rep.to || to)}</em></label>
             </div>
           )}
           <div className="cb-period"><b>{lbl.t}</b><span>{lbl.s}</span></div>
@@ -201,7 +201,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
           </div>
           <button
             type="button"
-            className="btn btn-primary pnl-block"
+            className="btn btn-primary cb-block"
             disabled={pdfBusy}
             onClick={async () => {
               setPdfBusy(true);
@@ -280,7 +280,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
   }
   function SettingsView() {
     const txt = (k: "company" | "address" | "preparedBy", label: string) => (
-      <label className="pnl-f">
+      <label className="cb-f">
         <span>{label}</span>
         <input className="input" defaultValue={settings[k]} maxLength={k === "address" ? 200 : 120} onBlur={(e) => e.target.value.trim() !== settings[k] && updateSettings({ [k]: e.target.value }, "Saved")} />
       </label>
@@ -295,7 +295,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
         <div className="card cb-panel">
           <h3>Opening balance</h3><p className="cb-s">Cash on hand before your first entry.</p>
           <div className="cb-two">
-            <label className="pnl-f">
+            <label className="cb-f">
               <span>Amount (ETB)</span>
               <input
                 className="input"
@@ -308,7 +308,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
                 }}
               />
             </label>
-            <label className="pnl-f">
+            <label className="cb-f">
               <span>As of</span>
               <input className="input" type="date" defaultValue={settings.openingDate ?? ""} onChange={(e) => updateSettings({ openingDate: e.target.value || null }, "Saved")} />
               {settings.openingDate && <em>{ethStr(settings.openingDate)}</em>}
@@ -327,7 +327,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
         </div>
         <div className="card cb-panel">
           <h3>Backup</h3><p className="cb-s">Entries are saved in the app&apos;s database. You can also download them all as a spreadsheet.</p>
-          <button type="button" className="btn pnl-block" style={{ marginTop: 0 }} onClick={() => { downloadCashBookCsv([...entries].sort(byDateAsc)); setToast("Backup downloaded"); }}>
+          <button type="button" className="btn cb-block" style={{ marginTop: 0 }} onClick={() => { downloadCashBookCsv([...entries].sort(byDateAsc)); setToast("Backup downloaded"); }}>
             <FileDown size={16} /> Download all entries (CSV)
           </button>
         </div>
@@ -336,19 +336,19 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
   }
 
   return (
-    <div className="pnl">
-      <div className="pnl-head">
+    <div className="cb">
+      <div className="cb-head">
         <div>
           <h1 style={{ margin: 0 }}>Cash Book</h1>
           <p className="label" style={{ margin: "4px 0 0" }}>Hadar Trading PLC · ETB</p>
         </div>
-        <div className="pnl-seg cb-cal" role="group" aria-label="Calendar">
+        <div className="cb-seg cb-cal" role="group" aria-label="Calendar">
           <button type="button" aria-pressed={cal === "ec"} onClick={() => setCal("ec")}>Ethiopian</button>
           <button type="button" aria-pressed={cal === "gc"} onClick={() => setCal("gc")}>Gregorian</button>
         </div>
       </div>
 
-      <div className="pnl-tabs">
+      <div className="cb-tabs">
         {([["book", "Cash Book", BookOpen], ["report", "PDF Report", FileText], ["settings", "Settings", Settings]] as const).map(([k, l, Icon]) => (
           <button key={k} type="button" className={`tab${tab === k ? " active" : ""}`} onClick={() => { setTab(k); window.scrollTo({ top: 0 }); }}>
             <Icon size={15} /> {l}
@@ -356,7 +356,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
         ))}
       </div>
 
-      <div className="pnl-body">{tab === "book" ? BookView() : tab === "report" ? ReportView() : SettingsView()}</div>
+      <div className="cb-body">{tab === "book" ? BookView() : tab === "report" ? ReportView() : SettingsView()}</div>
 
       {sheet && (
         <EntrySheet
@@ -377,7 +377,7 @@ export function CashBookApp({ initialEntries, initialSettings }: { initialEntrie
           onGoSettings={() => { setSheet(null); setTab("settings"); }}
         />
       )}
-      {toast && <div className="pnl-toast" role="status">{toast}</div>}
+      {toast && <div className="cb-toast" role="status">{toast}</div>}
     </div>
   );
 }
@@ -426,28 +426,28 @@ function EntrySheet({
 
   return (
     <Sheet title={entry ? "Edit entry" : "New entry"} onClose={onClose}>
-      <div className="pnl-seg big cb-type" role="group">
+      <div className="cb-seg big cb-type" role="group">
         <button type="button" className="in" aria-pressed={type === "in"} onClick={() => setType("in")}><Plus size={16} /> Cash In</button>
         <button type="button" aria-pressed={type === "out"} onClick={() => setType("out")}><Minus size={16} /> Cash Out</button>
       </div>
-      <label className="pnl-f">
+      <label className="cb-f">
         <span>Amount (ETB)</span>
-        <input className="input pnl-amount" inputMode="decimal" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus={!entry} />
+        <input className="input cb-amount" inputMode="decimal" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} autoFocus={!entry} />
       </label>
       {cal === "ec" ? (
         <EthDate value={date} onChange={setDate} />
       ) : (
-        <label className="pnl-f">
+        <label className="cb-f">
           <span>Date</span>
           <input className="input" type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} />
           <em>Ethiopian: {ethStr(date)}</em>
         </label>
       )}
-      <label className="pnl-f">
+      <label className="cb-f">
         <span>Description</span>
         <input className="input" maxLength={300} placeholder={type === "in" ? "e.g. Petty cash withdrawal" : "e.g. Acrylic sheets for Zemen Bank sign"} value={description} onChange={(e) => setDescription(e.target.value)} />
       </label>
-      <div className="pnl-f">
+      <div className="cb-f">
         <span>{type === "in" ? "Withdrawn from" : "Bank"}</span>
         {banks.length ? (
           <div className="cb-chips">
@@ -459,14 +459,14 @@ function EntrySheet({
       </div>
       {more ? (
         <div className="cb-two">
-          <label className="pnl-f">
+          <label className="cb-f">
             <span>Category</span>
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
               <option value="">None</option>
               {cats.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </label>
-          <label className="pnl-f">
+          <label className="cb-f">
             <span>Ref / receipt no.</span>
             <input className="input" maxLength={100} value={ref} onChange={(e) => setRef(e.target.value)} />
           </label>
@@ -476,7 +476,7 @@ function EntrySheet({
       )}
       {entry && <p className="label" style={{ margin: "0 0 12px" }}>Recorded by {entry.createdBy}</p>}
       {err && <p className="login-error">{err}</p>}
-      <div className="pnl-sactions">
+      <div className="cb-sactions">
         {entry && (
           <button
             type="button"

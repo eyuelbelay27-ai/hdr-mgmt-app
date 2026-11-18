@@ -4,9 +4,13 @@
  * balance from Settings comes before every entry.
  */
 import { ETH_MONTHS, ethMonthLength, fromEth, toEth } from "@/lib/ethiopian";
-import { ethStr, gregStr, money } from "@/lib/pnl";
 
-export { ethStr, gregStr, money };
+const GMON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "Hidar 9, 2019" */
+export const ethStr = (iso: string) => { const e = toEth(iso); return `${ETH_MONTHS[e.m - 1]} ${e.d}, ${e.y}`; };
+/** "18 Nov 2026" */
+export const gregStr = (iso: string) => { const [y, m, d] = iso.split("-").map(Number); return `${d} ${GMON[m - 1]} ${y}`; };
+export const money = (v: number) => Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export interface CbEntry {
   id: string;
