@@ -1097,3 +1097,57 @@ model InstallationPayment {
 
   @@index([requestId])
 }
+
+// -----------------------------------------------------------------------
+// P&L — the owner's general ledger: accounts (asset / liability / equity /
+// income / expense) and manually entered money-in / money-out entries.
+// Each entry moves money through a cash/bank (asset) account; double entry
+// is derived from that (see lib/pnl.ts).
+// -----------------------------------------------------------------------
+enum PnlAccountType {
+  asset
+  liability
+  equity
+  income
+  expense
+}
+
+enum PnlEntryKind {
+  in
+  out
+}
+
+model PnlAccount {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  type      PnlAccountType
+  createdAt DateTime       @default(now())
+
+  cashEntries PnlEntry[] @relation("PnlEntryCash")
+  entries     PnlEntry[] @relation("PnlEntryAccount")
+}
+
+model PnlEntry {
+  id        String       @id @default(cuid())
+  kind      PnlEntryKind
+  amount    Decimal      @db.Decimal(14, 2)
+  // The cash/bank account the money came into or went out of.
+  cash      PnlAccount   @relation("PnlEntryCash", fields: [cashId], references: [id])
+  cashId    String
+  // What it was for (usually income or expense; an asset means a transfer).
+  account   PnlAccount   @relation("PnlEntryAccount", fields: [accountId], references: [id])
+  accountId String
+  date      DateTime     @db.Date
+  note      String
+  ref       String?
+
+  receiptName String?
+  receiptUrl  String?
+  receiptKind String?
+
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}

@@ -73,6 +73,7 @@ export const PAGE_KEYS = [
   { key: "pricing", label: "Pricing" },
   { key: "workshop", label: "Workshop Schedule" },
   { key: "installation", label: "Installation Approval" },
+  { key: "pnl", label: "P&L" },
   { key: "payroll", label: "Payroll" },
   { key: "users", label: "Users" },
   { key: "settings", label: "Settings" },
@@ -135,7 +136,7 @@ export const DEFAULT_PAGES_BY_ROLE: Record<Role, PageKey[]> = {
   Supervisor: ["dashboard", "jobs"],
   Manager: ["dashboard", "jobs", "calculator"],
   OwnerFinance: ["dashboard", "jobs", "calculator", "inventory", "reconciliation"],
-  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "pricing", "workshop", "installation", "payroll", "users", "settings"],
+  Admin: ["dashboard", "jobs", "calculator", "inventory", "reconciliation", "overtime", "crm", "pulseclock", "pricing", "workshop", "installation", "pnl", "payroll", "users", "settings"],
 };
 
 export const DEFAULT_TABS_BY_ROLE: Record<Role, TabKey[]> = {
